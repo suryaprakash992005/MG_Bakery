@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --font-playfair: "Playfair Display", serif;
+  --font-poppins: "Poppins", sans-serif;
+
+  --color-brand-brown-50: #FDFBFB;
+  --color-brand-brown-100: #F7EFEF;
+  --color-brand-brown-200: #ECDCDC;
+  --color-brand-brown-300: #DCBEBE;
+  --color-brand-brown-400: #C29696;
+  --color-brand-brown-500: #A46E6E;
+  --color-brand-brown-600: #865151;
+  --color-brand-brown-700: #6E4040;
+  --color-brand-brown-800: #5B3535;
+  --color-brand-brown-900: #4D2E2E;
+  --color-brand-brown-950: #2C1717;
+
+  --color-brand-cream-50: #FAF8F5;
+  --color-brand-cream-100: #F3EDE2;
+  --color-brand-cream-200: #E7DCBA;
+  --color-brand-cream-300: #D5C493;
+  --color-brand-cream-400: #BEA66B;
+  --color-brand-cream-500: #A38848;
+
+  --color-brand-gold-50: #FCF9EE;
+  --color-brand-gold-100: #F8F2CE;
+  --color-brand-gold-200: #EFE295;
+  --color-brand-gold-300: #E0CC56;
+  --color-brand-gold-400: #CFB12B;
+  --color-brand-gold-500: #B89B1C;
+  --color-brand-gold-600: #9C8114;
+  --color-brand-gold-700: #7E6610;
+  --color-brand-gold-850: #D4AF37;
+
+  --color-brand-orange-50: #FFF9F5;
+  --color-brand-orange-100: #FFEEDF;
+  --color-brand-orange-200: #FED2B3;
+  --color-brand-orange-300: #FDAE7B;
+  --color-brand-orange-400: #FC843C;
+  --color-brand-orange-500: #F45A07;
+
+  --animate-fade-in-up: fadeInUp 0.8s ease-out forwards;
+  --animate-fade-in: fadeIn 0.5s ease-out forwards;
+  --animate-slide-up: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes slideUp {
+    0% { transform: translateY(100%); }
+    100% { transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-brand-cream-50 text-brand-brown-950 font-poppins antialiased overflow-x-hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-playfair;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-lg shadow-brand-brown-950/5;
+  }
+
+  .glass-nav {
+    @apply bg-brand-cream-50/80 backdrop-blur-lg border-b border-brand-cream-100/40;
+  }
+
+  .btn-primary {
+    @apply bg-brand-brown-950 text-brand-cream-50 hover:bg-brand-brown-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform active:scale-95 shadow-md shadow-brand-brown-950/15 flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-brand-cream-100/80 text-brand-brown-950 hover:bg-brand-cream-200/80 border border-brand-cream-200 px-6 py-3 rounded-full font-medium transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .btn-gold {
+    @apply bg-brand-gold-850 hover:bg-brand-gold-600 text-brand-brown-950 hover:text-white px-6 py-3 rounded-full font-medium transition-all duration-300 transform active:scale-95 shadow-md shadow-brand-gold-500/10 flex items-center justify-center gap-2;
+  }
+
+  .luxury-heading {
+    @apply font-playfair text-brand-brown-950 relative pb-4 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-16 after:h-[2px] after:bg-brand-gold-850;
+  }
+
+  .luxury-heading-center {
+    @apply font-playfair text-brand-brown-950 relative pb-4 after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-16 after:h-[2px] after:bg-brand-gold-850;
+  }
+}
+
+/* Custom Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-brand-cream-50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-brand-brown-800/20 rounded-full hover:bg-brand-brown-800/40 transition-colors duration-300;
+}
+
+/* Remove defaults that clash with styling */
+button:focus, button:focus-visible {
+  outline: none;
+}
