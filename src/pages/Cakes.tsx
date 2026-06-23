@@ -16,15 +16,15 @@ const FLAVOR_OPTIONS = [
 const PRICE_OPTIONS = [
   { value: 'All', label: 'All Prices', image: 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?auto=format&fit=crop&w=150&q=80' },
   { value: 'under-400', label: 'Under ₹400', image: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&w=150&q=80' },
-  { value: '400-800', label: '₹400 - ₹800', image: 'https://images.unsplash.com/photo-1562266648-a40d52b1f939?auto=format&fit=crop&w=150&q=80' },
+  { value: '400-800', label: '₹400 - ₹800', image: 'https://images.unsplash.com/photo-1519340333755-56e9c1d04579?auto=format&fit=crop&w=150&q=80' },
   { value: 'above-800', label: 'Above ₹800', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=150&q=80' }
 ];
 
 const WEIGHT_OPTIONS = [
-  { value: 'All', label: 'All Sizes', image: 'https://images.unsplash.com/photo-1557925923-cd4648e21187?auto=format&fit=crop&w=150&q=80' },
+  { value: 'All', label: 'All Sizes', image: 'https://images.unsplash.com/photo-1602351447937-745cb720612f?auto=format&fit=crop&w=150&q=80' },
   { value: 'piece', label: 'Slices / Pieces', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=150&q=80' },
   { value: 'halfKg', label: '½ Kg Options', image: 'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=150&q=80' },
-  { value: 'oneKg', label: '1 Kg Options', image: 'https://images.unsplash.com/photo-1614707267537-b85acf00c4b8?auto=format&fit=crop&w=150&q=80' }
+  { value: 'oneKg', label: '1 Kg Options', image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=150&q=80' }
 ];
 
 

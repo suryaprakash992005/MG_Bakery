@@ -9,14 +9,24 @@ import { CustomCake } from './pages/CustomCake';
 import { Gallery } from './pages/Gallery';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
+import { AdminApp } from './admin/AdminApp';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('home');
+
+  // Intercept Admin system routes
+  const isLocationAdmin = 
+    window.location.pathname.startsWith('/admin') || 
+    window.location.pathname === '/admin-login';
 
   // Scroll to top automatically when page changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as any });
   }, [currentPage]);
+
+  if (isLocationAdmin) {
+    return <AdminApp />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -89,3 +99,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

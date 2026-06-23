@@ -70,12 +70,12 @@ export const CustomCake: React.FC = () => {
 
   const weightOptionsMapped = weightOptions.map((weight, idx) => {
     const images = [
-      'https://images.unsplash.com/photo-1557925923-cd4648e21187?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1602351447937-745cb720612f?auto=format&fit=crop&w=150&q=80',
       'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=150&q=80',
       'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=150&q=80',
-      'https://images.unsplash.com/photo-1614707267537-b85acf00c4b8?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=150&q=80',
       'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=150&q=80',
-      'https://images.unsplash.com/photo-1562266648-a40d52b1f939?auto=format&fit=crop&w=150&q=80',
+      'https://images.unsplash.com/photo-1519340333755-56e9c1d04579?auto=format&fit=crop&w=150&q=80',
       'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=150&q=80',
       'https://images.unsplash.com/photo-1508737027454-e6454ef45afd?auto=format&fit=crop&w=150&q=80'
     ];

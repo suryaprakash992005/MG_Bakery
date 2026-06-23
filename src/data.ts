@@ -36,7 +36,7 @@ export const PRODUCTS: Product[] = [
     name: 'White Truffle',
     description: 'Rich, velvety white chocolate ganache layered with moist white cake, coated in silky white glaze and chocolate curls.',
     price: { piece: 70, halfKg: 420, oneKg: 800 },
-    image: 'https://images.unsplash.com/photo-1562266648-a40d52b1f939?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1519340333755-56e9c1d04579?auto=format&fit=crop&w=800&q=80',
     category: 'Cakes',
     tags: ['Chocolate & Truffle', 'Premium'],
     isEggless: true
@@ -68,7 +68,7 @@ export const PRODUCTS: Product[] = [
     name: 'Pineapple',
     description: 'Soft vanilla sponge filled with chopped glazed pineapple chunks, pineapple syrup, and fluffy whipped cream.',
     price: { piece: 50, halfKg: 350, oneKg: 680 },
-    image: 'https://images.unsplash.com/photo-1557925923-cd4648e21187?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1602351447937-745cb720612f?auto=format&fit=crop&w=800&q=80',
     category: 'Cakes',
     tags: ['Fruit & Berry', 'Classic'],
     isEggless: true
@@ -88,7 +88,7 @@ export const PRODUCTS: Product[] = [
     name: 'Mango',
     description: 'Summery indulgence featuring fresh mango pulp layered in vanilla cake, frosted with light mango-infused cream.',
     price: { piece: 60, halfKg: 380, oneKg: 750 },
-    image: 'https://images.unsplash.com/photo-1535141192574-5d4897c13636?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=800&q=80',
     category: 'Cakes',
     tags: ['Fruit & Berry', 'Seasonal'],
     isEggless: true
@@ -119,7 +119,7 @@ export const PRODUCTS: Product[] = [
     name: 'Black Currant',
     description: 'Rich dark grape and blackcurrant jam layers in fluffy vanilla sponge, topped with dried blackcurrants.',
     price: { piece: 60, halfKg: 380, oneKg: 750 },
-    image: 'https://images.unsplash.com/photo-1622896784083-cc051ee7d40e?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1513530534585-c7b1394c6d51?auto=format&fit=crop&w=800&q=80',
     category: 'Cakes',
     tags: ['Fruit & Berry'],
     isEggless: true
@@ -139,7 +139,7 @@ export const PRODUCTS: Product[] = [
     name: 'Rainbow',
     description: 'Six vibrant, multi-colored vanilla layers representing the rainbow spectrum, filled and frosted with smooth vanilla bean cream.',
     price: { halfKg: 500, oneKg: 950 },
-    image: 'https://images.unsplash.com/photo-1614707267537-b85acf00c4b8?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=800&q=80',
     category: 'Cakes',
     tags: ['Specialty', 'Celebration', 'Premium'],
     isEggless: true
@@ -252,7 +252,7 @@ export const PRODUCTS: Product[] = [
     name: 'Premium Butter Cookies',
     description: 'Melt-in-mouth golden baked cookies enriched with pure dairy butter and vanilla bean.',
     price: 80, // Per 250g
-    image: 'https://images.unsplash.com/photo-1558961309-dbdf71791f5a?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
     category: 'Cookies',
     tags: ['Sweet', 'Classic']
   },
@@ -291,7 +291,7 @@ export const PRODUCTS: Product[] = [
     name: 'Spicy Paneer Puff',
     description: 'Crispy pastry sheets folded over spiced scrambled paneer (cottage cheese) cubes with coriander.',
     price: 25,
-    image: 'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=800&q=80',
     category: 'Puffs',
     tags: ['Hot Snack', 'Premium']
   },
@@ -323,7 +323,7 @@ export const PRODUCTS: Product[] = [
     name: 'Kara Boondi',
     description: 'Crisp fried chickpea flour balls seasoned with chili powder, curry leaves, and crunchy peanuts.',
     price: 40, // 200g
-    image: 'https://images.unsplash.com/photo-1613721418184-2438c82524a4?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=800&q=80',
     category: 'Snacks',
     tags: ['Savory', 'Spicy'],
     isBestSeller: true
@@ -372,7 +372,7 @@ export const PRODUCTS: Product[] = [
     name: 'Badam Milk (Hot/Cold)',
     description: 'Rich milk slow-boiled with real almond paste, saffron strands, and topped with chopped pistachio bits.',
     price: 35,
-    image: 'https://images.unsplash.com/photo-1571115177098-24ec42ed2bb4?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
     category: 'Beverages',
     tags: ['Signature']
   }
