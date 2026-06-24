@@ -105,8 +105,22 @@ export const AdminStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem('admin_customers', JSON.stringify(INITIAL_CUSTOMERS));
     }
 
-    if (localSettings) setSettings(JSON.parse(localSettings));
-    else {
+    if (localSettings) {
+      let parsed = JSON.parse(localSettings);
+      let migrated = false;
+      if (parsed.phone && parsed.phone.includes('90479')) {
+        migrated = true;
+        parsed.phone = '+91 93455 86112';
+      }
+      if (parsed.whatsappNumber && parsed.whatsappNumber.includes('90479')) {
+        migrated = true;
+        parsed.whatsappNumber = '+91 93455 86112';
+      }
+      setSettings(parsed);
+      if (migrated) {
+        localStorage.setItem('admin_settings', JSON.stringify(parsed));
+      }
+    } else {
       setSettings(INITIAL_SETTINGS);
       localStorage.setItem('admin_settings', JSON.stringify(INITIAL_SETTINGS));
     }

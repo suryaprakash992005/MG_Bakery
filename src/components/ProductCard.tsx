@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
-import { getProductOrderUrl } from '../utils/whatsappHelper';
+import { AddToCartButton } from './AddToCartButton';
 import BorderGlow from './BorderGlow';
 
 interface ProductCardProps {
@@ -42,19 +41,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
-  const handleOrder = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const productName = product.name;
-    const priceVal = getPriceDisplay();
-    let details = `₹${priceVal}`;
-
-    if (isCakeWithMultiPrice) {
-      details += ` (${getTierLabel(selectedTier)})`;
-    }
-
-    const orderUrl = getProductOrderUrl(productName, details);
-    window.open(orderUrl, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <BorderGlow
@@ -140,7 +126,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               </div>
             )}
 
-            {/* Pricing & WhatsApp Button */}
+            {/* Pricing & Add to Cart Button */}
             <div className="flex items-center justify-between gap-4">
               <div>
                 <span className="text-xs text-brand-brown-800/40 block font-light leading-none">
@@ -151,13 +137,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </span>
               </div>
 
-              <button
-                onClick={handleOrder}
-                className="bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 hover:text-brand-gold-850 text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all duration-300 transform active:scale-95 shadow-md shadow-brand-brown-950/15"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Order</span>
-              </button>
+              <AddToCartButton
+                product={product}
+                selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
+                className="px-4 py-2.5 rounded-full text-xs font-semibold"
+              />
             </div>
           </div>
         </div>

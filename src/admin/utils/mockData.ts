@@ -393,8 +393,8 @@ export const INITIAL_CUSTOMERS: AdminCustomer[] = [
 
 export const INITIAL_SETTINGS: BakerySettings = {
   bakeryName: 'M.G. Iyengar Bakery & Chat Corner',
-  phone: '+91 90479 13344',
-  whatsappNumber: '+91 90479 13344',
+  phone: '+91 93455 86112',
+  whatsappNumber: '+91 93455 86112',
   storeAddress: 'M.G. Iyengar Bakery & Chat Corner, Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu - 637015',
   deliveryCharge: 30,
   instagramUrl: 'https://instagram.com/mgiyengar.bakery',

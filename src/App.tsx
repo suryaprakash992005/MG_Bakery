@@ -10,6 +10,8 @@ import { Gallery } from './pages/Gallery';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { AdminApp } from './admin/AdminApp';
+import { CartProvider } from './context/CartContext';
+import { CartDrawer } from './components/CartDrawer';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('home');
@@ -72,29 +74,34 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
-      {/* Premium Floating Navigation Header */}
-      <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+    <CartProvider>
+      <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
+        {/* Premium Floating Navigation Header */}
+        <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
 
-      {/* Main Content Area with Route Transition Animations */}
-      <main className="flex-grow">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentPage}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={pageVariants}
-            className="w-full h-full"
-          >
-            {renderPage()}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+        {/* Shopping Cart Side Drawer */}
+        <CartDrawer />
 
-      {/* Luxury Footer */}
-      <Footer setCurrentPage={setCurrentPage} />
-    </div>
+        {/* Main Content Area with Route Transition Animations */}
+        <main className="flex-grow">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              className="w-full h-full"
+            >
+              {renderPage()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        {/* Luxury Footer */}
+        <Footer setCurrentPage={setCurrentPage} />
+      </div>
+    </CartProvider>
   );
 };
 

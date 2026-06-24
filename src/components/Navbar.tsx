@@ -3,6 +3,7 @@ import { Coffee, PhoneCall } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import { StaggeredMenu, StaggeredMenuItem } from './StaggeredMenu';
+import { CartIcon } from './CartIcon';
 
 interface NavbarProps {
   currentPage: string;
@@ -84,8 +85,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
               })}
             </div>
 
-            {/* Quick WhatsApp Action Button (Desktop) */}
-            <div className="hidden lg:block">
+            {/* Quick WhatsApp Action Button (Desktop) & Shopping Cart */}
+            <div className="hidden lg:flex items-center gap-3">
+              <CartIcon />
               <a
                 href={`https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to explore your menu and place an order.')}`}
                 target="_blank"

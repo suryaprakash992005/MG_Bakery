@@ -89,8 +89,8 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-brand-gold-500 shrink-0" />
-                <a href="tel:+919047913344" className="hover:text-brand-gold-500 transition-colors">
-                  +91 90479 13344
+                <a href="tel:+919345586112" className="hover:text-brand-gold-500 transition-colors">
+                  +91 93455 86112
                 </a>
               </li>
               <li className="flex items-center gap-3">

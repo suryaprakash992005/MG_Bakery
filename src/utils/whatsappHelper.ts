@@ -1,4 +1,4 @@
-export const WHATSAPP_PHONE_NUMBER = '919047913344'; // Replace with real business number
+export const WHATSAPP_PHONE_NUMBER = '919345586112'; // Replace with real business number
 
 /**
  * Generates a WhatsApp order URL for a specific product and optional pricing specification (e.g. piece, 1/2 Kg, 1 Kg)
@@ -33,19 +33,24 @@ export const getCustomCakeInquiryUrl = (data: {
   deliveryDate: string;
   instructions: string;
 }): string => {
-  const text = `Hello M.G. Iyengar Bakery,
+  const text = `🎂 *CUSTOM CAKE INQUIRY - M.G. IYENGAR* 🎂
+----------------------------------------------
+Hello, I would like to inquire about a custom celebration cake.
 
-I would like to inquire about a Custom Celebration Cake:
+👤 *CUSTOMER DETAILS:*
+• *Name:* ${data.name}
+• *Mobile:* ${data.mobile}
 
-Name: ${data.name}
-Mobile Number: ${data.mobile}
-Cake Flavor: ${data.flavor}
-Weight: ${data.weight}
-Occasion: ${data.occasion}
-Delivery Date: ${data.deliveryDate}
-Special Instructions: ${data.instructions || 'None'}
+🍰 *CAKE DETAILS:*
+• *Flavor:* ${data.flavor}
+• *Weight:* ${data.weight}
+• *Occasion:* ${data.occasion}
+• *Delivery Date:* ${data.deliveryDate}
+• *Special Instructions:* ${data.instructions || 'None'}
 
-Please let me know availability, pricing details, and how I can share reference images. Thank you!`;
+Please share the pricing quote, availability, and details on how I can send reference designs/images.
+
+Thank you!`;
 
   return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(text)}`;
 };
@@ -54,11 +59,11 @@ Please let me know availability, pricing details, and how I can share reference 
  * Generates a WhatsApp general contact inquiry URL
  */
 export const getGeneralInquiryUrl = (name: string, message: string): string => {
-  const text = `Hello M.G. Iyengar Bakery,
+  const text = `✉️ *NEW MESSAGE - M.G. IYENGAR BAKERY* ✉️
+----------------------------------------------
+Hello, my name is ${name}.
 
-My name is ${name}.
-
-Inquiry:
+💬 *INQUIRY/MESSAGE:*
 ${message}
 
 Please get back to me. Thank you!`;

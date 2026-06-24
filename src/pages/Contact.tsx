@@ -34,8 +34,8 @@ Message: ${formData.message}`;
   };
 
   const contactCards = [
-    { title: 'Call Us Direct', desc: 'Call us for urgent orders and quick pickups.', val: '+91 90479 13344', icon: Phone, href: 'tel:+919047913344' },
-    { title: 'WhatsApp Ordering', desc: 'Message us to order cakes, pastries, or snacks.', val: '+91 90479 13344', icon: MessageSquare, href: `https://wa.me/${WHATSAPP_PHONE_NUMBER}` },
+    { title: 'Call Us Direct', desc: 'Call us for urgent orders and quick pickups.', val: '+91 93455 86112', icon: Phone, href: 'tel:+919345586112' },
+    { title: 'WhatsApp Ordering', desc: 'Message us to order cakes, pastries, or snacks.', val: '+91 93455 86112', icon: MessageSquare, href: `https://wa.me/${WHATSAPP_PHONE_NUMBER}` },
     { title: 'Bakery Store Location', desc: 'Mohanur Main Road, Mohanur, Namakkal, TN - 637015', val: 'Get Directions', icon: MapPin, href: 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015' },
     { title: 'Daily Hours', desc: 'We are open 7 days a week including holidays.', val: '9:00 AM - 10:00 PM', icon: Clock }
   ];
