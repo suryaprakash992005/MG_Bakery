@@ -4,8 +4,9 @@ import { GALLERY_ITEMS } from '../data';
 import { GalleryItem } from '../types';
 import PillFilters from '../components/PillFilters';
 import BorderGlow from '../components/BorderGlow';
+import { OptimizedImage } from '../components/OptimizedImage';
 
-export const Gallery: React.FC = () => {
+export const Gallery: React.FC = React.memo(() => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeImage, setActiveImage] = useState<GalleryItem | null>(null);
 
@@ -53,7 +54,7 @@ export const Gallery: React.FC = () => {
         />
 
         {/* Gallery Masonry Layout */}
-        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+        <div className="columns-2 lg:columns-3 gap-3 sm:gap-6 space-y-3 sm:space-y-6">
           {filteredGallery.map((item) => (
             <BorderGlow
               key={item.id}
@@ -68,11 +69,10 @@ export const Gallery: React.FC = () => {
               fillOpacity={0.15}
             >
               <div onClick={() => setActiveImage(item)} className="relative group w-full h-full">
-                <img
+                <OptimizedImage
                   src={item.image}
                   alt={item.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-700"
+                  className="transform group-hover:scale-[1.03] transition-transform duration-700"
                 />
                 
                 {/* Cover Overlay on Hover */}
@@ -98,7 +98,10 @@ export const Gallery: React.FC = () => {
 
         {/* Lightbox / Modal */}
         {activeImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-950/90 backdrop-blur-md">
+          <div 
+            onClick={() => setActiveImage(null)} 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-950/90 backdrop-blur-md cursor-zoom-out"
+          >
             {/* Close Button */}
             <button
               onClick={() => setActiveImage(null)}
@@ -132,4 +135,4 @@ export const Gallery: React.FC = () => {
       </div>
     </div>
   );
-};
+});

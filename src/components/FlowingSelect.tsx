@@ -23,7 +23,7 @@ interface FlowingSelectProps {
   fontSize?: string;
 }
 
-export const FlowingSelect: React.FC<FlowingSelectProps> = ({
+export const FlowingSelect: React.FC<FlowingSelectProps> = React.memo(({
   label,
   value,
   onChange,
@@ -98,7 +98,7 @@ export const FlowingSelect: React.FC<FlowingSelectProps> = ({
       )}
     </div>
   );
-};
+});
 
 interface FlowingSelectItemProps {
   option: FlowingSelectOption;

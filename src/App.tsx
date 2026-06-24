@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
-import { Home } from './pages/Home';
-import { Menu } from './pages/Menu';
-import { Cakes } from './pages/Cakes';
-import { CustomCake } from './pages/CustomCake';
-import { Gallery } from './pages/Gallery';
-import { About } from './pages/About';
-import { Contact } from './pages/Contact';
-import { AdminApp } from './admin/AdminApp';
+const Home = React.lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
+const Menu = React.lazy(() => import('./pages/Menu').then(m => ({ default: m.Menu })));
+const Cakes = React.lazy(() => import('./pages/Cakes').then(m => ({ default: m.Cakes })));
+const CustomCake = React.lazy(() => import('./pages/CustomCake').then(m => ({ default: m.CustomCake })));
+const Gallery = React.lazy(() => import('./pages/Gallery').then(m => ({ default: m.Gallery })));
+const About = React.lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const Contact = React.lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
+const AdminApp = React.lazy(() => import('./admin/AdminApp').then(m => ({ default: m.AdminApp })));
 import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
+import { FloatingCartButton } from './components/FloatingCartButton';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('home');
@@ -27,7 +28,15 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   if (isLocationAdmin) {
-    return <AdminApp />;
+    return (
+      <React.Suspense fallback={
+        <div className="min-h-screen bg-brand-cream-50 flex items-center justify-center">
+          <div className="w-10 h-10 border-4 border-brand-gold-850 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }>
+        <AdminApp />
+      </React.Suspense>
+    );
   }
 
   const renderPage = () => {
@@ -82,6 +91,9 @@ const App: React.FC = () => {
         {/* Shopping Cart Side Drawer */}
         <CartDrawer />
 
+        {/* Mobile Floating Cart Action Button */}
+        <FloatingCartButton />
+
         {/* Main Content Area with Route Transition Animations */}
         <main className="flex-grow">
           <AnimatePresence mode="wait">
@@ -93,7 +105,13 @@ const App: React.FC = () => {
               variants={pageVariants}
               className="w-full h-full"
             >
-              {renderPage()}
+              <React.Suspense fallback={
+                <div className="min-h-[60vh] bg-brand-cream-50/10 flex items-center justify-center">
+                  <div className="w-10 h-10 border-4 border-brand-gold-850 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              }>
+                {renderPage()}
+              </React.Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

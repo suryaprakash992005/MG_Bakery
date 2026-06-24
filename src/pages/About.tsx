@@ -1,7 +1,8 @@
 import React from 'react';
 import { Coffee, ShieldCheck, Award, Heart, CheckCircle2, Leaf } from 'lucide-react';
+import { OptimizedImage } from '../components/OptimizedImage';
 
-export const About: React.FC = () => {
+export const About: React.FC = React.memo(() => {
   const highlights = [
     { title: 'Pure Ingredients', desc: '100% select grain flours, fresh local dairy, and organic sweet fruits with no artificial additives.', icon: Leaf },
     { title: 'Strict Hygiene', desc: 'Surgical cleanliness levels across our artisan ovens, mixing stations, and display arrays.', icon: ShieldCheck },
@@ -20,7 +21,7 @@ export const About: React.FC = () => {
               <Coffee className="w-3.5 h-3.5 text-brand-gold-850" />
               <span>Tradition & Taste</span>
             </div>
-            <h1 className="font-playfair text-4xl sm:text-5xl font-bold text-brand-brown-950 leading-tight">
+            <h1 className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950 leading-tight">
               M.G. Iyengar Bakery:<br />Freshly Baked Happiness
             </h1>
             <p className="text-sm sm:text-base text-brand-brown-800/80 font-light leading-relaxed">
@@ -44,10 +45,9 @@ export const About: React.FC = () => {
 
           <div className="relative flex justify-center">
             <div className="w-full max-w-[500px] aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white relative">
-              <img
+              <OptimizedImage
                 src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&q=80"
                 alt="Bakery kitchen interior"
-                className="w-full h-full object-cover"
               />
             </div>
           </div>
@@ -91,10 +91,9 @@ export const About: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="order-2 lg:order-1 relative flex justify-center">
             <div className="w-full max-w-[500px] aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white relative">
-              <img
+              <OptimizedImage
                 src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
                 alt="Flour wheat bread"
-                className="w-full h-full object-cover"
               />
             </div>
           </div>
@@ -129,4 +128,4 @@ export const About: React.FC = () => {
       </div>
     </div>
   );
-};
+});

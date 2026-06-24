@@ -5,6 +5,7 @@ import { ProductCard } from '../components/ProductCard';
 import { PRODUCTS, REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from '../components/BorderGlow';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 interface HomeProps {
   setCurrentPage: (page: string) => void;
@@ -35,13 +36,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   return (
     <div className="pt-20">
       {/* 1. Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-12">
+      <section className="relative min-h-[70vh] lg:min-h-[90vh] flex items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-8 lg:py-12">
         {/* Floating background graphics */}
         <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
         <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Hero Left Content */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -53,7 +54,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>The Artisan Bakery of Mohanur</span>
               </div>
-              <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl font-bold text-brand-brown-950 leading-tight">
+              <h1 className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950 leading-tight">
                 Freshly Baked Happiness for Every Celebration
               </h1>
               <p className="text-sm sm:text-base text-brand-brown-800/80 font-light leading-relaxed">
@@ -98,12 +99,11 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 animated={true}
               >
                 <div className="relative w-full h-full">
-                  <img
+                  <OptimizedImage
                     src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80"
                     alt="Premium Luxury Celebration Cake"
-                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/40 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/40 via-transparent to-transparent z-10 pointer-events-none" />
                   
                   {/* Floating Micro-Card */}
                   <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
@@ -153,7 +153,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md"
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
-                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                  <OptimizedImage src={cat.image} alt={cat.name} />
                 </div>
                 <h3 className="font-playfair text-base font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors">
                   {cat.name}

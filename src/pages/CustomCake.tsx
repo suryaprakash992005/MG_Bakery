@@ -6,7 +6,7 @@ import FlowingSelect from '../components/FlowingSelect';
 import { PRODUCTS } from '../data';
 
 
-export const CustomCake: React.FC = () => {
+export const CustomCake: React.FC = React.memo(() => {
   const [formData, setFormData] = useState<CustomCakeInquiry>({
     name: '',
     mobile: '',
@@ -331,4 +331,4 @@ export const CustomCake: React.FC = () => {
       </div>
     </div>
   );
-};
+});

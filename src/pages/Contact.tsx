@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, MessageSquare, Send } from 'lucide-react';
 import { getGeneralInquiryUrl, WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 
-export const Contact: React.FC = () => {
+export const Contact: React.FC = React.memo(() => {
   const [formData, setFormData] = useState({
     name: '',
     contactInfo: '',
@@ -56,6 +56,35 @@ Message: ${formData.message}`;
           <p className="text-sm text-brand-brown-800/60 font-light mt-4">
             Have questions about party orders, custom cakes, or daily specials? Message us on WhatsApp or call our store in Mohanur.
           </p>
+        </div>
+
+        {/* Mobile Quick Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 lg:hidden">
+          <a
+            href="tel:+919345586112"
+            className="flex items-center justify-center gap-3 bg-brand-brown-950 text-brand-cream-50 hover:bg-brand-brown-900 px-6 py-4 rounded-2xl font-semibold shadow-md active:scale-95 transition-transform cursor-pointer"
+          >
+            <Phone className="w-5 h-5 text-brand-gold-850" />
+            <span>Call Store Direct</span>
+          </a>
+          <a
+            href={`https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to inquire about your menu.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-3 bg-green-700 text-white hover:bg-green-800 px-6 py-4 rounded-2xl font-semibold shadow-md active:scale-95 transition-transform cursor-pointer"
+          >
+            <MessageSquare className="w-5 h-5 text-white" />
+            <span>Order on WhatsApp</span>
+          </a>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-3 bg-brand-cream-100 text-brand-brown-950 hover:bg-brand-cream-200 border border-brand-cream-200 px-6 py-4 rounded-2xl font-semibold shadow-md active:scale-95 transition-transform cursor-pointer"
+          >
+            <MapPin className="w-5 h-5 text-brand-gold-850" />
+            <span>Get Store Directions</span>
+          </a>
         </div>
 
         {/* Contact Cards Grid */}
@@ -186,4 +215,4 @@ Message: ${formData.message}`;
       </div>
     </div>
   );
-};
+});

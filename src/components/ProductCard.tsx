@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Product } from '../types';
 import { AddToCartButton } from './AddToCartButton';
 import BorderGlow from './BorderGlow';
+import { OptimizedImage } from './OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) => {
   const isCakeWithMultiPrice = typeof product.price === 'object';
   
   // Select initial price tier for cakes (default to halfKg if available, else piece, else first key)
@@ -57,12 +58,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     >
       <div className="flex flex-col h-full w-full justify-between">
         {/* Product Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100">
-          <img
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <OptimizedImage
             src={product.image}
             alt={product.name}
-            loading="lazy"
-            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+            className="transform group-hover:scale-105 transition-transform duration-700"
           />
 
           {/* Floating Badges */}
@@ -98,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Content */}
         <div className="p-6 flex flex-col flex-grow justify-between">
           <div>
-            <h3 className="font-playfair text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300">
+            <h3 className="font-playfair text-lg sm:text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300">
               {product.name}
             </h3>
             <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
@@ -109,12 +109,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
             {/* Cake Tier Selector */}
             {isCakeWithMultiPrice && (
-              <div className="flex items-center gap-1.5 mb-4">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mb-4">
                 {Object.keys(product.price as object).map((tier) => (
                   <button
                     key={tier}
                     onClick={() => setSelectedTier(tier)}
-                    className={`text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all border ${
+                    className={`text-[10px] font-semibold px-2 sm:px-2.5 py-1 rounded-full transition-all border ${
                       selectedTier === tier
                         ? 'bg-brand-gold-850 text-brand-brown-950 border-brand-gold-850 shadow-sm'
                         : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
@@ -148,4 +148,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
     </BorderGlow>
   );
-};
+});

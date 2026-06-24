@@ -35,7 +35,7 @@ export interface StaggeredMenuProps {
   onMenuClose?: () => void;
 }
 
-export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
+export const StaggeredMenu: React.FC<StaggeredMenuProps> = React.memo(({
   position = 'right',
   colors = ['#E7DCBA', '#A38848', '#5B3535'], // Theme aligned: gold-cream, dark-gold, medium-brown
   items = [],
@@ -503,6 +503,6 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       </aside>
     </div>
   );
-};
+});
 
 export default StaggeredMenu;

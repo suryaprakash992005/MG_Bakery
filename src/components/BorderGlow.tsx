@@ -73,7 +73,7 @@ export interface BorderGlowProps {
   fillOpacity?: number;
 }
 
-const BorderGlow: React.FC<BorderGlowProps> = ({
+const BorderGlow: React.FC<BorderGlowProps> = React.memo(({
   children,
   className = '',
   edgeSensitivity = 30,
@@ -117,6 +117,7 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
   }, [getCenterOfElement]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
     const card = cardRef.current;
     if (!card) return;
 
@@ -176,6 +177,6 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default BorderGlow;

@@ -10,7 +10,7 @@ interface CurvedLoopProps {
   interactive?: boolean;
 }
 
-const CurvedLoop: React.FC<CurvedLoopProps> = ({
+const CurvedLoop: React.FC<CurvedLoopProps> = React.memo(({
   marqueeText = '',
   speed = 2,
   className = '',
@@ -27,7 +27,7 @@ const CurvedLoop: React.FC<CurvedLoopProps> = ({
   const textPathRef = useRef<SVGTextPathElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [spacing, setSpacing] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const uid = useId();
   const pathId = `curve-${uid}`;
   const pathD = `M-100,40 Q500,${40 + curveAmount} 1540,40`;
@@ -54,7 +54,7 @@ const CurvedLoop: React.FC<CurvedLoopProps> = ({
     if (textPathRef.current) {
       const initial = -spacing;
       textPathRef.current.setAttribute('startOffset', initial + 'px');
-      setOffset(initial);
+      offsetRef.current = initial;
     }
   }, [spacing]);
 
@@ -64,15 +64,14 @@ const CurvedLoop: React.FC<CurvedLoopProps> = ({
     const step = () => {
       if (!dragRef.current && textPathRef.current) {
         const delta = dirRef.current === 'right' ? speed : -speed;
-        const currentOffset = parseFloat(textPathRef.current.getAttribute('startOffset') || '0');
-        let newOffset = currentOffset + delta;
+        let newOffset = offsetRef.current + delta;
 
         const wrapPoint = spacing;
         if (newOffset <= -wrapPoint) newOffset += wrapPoint;
         if (newOffset > 0) newOffset -= wrapPoint;
 
+        offsetRef.current = newOffset;
         textPathRef.current.setAttribute('startOffset', newOffset + 'px');
-        setOffset(newOffset);
       }
       frame = requestAnimationFrame(step);
     };
@@ -94,15 +93,14 @@ const CurvedLoop: React.FC<CurvedLoopProps> = ({
     lastXRef.current = e.clientX;
     velRef.current = dx;
 
-    const currentOffset = parseFloat(textPathRef.current.getAttribute('startOffset') || '0');
-    let newOffset = currentOffset + dx;
+    let newOffset = offsetRef.current + dx;
 
     const wrapPoint = spacing;
     if (newOffset <= -wrapPoint) newOffset += wrapPoint;
     if (newOffset > 0) newOffset -= wrapPoint;
 
+    offsetRef.current = newOffset;
     textPathRef.current.setAttribute('startOffset', newOffset + 'px');
-    setOffset(newOffset);
   };
 
   const endDrag = () => {
@@ -131,7 +129,7 @@ const CurvedLoop: React.FC<CurvedLoopProps> = ({
         </defs>
         {ready && (
           <text fontWeight="bold" xmlSpace="preserve" className={className}>
-            <textPath ref={textPathRef} href={`#${pathId}`} startOffset={offset + 'px'} xmlSpace="preserve">
+            <textPath ref={textPathRef} href={`#${pathId}`} xmlSpace="preserve">
               {totalText}
             </textPath>
           </text>
@@ -139,6 +137,6 @@ const CurvedLoop: React.FC<CurvedLoopProps> = ({
       </svg>
     </div>
   );
-};
+});
 
 export default CurvedLoop;

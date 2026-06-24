@@ -3,8 +3,9 @@ import { X, Plus, Minus, Trash2, ShoppingBag, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
+import { OptimizedImage } from './OptimizedImage';
 
-export const CartDrawer: React.FC = () => {
+export const CartDrawer: React.FC = React.memo(() => {
   const {
     cartItems,
     isCartOpen,
@@ -15,6 +16,17 @@ export const CartDrawer: React.FC = () => {
     totalAmount,
     totalItemsCount,
   } = useCart();
+
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
@@ -46,8 +58,10 @@ Thank you!`;
   };
 
   const drawerVariants = {
-    closed: { x: '100%' },
-    open: { x: 0, transition: { type: 'tween' as const, duration: 0.4, ease: 'easeOut' as any } },
+    closed: isMobile ? { y: '100%', x: 0 } : { x: '100%', y: 0 },
+    open: isMobile
+      ? { y: 0, x: 0, transition: { type: 'tween' as const, duration: 0.4, ease: 'easeOut' as any } }
+      : { x: 0, y: 0, transition: { type: 'tween' as const, duration: 0.4, ease: 'easeOut' as any } },
   };
 
   const overlayVariants = {
@@ -75,8 +89,10 @@ Thank you!`;
             animate="open"
             exit="closed"
             variants={drawerVariants}
-            className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-brand-cream-50 shadow-2xl z-[101] flex flex-col h-full border-l border-brand-cream-100"
+            className="fixed bottom-0 left-0 right-0 top-auto h-[80vh] max-h-[80vh] w-full rounded-t-[2.5rem] bg-brand-cream-50 shadow-2xl z-[101] flex flex-col border-t border-brand-cream-100 lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto lg:h-full lg:max-h-full lg:max-w-md lg:rounded-none lg:border-l lg:border-t-0"
           >
+            {/* Mobile Sheet Handle */}
+            <div className="w-12 h-1.5 bg-brand-brown-800/10 rounded-full mx-auto mt-3 lg:hidden shrink-0" />
             {/* Header */}
             <div className="p-6 border-b border-brand-cream-100/80 bg-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -117,11 +133,10 @@ Thank you!`;
                     className="flex gap-4 p-4 bg-white rounded-2xl border border-brand-cream-100/40 shadow-sm relative group overflow-hidden"
                   >
                     {/* Item Thumbnail */}
-                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-brand-cream-100 shrink-0">
-                      <img
+                    <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                      <OptimizedImage
                         src={item.image}
                         alt={item.name}
-                        className="w-full h-full object-cover"
                       />
                     </div>
 
@@ -210,4 +225,4 @@ Thank you!`;
       )}
     </AnimatePresence>
   );
-};
+});
