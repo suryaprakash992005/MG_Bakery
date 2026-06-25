@@ -445,6 +445,7 @@ export const Products: React.FC = () => {
                 value={image} 
                 onChange={setImage} 
                 label="Product Showcase Photo" 
+                bucket="bakery-images"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -649,6 +650,7 @@ export const Products: React.FC = () => {
                 value={image} 
                 onChange={setImage} 
                 label="Product Showcase Photo" 
+                bucket="bakery-images"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

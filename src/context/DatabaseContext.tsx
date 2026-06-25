@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PRODUCTS as DEFAULT_PRODUCTS, GALLERY_ITEMS as DEFAULT_GALLERY_ITEMS, CATEGORIES as DEFAULT_CATEGORIES } from '../data';
+import { CATEGORIES as DEFAULT_CATEGORIES } from '../data';
 import { INITIAL_ORDERS, INITIAL_SETTINGS } from '../admin/utils/mockData';
+import { supabase } from '../utils/supabase';
 
 export interface UnifiedProduct {
   id: string;
@@ -117,19 +118,19 @@ interface DatabaseContextType {
   offers: UnifiedOffer[];
   
   // Product Operations
-  saveProduct: (product: UnifiedProduct) => void;
-  softDeleteProduct: (id: string) => void;
-  restoreProduct: (id: string) => void;
-  permanentlyDeleteProduct: (id: string) => void;
+  saveProduct: (product: UnifiedProduct) => void | Promise<void>;
+  softDeleteProduct: (id: string) => void | Promise<void>;
+  restoreProduct: (id: string) => void | Promise<void>;
+  permanentlyDeleteProduct: (id: string) => void | Promise<void>;
   duplicateProduct: (id: string) => void;
   reorderProducts: (products: UnifiedProduct[]) => void;
   
   // Gallery Operations
-  saveGalleryItem: (item: UnifiedGalleryItem) => void;
-  softDeleteGalleryItem: (id: string) => void;
-  restoreGalleryItem: (id: string) => void;
-  permanentlyDeleteGalleryItem: (id: string) => void;
-  reorderGallery: (gallery: UnifiedGalleryItem[]) => void;
+  saveGalleryItem: (item: UnifiedGalleryItem) => void | Promise<void>;
+  softDeleteGalleryItem: (id: string) => void | Promise<void>;
+  restoreGalleryItem: (id: string) => void | Promise<void>;
+  permanentlyDeleteGalleryItem: (id: string) => void | Promise<void>;
+  reorderGallery: (gallery: UnifiedGalleryItem[]) => void | Promise<void>;
 
   // Category Operations
   saveCategory: (category: UnifiedCategory) => void;
@@ -143,9 +144,9 @@ interface DatabaseContextType {
   deleteOrder: (id: string) => void;
 
   // Banner Operations
-  saveBanner: (banner: UnifiedBanner) => void;
-  deleteBanner: (id: string) => void;
-  reorderBanners: (banners: UnifiedBanner[]) => void;
+  saveBanner: (banner: UnifiedBanner) => void | Promise<void>;
+  deleteBanner: (id: string) => void | Promise<void>;
+  reorderBanners: (banners: UnifiedBanner[]) => void | Promise<void>;
 
   // Settings Operation
   updateSettings: (settings: UnifiedSettings) => void;
@@ -171,38 +172,112 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [history, setHistory] = useState<UnifiedHistoryLog[]>([]);
   const [offers, setOffers] = useState<UnifiedOffer[]>([]);
 
+  const fetchSupabaseProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products from Supabase:', error);
+        return;
+      }
+
+      if (data) {
+        const mapped: UnifiedProduct[] = data.map((row: any) => {
+          const hasMultiWeight = row.half_kg !== null || row.one_kg !== null;
+          const priceVal = hasMultiWeight
+            ? {
+                piece: row.price !== null && row.price !== undefined ? Number(row.price) : undefined,
+                halfKg: row.half_kg !== null && row.half_kg !== undefined ? Number(row.half_kg) : undefined,
+                oneKg: row.one_kg !== null && row.one_kg !== undefined ? Number(row.one_kg) : undefined
+              }
+            : Number(row.price || 0);
+
+          return {
+            id: String(row.id),
+            name: row.name,
+            description: row.description || '',
+            price: priceVal,
+            image: row.image_url || '',
+            images: row.image_url ? [row.image_url] : [],
+            category: row.category,
+            status: 'Available',
+            displayPriority: 1,
+            createdDate: row.created_at || new Date().toISOString().split('T')[0]
+          };
+        });
+        setProducts(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    }
+  };
+
+  const fetchGallery = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gallery')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        console.error('Gallery fetch error:', error);
+        return;
+      }
+
+      if (data) {
+        const mapped: UnifiedGalleryItem[] = data.map((row: any) => ({
+          id: String(row.id),
+          title: row.title || '',
+          category: row.category || '',
+          image: row.image_url || '',
+          displayPriority: Number(row.priority || 1),
+          isDeleted: false
+        }));
+        setGallery(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching gallery:', err);
+    }
+  };
+
+  const fetchBanners = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('banners')
+        .select('*')
+        .order('priority', { ascending: true });
+
+      if (error) {
+        console.error('Banners fetch error:', error);
+        return;
+      }
+
+      if (data) {
+        const mapped: UnifiedBanner[] = data.map((row: any) => ({
+          id: String(row.id),
+          image: row.image_url || '',
+          title: row.title || '',
+          subtitle: row.subtitle || '',
+          displayPriority: Number(row.priority || 1),
+          isActive: Boolean(row.is_active)
+        }));
+        setBanners(mapped);
+      }
+    } catch (err) {
+      console.error('Error fetching banners:', err);
+    }
+  };
+
   // Load and initialize data
   useEffect(() => {
-    // 1. Load Products
-    const localProducts = localStorage.getItem('admin_products');
-    if (localProducts) {
-      setProducts(JSON.parse(localProducts));
-    } else {
-      const initial = DEFAULT_PRODUCTS.map((p, idx) => ({
-        ...p,
-        status: 'Available' as const,
-        isFeatured: p.isBestSeller,
-        displayPriority: idx + 1,
-        createdDate: new Date().toISOString().split('T')[0],
-        badge: (p.isBestSeller ? 'Bestseller' : 'None') as any,
-        images: [p.image]
-      }));
-      setProducts(initial);
-      localStorage.setItem('admin_products', JSON.stringify(initial));
-    }
+    // 1. Load Products from Supabase
+    fetchSupabaseProducts();
 
-    // 2. Load Gallery
-    const localGallery = localStorage.getItem('admin_gallery');
-    if (localGallery) {
-      setGallery(JSON.parse(localGallery));
-    } else {
-      const initial = DEFAULT_GALLERY_ITEMS.map((item, idx) => ({
-        ...item,
-        displayPriority: idx + 1
-      }));
-      setGallery(initial);
-      localStorage.setItem('admin_gallery', JSON.stringify(initial));
-    }
+    // 2. Load Gallery from Supabase
+    fetchGallery();
 
     // 3. Load Categories
     const localCategories = localStorage.getItem('admin_categories');
@@ -248,40 +323,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       localStorage.setItem('admin_orders', JSON.stringify(initial));
     }
 
-    // 5. Load Banners
-    const localBanners = localStorage.getItem('admin_banners');
-    if (localBanners) {
-      setBanners(JSON.parse(localBanners));
-    } else {
-      const initial: UnifiedBanner[] = [
-        {
-          id: 'b-1',
-          image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80',
-          title: 'Premium Custom Cakes',
-          subtitle: 'Crafting edible masterpieces for your special days',
-          displayPriority: 1,
-          isActive: true
-        },
-        {
-          id: 'b-2',
-          image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=1200&q=80',
-          title: 'Warm Puffs & Oven Savories',
-          subtitle: 'Flaky baked layers served fresh every morning and evening',
-          displayPriority: 2,
-          isActive: true
-        },
-        {
-          id: 'b-3',
-          image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1200&q=80',
-          title: 'Traditional Cookies & Breads',
-          subtitle: 'Pure butter cookies and sweet milk breads baked with heritage recipes',
-          displayPriority: 3,
-          isActive: true
-        }
-      ];
-      setBanners(initial);
-      localStorage.setItem('admin_banners', JSON.stringify(initial));
-    }
+    // 5. Load Banners from Supabase
+    fetchBanners();
 
     // 6. Load Settings
     const localSettings = localStorage.getItem('admin_settings');
@@ -363,64 +406,92 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- PRODUCTS ---
-  const saveProduct = (p: UnifiedProduct) => {
-    let updated: UnifiedProduct[];
-    const isEdit = products.some(item => item.id === p.id);
+  const saveProduct = async (p: UnifiedProduct) => {
+    const isEdit = !p.id.startsWith('p-');
+    const hasMultiWeight = typeof p.price === 'object';
     
+    const flatPriceVal = hasMultiWeight ? null : Number(p.price || 0);
+    const priceObj = hasMultiWeight ? (p.price as { piece?: number; halfKg?: number; oneKg?: number }) : null;
+    const slicePriceVal = priceObj ? (priceObj.piece !== undefined ? Number(priceObj.piece) : null) : null;
+    const halfKgPriceVal = priceObj ? (priceObj.halfKg !== undefined ? Number(priceObj.halfKg) : null) : null;
+    const oneKgPriceVal = priceObj ? (priceObj.oneKg !== undefined ? Number(priceObj.oneKg) : null) : null;
+
+    const dbPrice = hasMultiWeight ? slicePriceVal : flatPriceVal;
+
+    const payload = {
+      name: p.name,
+      category: p.category,
+      image_url: p.image,
+      price: dbPrice,
+      half_kg: halfKgPriceVal,
+      one_kg: oneKgPriceVal,
+      description: p.description
+    };
+
     if (isEdit) {
-      const oldProduct = products.find(item => item.id === p.id)!;
-      updated = products.map(item => item.id === p.id ? p : item);
-      
-      // Compute change details
-      const changes: string[] = [];
-      if (oldProduct.name !== p.name) changes.push(`Name: "${oldProduct.name}" ➔ "${p.name}"`);
-      if (JSON.stringify(oldProduct.price) !== JSON.stringify(p.price)) {
-        const oldP = typeof oldProduct.price === 'object' ? JSON.stringify(oldProduct.price) : `₹${oldProduct.price}`;
-        const newP = typeof p.price === 'object' ? JSON.stringify(p.price) : `₹${p.price}`;
-        changes.push(`Price: ${oldP} ➔ ${newP}`);
+      const { error } = await supabase
+        .from('products')
+        .update(payload)
+        .eq('id', p.id);
+
+      if (error) {
+        console.error('Error updating product in Supabase:', error);
+        return;
       }
-      if (oldProduct.status !== p.status) changes.push(`Status: "${oldProduct.status}" ➔ "${p.status}"`);
-      if (oldProduct.category !== p.category) changes.push(`Category: "${oldProduct.category}" ➔ "${p.category}"`);
-      if (oldProduct.isFeatured !== p.isFeatured) changes.push(`Featured: ${oldProduct.isFeatured ? 'ON' : 'OFF'} ➔ ${p.isFeatured ? 'ON' : 'OFF'}`);
-      
-      addHistoryLog(
-        `Updated Product: ${p.name}`,
-        changes.length > 0 ? changes.join(' | ') : 'No functional changes made.'
-      );
+      addHistoryLog(`Updated Product: ${p.name}`, `Product ID: ${p.id}`);
     } else {
-      updated = [p, ...products];
-      addHistoryLog(`Added Product: ${p.name}`, `Category: ${p.category} | Price: ${typeof p.price === 'object' ? 'Tiers' : '₹' + p.price}`);
+      const { error } = await supabase
+        .from('products')
+        .insert([payload]);
+
+      if (error) {
+        console.error('Error inserting product in Supabase:', error);
+        return;
+      }
+      addHistoryLog(`Added Product: ${p.name}`, `Category: ${p.category}`);
     }
 
-    setProducts(updated);
-    syncToLocal('admin_products', updated);
+    await fetchSupabaseProducts();
   };
 
-  const softDeleteProduct = (id: string) => {
+  const softDeleteProduct = async (id: string) => {
     const target = products.find(p => p.id === id);
     if (!target) return;
-    const updated = products.map(p => p.id === id ? { ...p, isDeleted: true } : p);
-    setProducts(updated);
-    syncToLocal('admin_products', updated);
-    addHistoryLog(`Moved to Trash: ${target.name}`, `Product ID: ${id}`);
+
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting product from Supabase:', error);
+      return;
+    }
+
+    addHistoryLog(`Deleted Product: ${target.name}`, `Product ID: ${id}`);
+    await fetchSupabaseProducts();
   };
 
-  const restoreProduct = (id: string) => {
-    const target = products.find(p => p.id === id);
-    if (!target) return;
-    const updated = products.map(p => p.id === id ? { ...p, isDeleted: false } : p);
-    setProducts(updated);
-    syncToLocal('admin_products', updated);
-    addHistoryLog(`Restored Product: ${target.name}`, `Product ID: ${id}`);
+  const restoreProduct = (_id: string) => {
+    // No-op as we delete immediately
   };
 
-  const permanentlyDeleteProduct = (id: string) => {
+  const permanentlyDeleteProduct = async (id: string) => {
     const target = products.find(p => p.id === id);
     if (!target) return;
-    const updated = products.filter(p => p.id !== id);
-    setProducts(updated);
-    syncToLocal('admin_products', updated);
+
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error permanently deleting product from Supabase:', error);
+      return;
+    }
+
     addHistoryLog(`Deleted Permanently: ${target.name}`, `Product ID: ${id}`);
+    await fetchSupabaseProducts();
   };
 
   const duplicateProduct = (id: string) => {
@@ -433,10 +504,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       displayPriority: products.length + 1,
       createdDate: new Date().toISOString().split('T')[0]
     };
-    const updated = [clone, ...products];
-    setProducts(updated);
-    syncToLocal('admin_products', updated);
-    addHistoryLog(`Duplicated Product: ${target.name}`, `New Copy: ${clone.name}`);
+    saveProduct(clone);
   };
 
   const reorderProducts = (reordered: UnifiedProduct[]) => {
@@ -448,63 +516,116 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return item;
     });
     setProducts(mapped);
-    syncToLocal('admin_products', mapped);
     addHistoryLog('Reordered Products Catalog', 'Rearranged display sequence of catalog items.');
   };
 
   // --- GALLERY ---
-  const saveGalleryItem = (item: UnifiedGalleryItem) => {
-    let updated: UnifiedGalleryItem[];
-    const isEdit = gallery.some(g => g.id === item.id);
-    if (isEdit) {
-      updated = gallery.map(g => g.id === item.id ? item : g);
-      addHistoryLog(`Updated Gallery Item: ${item.title}`, `Category: ${item.category}`);
-    } else {
-      updated = [item, ...gallery];
-      addHistoryLog(`Uploaded Gallery Image: ${item.title}`, `Category: ${item.category}`);
-    }
-    setGallery(updated);
-    syncToLocal('admin_gallery', updated);
-  };
+  const saveGalleryItem = async (item: UnifiedGalleryItem) => {
+    const isEdit = !item.id.startsWith('g-');
+    const payload = {
+      title: item.title,
+      category: item.category,
+      image_url: item.image,
+      priority: item.displayPriority
+    };
 
-  const softDeleteGalleryItem = (id: string) => {
-    const target = gallery.find(g => g.id === id);
-    if (!target) return;
-    const updated = gallery.map(g => g.id === id ? { ...g, isDeleted: true } : g);
-    setGallery(updated);
-    syncToLocal('admin_gallery', updated);
-    addHistoryLog(`Moved Gallery Item to Trash: ${target.title}`, `ID: ${id}`);
-  };
+    try {
+      if (isEdit) {
+        const { error } = await supabase
+          .from('gallery')
+          .update(payload)
+          .eq('id', item.id);
 
-  const restoreGalleryItem = (id: string) => {
-    const target = gallery.find(g => g.id === id);
-    if (!target) return;
-    const updated = gallery.map(g => g.id === id ? { ...g, isDeleted: false } : g);
-    setGallery(updated);
-    syncToLocal('admin_gallery', updated);
-    addHistoryLog(`Restored Gallery Item: ${target.title}`, `ID: ${id}`);
-  };
+        if (error) {
+          console.error('Gallery update error:', error);
+          return;
+        }
+        addHistoryLog(`Updated Gallery Item: ${item.title}`, `ID: ${item.id}`);
+      } else {
+        const { error } = await supabase
+          .from('gallery')
+          .insert([payload]);
 
-  const permanentlyDeleteGalleryItem = (id: string) => {
-    const target = gallery.find(g => g.id === id);
-    if (!target) return;
-    const updated = gallery.filter(g => g.id !== id);
-    setGallery(updated);
-    syncToLocal('admin_gallery', updated);
-    addHistoryLog(`Deleted Gallery Image permanently: ${target.title}`, `ID: ${id}`);
-  };
-
-  const reorderGallery = (reordered: UnifiedGalleryItem[]) => {
-    const mapped = gallery.map(item => {
-      const matchIndex = reordered.findIndex(r => r.id === item.id);
-      if (matchIndex !== -1) {
-        return { ...item, displayPriority: matchIndex + 1 };
+        if (error) {
+          console.error('Gallery insert error:', error);
+          return;
+        }
+        addHistoryLog(`Uploaded Gallery Image: ${item.title}`, `Category: ${item.category}`);
       }
-      return item;
-    });
+
+      await fetchGallery();
+    } catch (err) {
+      console.error('Error saving gallery item:', err);
+    }
+  };
+
+  const softDeleteGalleryItem = async (id: string) => {
+    const target = gallery.find(g => g.id === id);
+    if (!target) return;
+
+    try {
+      const { error } = await supabase
+        .from('gallery')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Gallery delete error:', error);
+        return;
+      }
+
+      addHistoryLog(`Moved Gallery Item to Trash (Deleted): ${target.title}`, `ID: ${id}`);
+      await fetchGallery();
+    } catch (err) {
+      console.error('Error deleting gallery item:', err);
+    }
+  };
+
+  const restoreGalleryItem = (_id: string) => {
+    // No-op as we delete immediately
+  };
+
+  const permanentlyDeleteGalleryItem = async (id: string) => {
+    const target = gallery.find(g => g.id === id);
+    if (!target) return;
+
+    try {
+      const { error } = await supabase
+        .from('gallery')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Gallery permanent delete error:', error);
+        return;
+      }
+
+      addHistoryLog(`Deleted Gallery Image permanently: ${target.title}`, `ID: ${id}`);
+      await fetchGallery();
+    } catch (err) {
+      console.error('Error permanently deleting gallery item:', err);
+    }
+  };
+
+  const reorderGallery = async (reordered: UnifiedGalleryItem[]) => {
+    const mapped = reordered.map((item, idx) => ({
+      ...item,
+      displayPriority: idx + 1
+    }));
     setGallery(mapped);
-    syncToLocal('admin_gallery', mapped);
-    addHistoryLog('Reordered Gallery Showcases', 'Rearranged display sequence.');
+
+    try {
+      const promises = mapped.map(item =>
+        supabase
+          .from('gallery')
+          .update({ priority: item.displayPriority })
+          .eq('id', item.id)
+      );
+      await Promise.all(promises);
+      addHistoryLog('Reordered Gallery Showcases', 'Rearranged display sequence.');
+    } catch (err) {
+      console.error('Error reordering gallery showcases in Supabase:', err);
+    }
   };
 
   // --- CATEGORIES ---
@@ -585,37 +706,84 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- BANNERS ---
-  const saveBanner = (b: UnifiedBanner) => {
-    let updated: UnifiedBanner[];
-    const isEdit = banners.some(item => item.id === b.id);
-    if (isEdit) {
-      updated = banners.map(item => item.id === b.id ? b : item);
-      addHistoryLog(`Updated Homepage Banner: ${b.title || 'Untitled'}`, `Active: ${b.isActive ? 'Yes' : 'No'}`);
-    } else {
-      updated = [...banners, b];
-      addHistoryLog(`Added Homepage Banner: ${b.title || 'Untitled'}`, `Active: ${b.isActive ? 'Yes' : 'No'}`);
-    }
-    setBanners(updated);
-    syncToLocal('admin_banners', updated);
-  };
+  const saveBanner = async (b: UnifiedBanner) => {
+    const isEdit = !b.id.startsWith('b-');
+    const payload = {
+      title: b.title || '',
+      subtitle: b.subtitle || '',
+      image_url: b.image,
+      is_active: b.isActive,
+      priority: b.displayPriority
+    };
 
-  const deleteBanner = (id: string) => {
-    const updated = banners.filter(b => b.id !== id);
-    setBanners(updated);
-    syncToLocal('admin_banners', updated);
-    addHistoryLog('Deleted Homepage Banner', `Banner ID: ${id}`);
-  };
+    try {
+      if (isEdit) {
+        const { error } = await supabase
+          .from('banners')
+          .update(payload)
+          .eq('id', b.id);
 
-  const reorderBanners = (reordered: UnifiedBanner[]) => {
-    const mapped = banners.map(item => {
-      const matchIndex = reordered.findIndex(r => r.id === item.id);
-      if (matchIndex !== -1) {
-        return { ...item, displayPriority: matchIndex + 1 };
+        if (error) {
+          console.error('Error updating banner in Supabase:', error);
+          return;
+        }
+        addHistoryLog(`Updated Homepage Banner: ${b.title || 'Untitled'}`, `Active: ${b.isActive ? 'Yes' : 'No'}`);
+      } else {
+        const { error } = await supabase
+          .from('banners')
+          .insert([payload]);
+
+        if (error) {
+          console.error('Error inserting banner in Supabase:', error);
+          return;
+        }
+        addHistoryLog(`Added Homepage Banner: ${b.title || 'Untitled'}`, `Active: ${b.isActive ? 'Yes' : 'No'}`);
       }
-      return item;
-    });
+
+      await fetchBanners();
+    } catch (err) {
+      console.error('Error saving banner:', err);
+    }
+  };
+
+  const deleteBanner = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('banners')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting banner from Supabase:', error);
+        return;
+      }
+
+      addHistoryLog('Deleted Homepage Banner', `Banner ID: ${id}`);
+      await fetchBanners();
+    } catch (err) {
+      console.error('Error deleting banner:', err);
+    }
+  };
+
+  const reorderBanners = async (reordered: UnifiedBanner[]) => {
+    const mapped = reordered.map((item, idx) => ({
+      ...item,
+      displayPriority: idx + 1
+    }));
     setBanners(mapped);
-    syncToLocal('admin_banners', mapped);
+
+    try {
+      const promises = mapped.map(item =>
+        supabase
+          .from('banners')
+          .update({ priority: item.displayPriority })
+          .eq('id', item.id)
+      );
+      await Promise.all(promises);
+      addHistoryLog('Reordered Homepage Banners', 'Rearranged display sequence.');
+    } catch (err) {
+      console.error('Error reordering banners in Supabase:', err);
+    }
   };
 
   // --- SETTINGS ---

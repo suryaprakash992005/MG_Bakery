@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2 } from 'lucide-react';
+import { supabase } from '../../utils/supabase';
 
 interface ImageUploaderProps {
   value: string;
-  onChange: (base64: string) => void;
+  onChange: (value: string) => void;
   label?: string;
   maxDimension?: number; // max width/height to resize to
   quality?: number; // 0.1 to 1.0 compression quality
+  bucket?: string; // Optional Supabase Storage bucket name
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -15,6 +17,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   label = 'Upload Image',
   maxDimension = 800,
   quality = 0.7,
+  bucket,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -62,22 +65,66 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         // Draw image to canvas (this compresses it)
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert to Base64 data URL
-        const base64Url = canvas.toDataURL('image/jpeg', quality);
-
-        // Simulate progress bar for a premium feel
-        let progress = 10;
-        const interval = setInterval(() => {
-          progress += 20;
-          setUploadProgress(progress);
-          if (progress >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-              onChange(base64Url);
+        if (bucket) {
+          // Upload to Supabase Storage
+          canvas.toBlob(async (blob) => {
+            if (!blob) {
+              setError('Failed to compress image.');
               setUploadProgress(null);
-            }, 300);
-          }
-        }, 80);
+              return;
+            }
+
+            try {
+              setUploadProgress(25);
+              const cleanName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+              const filePath = `products/${cleanName}`;
+              
+              setUploadProgress(50);
+              const { error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(filePath, blob, {
+                  contentType: 'image/jpeg',
+                  upsert: false
+                });
+
+              if (uploadError) {
+                throw uploadError;
+              }
+
+              setUploadProgress(85);
+              const { data: { publicUrl } } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(filePath);
+
+              setUploadProgress(100);
+              setTimeout(() => {
+                onChange(publicUrl);
+                setUploadProgress(null);
+              }, 300);
+            } catch (err: any) {
+              console.error('Storage upload error:', err);
+              setError(err.message || 'Failed to upload image to Supabase.');
+              setUploadProgress(null);
+            }
+          }, 'image/jpeg', quality);
+        } else {
+          // Convert to Base64 data URL
+          const base64Url = canvas.toDataURL('image/jpeg', quality);
+
+          // Simulate progress bar for a premium feel
+          let progress = 10;
+          const interval = setInterval(() => {
+            progress += 20;
+            setUploadProgress(progress);
+            if (progress >= 100) {
+              clearInterval(interval);
+              setTimeout(() => {
+                onChange(base64Url);
+                setUploadProgress(null);
+              }, 300);
+            }
+          }, 80);
+        }
       };
 
       img.onerror = () => {
