@@ -8,14 +8,9 @@ import {
   Trash2, 
   X, 
   Cake, 
-  FolderOpen,
-  Copy,
+  Copy, 
   RotateCcw,
-  Star,
-  EyeOff,
-  Eye,
-  Calendar,
-  AlertCircle
+  Move
 } from 'lucide-react';
 
 export const Products: React.FC = () => {
@@ -41,24 +36,24 @@ export const Products: React.FC = () => {
   // Form states
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState(0);
-  const [weight, setWeight] = useState('');
+  const [priceType, setPriceType] = useState<'flat' | 'multi'>('flat');
+  const [flatPrice, setFlatPrice] = useState(0);
+  const [flatWeight, setFlatWeight] = useState('');
+  
+  // Multi-weight price states
+  const [slicePrice, setSlicePrice] = useState('');
+  const [halfKgPrice, setHalfKgPrice] = useState('');
+  const [oneKgPrice, setOneKgPrice] = useState('');
+
   const [category, setCategory] = useState('Cakes');
   const [status, setStatus] = useState<UnifiedProduct['status']>('Available');
   const [image, setImage] = useState('');
-  const [images, setImages] = useState<string[]>([]);
   const [displayPriority, setDisplayPriority] = useState(1);
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [dailySpecial, setDailySpecial] = useState(false);
-  const [badge, setBadge] = useState<UnifiedProduct['badge']>('None');
-  const [limitedStockCount, setLimitedStockCount] = useState<number | undefined>(undefined);
-  const [publishDate, setPublishDate] = useState('');
-  const [visibilityExpiryDate, setVisibilityExpiryDate] = useState('');
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // Extract products
+  // Extract active and deleted products
   const products = allProducts.filter(p => !p.isDeleted);
   const trashProducts = allProducts.filter(p => p.isDeleted);
 
@@ -68,19 +63,16 @@ export const Products: React.FC = () => {
   const handleOpenAdd = () => {
     setName('');
     setDescription('');
-    setPrice(350);
-    setWeight('0.5 Kg');
+    setPriceType('flat');
+    setFlatPrice(350);
+    setFlatWeight('0.5 Kg');
+    setSlicePrice('');
+    setHalfKgPrice('');
+    setOneKgPrice('');
     setCategory(categories[0]?.name || 'Cakes');
     setStatus('Available');
     setImage('https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80');
-    setImages([]);
     setDisplayPriority(products.length + 1);
-    setIsFeatured(false);
-    setDailySpecial(false);
-    setBadge('None');
-    setLimitedStockCount(undefined);
-    setPublishDate('');
-    setVisibilityExpiryDate('');
     setIsAddOpen(true);
   };
 
@@ -88,43 +80,60 @@ export const Products: React.FC = () => {
     setCurrentProduct(p);
     setName(p.name);
     setDescription(p.description);
-    setPrice(typeof p.price === 'number' ? p.price : (p.price.halfKg || p.price.piece || 0));
-    setWeight(p.weight || '');
     setCategory(p.category);
     setStatus(p.status);
     setImage(p.image);
-    setImages(p.images || []);
-    setDisplayPriority(p.displayPriority);
-    setIsFeatured(p.isFeatured || false);
-    setDailySpecial(p.dailySpecial || false);
-    setBadge(p.badge || 'None');
-    setLimitedStockCount(p.limitedStockCount);
-    setPublishDate(p.publishDate || '');
-    setVisibilityExpiryDate(p.visibilityExpiryDate || '');
+    setDisplayPriority(p.displayPriority || 99);
+
+    if (typeof p.price === 'object') {
+      setPriceType('multi');
+      setFlatPrice(0);
+      setFlatWeight('');
+      const priceObj = p.price as any;
+      setSlicePrice(priceObj.piece ? String(priceObj.piece) : '');
+      setHalfKgPrice(priceObj.halfKg ? String(priceObj.halfKg) : '');
+      setOneKgPrice(priceObj.oneKg ? String(priceObj.oneKg) : '');
+    } else {
+      setPriceType('flat');
+      setFlatPrice(p.price || 0);
+      setFlatWeight(p.weight || '');
+      setSlicePrice('');
+      setHalfKgPrice('');
+      setOneKgPrice('');
+    }
     setIsEditOpen(true);
+  };
+
+  const constructPriceObject = () => {
+    if (priceType === 'flat') {
+      return Number(flatPrice);
+    } else {
+      return {
+        piece: slicePrice ? Number(slicePrice) : undefined,
+        halfKg: halfKgPrice ? Number(halfKgPrice) : undefined,
+        oneKg: oneKgPrice ? Number(oneKgPrice) : undefined
+      };
+    }
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !price || !category) return;
+    if (!name || !category) return;
     
     saveProduct({
       id: `p-${Date.now()}`,
       name,
       description,
-      price: Number(price),
-      weight,
+      price: constructPriceObject(),
+      weight: priceType === 'flat' ? flatWeight : undefined,
       category,
       image,
-      images: images.length > 0 ? images : [image],
+      images: [image],
       status,
       displayPriority: Number(displayPriority) || products.length + 1,
-      isFeatured,
-      dailySpecial,
-      badge,
-      limitedStockCount: limitedStockCount ? Number(limitedStockCount) : undefined,
-      publishDate: publishDate || undefined,
-      visibilityExpiryDate: visibilityExpiryDate || undefined,
+      isFeatured: true,
+      dailySpecial: false,
+      badge: 'None',
       createdDate: new Date().toISOString().split('T')[0]
     });
     setIsAddOpen(false);
@@ -132,31 +141,25 @@ export const Products: React.FC = () => {
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentProduct || !name || !price || !category) return;
+    if (!currentProduct || !name || !category) return;
 
     saveProduct({
       ...currentProduct,
       name,
       description,
-      price: Number(price),
-      weight,
+      price: constructPriceObject(),
+      weight: priceType === 'flat' ? flatWeight : undefined,
       category,
       image,
-      images: images.length > 0 ? images : [image],
+      images: currentProduct.images && currentProduct.images.length > 0 ? [image, ...currentProduct.images.slice(1)] : [image],
       status,
-      displayPriority: Number(displayPriority),
-      isFeatured,
-      dailySpecial,
-      badge,
-      limitedStockCount: limitedStockCount ? Number(limitedStockCount) : undefined,
-      publishDate: publishDate || undefined,
-      visibilityExpiryDate: visibilityExpiryDate || undefined
+      displayPriority: Number(displayPriority)
     });
     setIsEditOpen(false);
     setCurrentProduct(null);
   };
 
-  // Drag and Drop handlers
+  // Drag and drop sorting handlers
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -166,66 +169,56 @@ export const Products: React.FC = () => {
   };
 
   const handleDrop = (index: number) => {
-    if (draggedIndex === null || draggedIndex === index) return;
-    const reordered = [...filteredProducts];
-    const [movedItem] = reordered.splice(draggedIndex, 1);
-    reordered.splice(index, 0, movedItem);
-    reorderProducts(reordered);
+    if (draggedIndex === null) return;
+    const itemToMove = filteredProducts[draggedIndex];
+    const newItems = [...filteredProducts];
+    newItems.splice(draggedIndex, 1);
+    newItems.splice(index, 0, itemToMove);
+
+    // Update priorities
+    const updated = allProducts.map(p => {
+      const idxInNew = newItems.findIndex(ni => ni.id === p.id);
+      if (idxInNew !== -1) {
+        return { ...p, displayPriority: idxInNew + 1 };
+      }
+      return p;
+    });
+
+    reorderProducts(updated);
     setDraggedIndex(null);
   };
 
-  // Filters
+  // Filter products by search and category selection
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
-    return matchesSearch && matchesCat;
-  });
-
-  const getCategoryColor = (cat: string) => {
-    switch (cat) {
-      case 'Cakes':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Pastries':
-        return 'bg-pink-50 text-pink-700 border-pink-200';
-      case 'Cookies':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
-      case 'Puffs':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'Breads':
-        return 'bg-teal-50 text-teal-700 border-teal-200';
-      case 'Snacks':
-        return 'bg-yellow-50 text-yellow-750 border-yellow-250';
-      case 'Beverages':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
-    }
-  };
+                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  }).sort((a, b) => (a.displayPriority || 99) - (b.displayPriority || 99));
 
   return (
-    <div className="space-y-8 select-none font-poppins">
+    <div className="space-y-6">
       
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-[#2C1A17]/10 p-6 rounded-2xl shadow-sm">
         <div>
-          <h2 className="text-2xl font-playfair font-bold text-slate-800">Inventory Catalog</h2>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">Manage cakes, pastries, puffs, breads, and categories. Drag rows to reorder customer view sequence.</p>
+          <h2 className="font-playfair text-2xl font-bold text-[#2C1A17]">Products Management</h2>
+          <p className="text-xs text-[#2C1A17]/65 mt-1">Add, edit, change prices, set weights, and toggle availability of your cakes and snacks.</p>
         </div>
         <button
           onClick={handleOpenAdd}
-          className="bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 font-semibold text-xs px-5 py-3 rounded-full shadow-md flex items-center gap-1.5 transition-all duration-300 transform active:scale-95 cursor-pointer hover:text-white border-none"
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-gold-850 hover:bg-brand-gold-700 text-[#1E110F] font-bold text-xs rounded-xl shadow-sm transition-all border-none cursor-pointer"
         >
-          <Plus className="w-4 h-4 text-brand-gold-850" />
-          <span>Add New Product</span>
+          <Plus className="w-4 h-4" />
+          <span>Add Product</span>
         </button>
       </div>
 
-      {/* Filter and search actions */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+      {/* Filters & Search Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#2C1A17]/10 p-4 rounded-2xl shadow-sm">
         
         {/* Search */}
-        <div className="relative w-full md:w-80">
+        <div className="relative flex-1 max-w-sm">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
           </span>
@@ -233,21 +226,21 @@ export const Products: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search items..."
-            className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-full py-2.5 pl-9 pr-4 text-xs font-medium focus:outline-none transition-all focus:bg-white"
+            placeholder="Search products..."
+            className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 pl-9 pr-4 text-xs font-semibold focus:outline-none transition-all"
           />
         </div>
 
-        {/* Categories filters scrollable */}
-        <div className="flex flex-wrap gap-1.5 w-full md:w-auto overflow-x-auto justify-start md:justify-end pb-1 md:pb-0">
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-1.5">
           {categoriesList.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
                 selectedCategory === cat
-                  ? 'bg-brand-gold-850 text-[#1A1110] border-brand-gold-500 shadow-sm'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60'
+                  ? 'bg-brand-gold-850 text-[#1E110F] border-brand-gold-500 font-bold'
+                  : 'bg-[#FAF6F0] hover:bg-[#FAF6F0]/80 text-[#2C1A17] border-[#2C1A17]/10'
               }`}
             >
               {cat}
@@ -257,222 +250,174 @@ export const Products: React.FC = () => {
 
       </div>
 
-      {/* Inventory table */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase bg-slate-50/20">
-                <th className="py-4 px-6 w-20">Priority & Image</th>
-                <th className="py-4 px-6">Product Details</th>
-                <th className="py-4 px-6">Category</th>
-                <th className="py-4 px-6">Price</th>
-                <th className="py-4 px-6 text-center">Status</th>
-                <th className="py-4 px-6 text-center">Badges</th>
-                <th className="py-4 px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((p, idx) => (
-                  <tr 
-                    key={p.id} 
-                    draggable
-                    onDragStart={() => handleDragStart(idx)}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(idx)}
-                    className="hover:bg-slate-50/40 transition-colors cursor-grab active:cursor-grabbing"
-                  >
-                    {/* Priority Order Label & Product Image */}
-                    <td className="py-3.5 px-6">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded w-6 text-center">{p.displayPriority || idx + 1}</span>
-                        <div className="w-12 h-12 rounded-xl border border-slate-150 overflow-hidden bg-slate-50 shrink-0 shadow-sm relative group">
-                          <img 
-                            src={p.image} 
-                            alt={p.name} 
-                            className="w-full h-full object-cover" 
-                          />
-                        </div>
-                      </div>
-                    </td>
+      {/* Grid of Product Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map((p, idx) => (
+            <div
+              key={p.id}
+              draggable
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(idx)}
+              className="bg-white border border-[#2C1A17]/10 rounded-2xl overflow-hidden hover:shadow-[0_12px_28px_rgba(44,26,23,0.06)] transition-all flex flex-col relative group cursor-grab active:cursor-grabbing"
+            >
+              {/* Product Image */}
+              <div className="h-44 w-full bg-[#FAF6F0] relative overflow-hidden shrink-0 border-b border-[#2C1A17]/5">
+                <img 
+                  src={p.image} 
+                  alt={p.name} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
+                
+                {/* Drag Handle Overlay */}
+                <div className="absolute top-2 left-2 bg-[#1E110F]/70 text-white rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Move className="w-3.5 h-3.5" />
+                </div>
 
-                    {/* Name & description & schedule notices */}
-                    <td className="py-3.5 px-6">
-                      <div className="flex flex-col space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-800 font-bold text-sm">{p.name}</span>
-                          {p.dailySpecial && (
-                            <span className="bg-brand-gold-50 text-brand-gold-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-brand-gold-200">Daily Special</span>
-                          )}
-                          {p.limitedStockCount !== undefined && (
-                            <span className="bg-amber-50 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-200">Stock: {p.limitedStockCount} left</span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-slate-400 max-w-[280px] truncate" title={p.description}>
-                          {p.description || 'No description added.'}
-                        </span>
-                        
-                        {/* Publishing / Expiry Indicators */}
-                        {(p.publishDate || p.visibilityExpiryDate) && (
-                          <div className="flex gap-2.5 mt-1 text-[9px] font-semibold text-slate-400 items-center">
-                            {p.publishDate && (
-                              <span className="flex items-center gap-0.5 text-blue-600 bg-blue-50 px-1 rounded">
-                                <Calendar className="w-2.5 h-2.5" />
-                                <span>Pub: {p.publishDate}</span>
-                              </span>
-                            )}
-                            {p.visibilityExpiryDate && (
-                              <span className="flex items-center gap-0.5 text-rose-600 bg-rose-50 px-1 rounded">
-                                <AlertCircle className="w-2.5 h-2.5" />
-                                <span>Exp: {p.visibilityExpiryDate}</span>
-                              </span>
-                            )}
+                {/* Stock Status Badge */}
+                <div className="absolute top-2 right-2">
+                  <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-full tracking-wider uppercase shadow-sm border ${
+                    p.status === 'Available' 
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-250' 
+                      : p.status === 'Out of Stock' 
+                      ? 'bg-amber-50 text-amber-800 border-amber-250'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                    {p.status}
+                  </span>
+                </div>
+
+                {/* Category tag */}
+                <div className="absolute bottom-2 left-2">
+                  <span className="bg-brand-gold-850/90 text-[#1E110F] text-[9px] font-bold px-2 py-0.5 rounded shadow-sm">
+                    {p.category}
+                  </span>
+                </div>
+              </div>
+
+              {/* Product Info */}
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-playfair font-bold text-[#2C1A17] text-base line-clamp-1">{p.name}</h3>
+                  <p className="text-[11px] text-[#2C1A17]/65 mt-1 leading-normal line-clamp-2 h-8">
+                    {p.description || 'No description added.'}
+                  </p>
+
+                  {/* Price display section */}
+                  <div className="mt-3 bg-[#FAF6F0]/60 border border-[#2C1A17]/5 rounded-xl p-2.5 space-y-1.5">
+                    {typeof p.price === 'number' ? (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-[#2C1A17]/50 font-medium">{p.weight || 'Standard Size'}</span>
+                        <span className="font-bold text-[#2C1A17] text-sm">₹{p.price}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-brand-gold-800 uppercase block tracking-wider">Weight Pricing</span>
+                        {p.price.piece !== undefined && (
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-[#2C1A17]/60">Slice</span>
+                            <span className="font-bold text-[#2C1A17]">₹{p.price.piece}</span>
+                          </div>
+                        )}
+                        {p.price.halfKg !== undefined && (
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-[#2C1A17]/60">½ Kg</span>
+                            <span className="font-bold text-[#2C1A17]">₹{p.price.halfKg}</span>
+                          </div>
+                        )}
+                        {p.price.oneKg !== undefined && (
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-[#2C1A17]/60">1 Kg</span>
+                            <span className="font-bold text-[#2C1A17]">₹{p.price.oneKg}</span>
                           </div>
                         )}
                       </div>
-                    </td>
+                    )}
+                  </div>
+                </div>
 
-                    {/* Category pill */}
-                    <td className="py-3.5 px-6">
-                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${getCategoryColor(p.category)}`}>
-                        {p.category}
-                      </span>
-                    </td>
-
-                    {/* Price & weight */}
-                    <td className="py-3.5 px-6">
-                      <div className="flex flex-col">
-                        <span className="text-slate-800 font-bold">₹{typeof p.price === 'number' ? p.price : (p.price.halfKg || p.price.piece || 0)}</span>
-                        <span className="text-[10px] text-slate-400 font-medium mt-0.5">{p.weight || 'Standard'}</span>
-                      </div>
-                    </td>
-
-                    {/* Availability / status toggle */}
-                    <td className="py-3.5 px-6 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                        p.status === 'Available' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : p.status === 'Out of Stock' 
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                          : 'bg-slate-100 text-slate-500 border-slate-200'
-                      }`}>
-                        {p.status === 'Available' ? <Eye className="w-3.5 h-3.5" /> : p.status === 'Out of Stock' ? <AlertCircle className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                        <span>{p.status}</span>
-                      </span>
-                    </td>
-
-                    {/* Badges / Featured */}
-                    <td className="py-3.5 px-6 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        {p.isFeatured && (
-                          <span className="bg-brand-gold-850 text-[#1A1110] text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                            <Star className="w-2.5 h-2.5 fill-current" />
-                            <span>Featured</span>
-                          </span>
-                        )}
-                        {p.badge && p.badge !== 'None' && (
-                          <span className="bg-slate-100 text-slate-650 border border-slate-250 text-[9px] font-bold px-1.5 py-0.5 rounded">
-                            {p.badge}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-3.5 px-6 text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(p)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-brand-gold-700 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center transition-all cursor-pointer bg-white"
-                          title="Edit Product"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => duplicateProduct(p.id)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 flex items-center justify-center transition-all cursor-pointer bg-white"
-                          title="Duplicate Cake"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => softDeleteProduct(p.id)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-red-650 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all cursor-pointer bg-white"
-                          title="Soft Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-12 px-6 text-center text-slate-400 font-medium">
-                    <FolderOpen className="w-10 h-10 mx-auto text-slate-200 mb-2" />
-                    <span>No products found matching filters.</span>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                {/* Card Actions */}
+                <div className="flex gap-2 mt-4 pt-3 border-t border-[#2C1A17]/5 justify-between">
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => handleOpenEdit(p)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17] hover:bg-[#1E110F]/5 text-xs font-bold cursor-pointer transition-all bg-white"
+                      title="Edit Product"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-brand-gold-800" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => duplicateProduct(p.id)}
+                      className="p-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17]/70 hover:bg-[#1E110F]/5 cursor-pointer bg-white"
+                      title="Duplicate Product"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  
+                  <button
+                    onClick={() => softDeleteProduct(p.id)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#2C1A17]/10 text-red-650 hover:bg-red-50 hover:border-red-200 text-xs font-bold cursor-pointer transition-all bg-white"
+                    title="Delete Product"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="col-span-full py-16 bg-white border border-[#2C1A17]/10 rounded-2xl text-center text-[#2C1A17]/40 font-medium">
+            <Cake className="w-12 h-12 mx-auto text-[#2C1A17]/20 mb-2" />
+            <span>No products found matching filters.</span>
+          </div>
+        )}
       </div>
 
       {/* --- TRASH / SOFT DELETE LOG DRAWER --- */}
       {trashProducts.length > 0 && (
-        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 shadow-inner space-y-4">
+        <div className="bg-[#FAF6F0] border border-[#2C1A17]/10 rounded-2xl p-6 shadow-inner space-y-4">
           <div className="flex items-center gap-2">
             <Trash2 className="w-5 h-5 text-red-500" />
-            <h3 className="font-playfair text-lg font-bold text-slate-800">Product Trashbin (Soft Deleted)</h3>
-            <span className="text-[10px] bg-red-100 text-red-750 font-bold px-2 py-0.5 rounded-full">{trashProducts.length} Items</span>
+            <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Deleted Products (Trashbin)</h3>
+            <span className="text-[10px] bg-red-50 text-red-800 font-bold px-2 py-0.5 rounded-full">{trashProducts.length} Items</span>
           </div>
 
-          <div className="overflow-x-auto bg-white rounded-xl border border-slate-150">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-450 uppercase bg-slate-50/50">
-                  <th className="py-3 px-5">Image</th>
-                  <th className="py-3 px-5">Product Name</th>
-                  <th className="py-3 px-5">Category</th>
-                  <th className="py-3 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
-                {trashProducts.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-2.5 px-5">
-                      <img src={p.image} alt={p.name} className="w-8 h-8 rounded-lg object-cover" />
-                    </td>
-                    <td className="py-2.5 px-5 font-bold text-slate-800">{p.name}</td>
-                    <td className="py-2.5 px-5">{p.category}</td>
-                    <td className="py-2.5 px-5 text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          onClick={() => restoreProduct(p.id)}
-                          className="px-2.5 py-1 border border-slate-200 text-slate-650 hover:bg-slate-50 rounded font-semibold text-[10px] flex items-center gap-1 cursor-pointer bg-white"
-                        >
-                          <RotateCcw className="w-3 h-3 text-slate-500" />
-                          <span>Restore</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Are you absolutely sure you want to permanently delete "${p.name}"? This cannot be undone.`)) {
-                              permanentlyDeleteProduct(p.id);
-                            }
-                          }}
-                          className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded font-bold text-[10px] cursor-pointer"
-                        >
-                          Purge
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {trashProducts.map(p => (
+              <div key={p.id} className="bg-white border border-[#2C1A17]/5 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                  <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover border border-[#2C1A17]/10" />
+                  <div>
+                    <h4 className="font-playfair font-bold text-xs text-[#2C1A17]">{p.name}</h4>
+                    <span className="text-[10px] text-[#2C1A17]/50">{p.category}</span>
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => restoreProduct(p.id)}
+                    className="p-1.5 border border-[#2C1A17]/10 text-[#2C1A17]/70 hover:bg-[#1E110F]/5 rounded-lg cursor-pointer bg-white"
+                    title="Restore"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Permanently purge "${p.name}"? This cannot be undone.`)) {
+                        permanentlyDeleteProduct(p.id);
+                      }
+                    }}
+                    className="p-1.5 bg-red-50 hover:bg-red-100 text-red-650 border border-red-100 rounded-lg cursor-pointer"
+                    title="Purge"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -480,15 +425,15 @@ export const Products: React.FC = () => {
       {/* --- ADD PRODUCT MODAL --- */}
       {isAddOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-8 animate-fade-in-up">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#2C1A17]/10 flex flex-col my-8">
             
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div className="px-6 py-5 border-b border-[#2C1A17]/5 flex justify-between items-center bg-[#FAF6F0]">
               <div className="flex items-center gap-2">
-                <Cake className="w-5 h-5 text-brand-gold-600" />
-                <h3 className="font-playfair text-lg font-bold text-slate-800">Add New Cake & Product</h3>
+                <Cake className="w-5 h-5 text-brand-gold-700" />
+                <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Add New Product</h3>
               </div>
-              <button onClick={() => setIsAddOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-450 hover:text-slate-600 cursor-pointer border-none bg-transparent">
+              <button onClick={() => setIsAddOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-450 hover:text-slate-650 cursor-pointer border-none bg-transparent">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -496,64 +441,33 @@ export const Products: React.FC = () => {
             {/* Modal Form */}
             <form onSubmit={handleAddSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
               
-              {/* Product Image Uploader */}
               <ImageUploader 
                 value={image} 
                 onChange={setImage} 
-                label="Primary Product Image (JPG/PNG/WEBP)" 
+                label="Product Showcase Photo" 
               />
-
-              {/* Multiple Images Upload grid */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Additional Screenshots / View Angles (Max 4)</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {images.map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-50 border border-slate-200 group">
-                      <img src={img} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 shadow-sm border-none cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {images.length < 4 && (
-                    <div className="aspect-square bg-slate-50 border border-dashed border-slate-300 rounded-xl relative hover:border-slate-400 transition-colors">
-                      <ImageUploader
-                        value=""
-                        onChange={(newImg) => {
-                          if (newImg) setImages([...images, newImg]);
-                        }}
-                        label="Add Angle"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Product Name */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Cake/Product Name</label>
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Product Name</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="E.g., Butterscotch Cake"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white animate-none"
+                    placeholder="E.g., Special White Forest"
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
                   />
                 </div>
 
-                {/* Category Selector */}
+                {/* Category */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Category</label>
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Category</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none cursor-pointer"
                   >
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -562,174 +476,148 @@ export const Products: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Price */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                  />
+              {/* Pricing Options Toggle */}
+              <div className="space-y-2 bg-[#FAF6F0]/50 border border-[#2C1A17]/5 rounded-xl p-4">
+                <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Pricing & Weight Settings</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="priceTypeAdd"
+                      checked={priceType === 'flat'}
+                      onChange={() => setPriceType('flat')}
+                      className="mr-1.5 accent-brand-gold-800"
+                    />
+                    <span>Single Flat Price (Pastries/Snacks)</span>
+                  </label>
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="priceTypeAdd"
+                      checked={priceType === 'multi'}
+                      onChange={() => setPriceType('multi')}
+                      className="mr-1.5 accent-brand-gold-800"
+                    />
+                    <span>Multi-Weight Prices (Cakes)</span>
+                  </label>
                 </div>
 
-                {/* Weight */}
+                {priceType === 'flat' ? (
+                  <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-[#2C1A17]/5">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">Price (₹)</span>
+                      <input
+                        type="number"
+                        required={priceType === 'flat'}
+                        min={0}
+                        value={flatPrice}
+                        onChange={(e) => setFlatPrice(Number(e.target.value))}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">Weight / Unit</span>
+                      <input
+                        type="text"
+                        value={flatWeight}
+                        onChange={(e) => setFlatWeight(e.target.value)}
+                        placeholder="E.g. Single Piece, 1 Box"
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-[#2C1A17]/5">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">Slice Price (₹)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="N/A"
+                        value={slicePrice}
+                        onChange={(e) => setSlicePrice(e.target.value)}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">½ Kg Price (₹)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="N/A"
+                        value={halfKgPrice}
+                        onChange={(e) => setHalfKgPrice(e.target.value)}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">1 Kg Price (₹)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="N/A"
+                        value={oneKgPrice}
+                        onChange={(e) => setOneKgPrice(e.target.value)}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status and Priority */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Weight/Size</label>
-                  <input
-                    type="text"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    placeholder="E.g. 0.5 Kg, Single Piece"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                  />
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Availability Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as any)}
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="Available">Available (Visible on Site)</option>
+                    <option value="Out of Stock">Out of Stock (Shows Sold Out)</option>
+                    <option value="Hidden">Hidden (Invisible)</option>
+                  </select>
                 </div>
 
-                {/* displayPriority */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Display Priority Order</label>
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Display Priority</label>
                   <input
                     type="number"
                     min={1}
                     value={displayPriority}
                     onChange={(e) => setDisplayPriority(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* status select */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Stock Status</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
-                  >
-                    <option value="Available">Available (Visible & Orderable)</option>
-                    <option value="Out of Stock">Out of Stock (Visible, Orders Disabled)</option>
-                    <option value="Hidden">Hidden (Not visible to users)</option>
-                  </select>
-                </div>
-
-                {/* badge select */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Badge Badge</label>
-                  <select
-                    value={badge}
-                    onChange={(e) => setBadge(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
-                  >
-                    <option value="None">No Special Badge</option>
-                    <option value="Bestseller">Bestseller</option>
-                    <option value="New Arrival">New Arrival</option>
-                  </select>
-                </div>
-
-                {/* limitedStockCount */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Limited Stock Count (Optional)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="Unlimited"
-                    value={limitedStockCount === undefined ? '' : limitedStockCount}
-                    onChange={(e) => setLimitedStockCount(e.target.value === '' ? undefined : Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Description</label>
+                <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  placeholder="Details about flavor layers, ingredients, toppings, allergens, etc."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white leading-normal"
+                  rows={3}
+                  placeholder="Ingredients, details, toppings, allergens, flavor layers, etc."
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3.5 text-xs focus:outline-none leading-normal"
                 />
               </div>
 
-              {/* Dates grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
-                {/* Publish Date */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Scheduled Publish Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={publishDate}
-                    onChange={(e) => setPublishDate(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
-                  />
-                </div>
-
-                {/* Visibility Expiry */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Visibility Expiry Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={visibilityExpiryDate}
-                    onChange={(e) => setVisibilityExpiryDate(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Toggles */}
-              <div className="flex flex-wrap gap-6 pt-2 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
-                {/* Featured Toggle */}
-                <label className="relative flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={isFeatured}
-                    onChange={(e) => setIsFeatured(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-brand-gold-500 peer-checked:bg-brand-gold-500/10 rounded flex items-center justify-center transition-all mr-2.5">
-                    {isFeatured && (
-                      <Star className="w-3.5 h-3.5 text-brand-gold-700 fill-current" />
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Featured Homepage Product</span>
-                </label>
-
-                {/* Daily Special Toggle */}
-                <label className="relative flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={dailySpecial}
-                    onChange={(e) => setDailySpecial(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 rounded flex items-center justify-center transition-all mr-2.5">
-                    {dailySpecial && (
-                      <div className="w-2.5 h-2.5 rounded bg-amber-500" />
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Daily Special Product</span>
-                </label>
-              </div>
-
-              {/* Form Footer */}
+              {/* Form Actions */}
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="px-5 py-2.5 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-[#2C1A17]/10 hover:bg-[#1E110F]/5 text-[#2C1A17] text-xs font-semibold cursor-pointer bg-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 hover:text-white text-xs font-semibold shadow-sm cursor-pointer border-none"
+                  className="px-5 py-2.5 rounded-xl bg-[#1E110F] text-[#F3EDE2] hover:bg-brand-brown-900 text-xs font-semibold border-none cursor-pointer shadow-sm"
                 >
-                  Save Product
+                  Create Product
                 </button>
               </div>
 
@@ -741,15 +629,15 @@ export const Products: React.FC = () => {
       {/* --- EDIT PRODUCT MODAL --- */}
       {isEditOpen && currentProduct && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-8 animate-fade-in-up">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#2C1A17]/10 flex flex-col my-8">
             
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div className="px-6 py-5 border-b border-[#2C1A17]/5 flex justify-between items-center bg-[#FAF6F0]">
               <div className="flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-brand-gold-600" />
-                <h3 className="font-playfair text-lg font-bold text-slate-800">Edit Product: {name}</h3>
+                <Edit3 className="w-5 h-5 text-brand-gold-700" />
+                <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Edit Product: {name}</h3>
               </div>
-              <button onClick={() => { setIsEditOpen(false); setCurrentProduct(null); }} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-450 hover:text-slate-600 cursor-pointer border-none bg-transparent">
+              <button onClick={() => { setIsEditOpen(false); setCurrentProduct(null); }} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-450 hover:text-slate-650 cursor-pointer border-none bg-transparent">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -757,64 +645,33 @@ export const Products: React.FC = () => {
             {/* Modal Form */}
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
               
-              {/* Product Image Uploader */}
               <ImageUploader 
                 value={image} 
                 onChange={setImage} 
-                label="Primary Product Image" 
+                label="Product Showcase Photo" 
               />
-
-              {/* Multiple Images Upload grid */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Additional Screenshots / View Angles (Max 4)</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {images.map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-50 border border-slate-200 group">
-                      <img src={img} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 shadow-sm border-none cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {images.length < 4 && (
-                    <div className="aspect-square bg-slate-50 border border-dashed border-slate-300 rounded-xl relative hover:border-slate-450 transition-colors">
-                      <ImageUploader
-                        value=""
-                        onChange={(newImg) => {
-                          if (newImg) setImages([...images, newImg]);
-                        }}
-                        label="Add Angle"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Product Name */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Name</label>
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Product Name</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="E.g., Butterscotch Cake"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                    placeholder="E.g., Special White Forest"
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
                   />
                 </div>
 
-                {/* Category Selector */}
+                {/* Category */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Category</label>
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Category</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none cursor-pointer"
                   >
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -823,172 +680,146 @@ export const Products: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Price */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                  />
+              {/* Pricing Options Toggle */}
+              <div className="space-y-2 bg-[#FAF6F0]/50 border border-[#2C1A17]/5 rounded-xl p-4">
+                <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Pricing & Weight Settings</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="priceTypeEdit"
+                      checked={priceType === 'flat'}
+                      onChange={() => setPriceType('flat')}
+                      className="mr-1.5 accent-brand-gold-800"
+                    />
+                    <span>Single Flat Price (Pastries/Snacks)</span>
+                  </label>
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="priceTypeEdit"
+                      checked={priceType === 'multi'}
+                      onChange={() => setPriceType('multi')}
+                      className="mr-1.5 accent-brand-gold-800"
+                    />
+                    <span>Multi-Weight Prices (Cakes)</span>
+                  </label>
                 </div>
 
-                {/* Weight */}
+                {priceType === 'flat' ? (
+                  <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-[#2C1A17]/5">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">Price (₹)</span>
+                      <input
+                        type="number"
+                        required={priceType === 'flat'}
+                        min={0}
+                        value={flatPrice}
+                        onChange={(e) => setFlatPrice(Number(e.target.value))}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">Weight / Unit</span>
+                      <input
+                        type="text"
+                        value={flatWeight}
+                        onChange={(e) => setFlatWeight(e.target.value)}
+                        placeholder="E.g. Single Piece, 1 Box"
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-[#2C1A17]/5">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">Slice Price (₹)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="N/A"
+                        value={slicePrice}
+                        onChange={(e) => setSlicePrice(e.target.value)}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">½ Kg Price (₹)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="N/A"
+                        value={halfKgPrice}
+                        onChange={(e) => setHalfKgPrice(e.target.value)}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/60 block uppercase">1 Kg Price (₹)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="N/A"
+                        value={oneKgPrice}
+                        onChange={(e) => setOneKgPrice(e.target.value)}
+                        className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-2.5 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status and Priority */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Weight/Size</label>
-                  <input
-                    type="text"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    placeholder="E.g. 0.5 Kg, Single Piece"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                  />
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Availability Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as any)}
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="Available">Available (Visible on Site)</option>
+                    <option value="Out of Stock">Out of Stock (Shows Sold Out)</option>
+                    <option value="Hidden">Hidden (Invisible)</option>
+                  </select>
                 </div>
 
-                {/* displayPriority */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Display Priority Order</label>
+                  <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Display Priority</label>
                   <input
                     type="number"
                     min={1}
                     value={displayPriority}
                     onChange={(e) => setDisplayPriority(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* status select */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Stock Status</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
-                  >
-                    <option value="Available">Available (Visible & Orderable)</option>
-                    <option value="Out of Stock">Out of Stock (Visible, Orders Disabled)</option>
-                    <option value="Hidden">Hidden (Not visible to users)</option>
-                  </select>
-                </div>
-
-                {/* badge select */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Badge</label>
-                  <select
-                    value={badge}
-                    onChange={(e) => setBadge(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
-                  >
-                    <option value="None">No Special Badge</option>
-                    <option value="Bestseller">Bestseller</option>
-                    <option value="New Arrival">New Arrival</option>
-                  </select>
-                </div>
-
-                {/* limitedStockCount */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Limited Stock Count (Optional)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="Unlimited"
-                    value={limitedStockCount === undefined ? '' : limitedStockCount}
-                    onChange={(e) => setLimitedStockCount(e.target.value === '' ? undefined : Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                    className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Description</label>
+                <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  placeholder="Details about flavor layers, ingredients, toppings, allergens, etc."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white leading-normal"
+                  rows={3}
+                  placeholder="Ingredients, details, toppings, allergens, flavor layers, etc."
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3.5 text-xs focus:outline-none leading-normal"
                 />
               </div>
 
-              {/* Dates grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
-                {/* Publish Date */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Scheduled Publish Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={publishDate}
-                    onChange={(e) => setPublishDate(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
-                  />
-                </div>
-
-                {/* Visibility Expiry */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Visibility Expiry Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={visibilityExpiryDate}
-                    onChange={(e) => setVisibilityExpiryDate(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Toggles */}
-              <div className="flex flex-wrap gap-6 pt-2 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
-                {/* Featured Toggle */}
-                <label className="relative flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={isFeatured}
-                    onChange={(e) => setIsFeatured(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-brand-gold-500 peer-checked:bg-brand-gold-500/10 rounded flex items-center justify-center transition-all mr-2.5">
-                    {isFeatured && (
-                      <Star className="w-3.5 h-3.5 text-brand-gold-700 fill-current" />
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Featured Homepage Product</span>
-                </label>
-
-                {/* Daily Special Toggle */}
-                <label className="relative flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={dailySpecial}
-                    onChange={(e) => setDailySpecial(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 rounded flex items-center justify-center transition-all mr-2.5">
-                    {dailySpecial && (
-                      <div className="w-2.5 h-2.5 rounded bg-amber-500" />
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Daily Special Product</span>
-                </label>
-              </div>
-
-              {/* Form Footer */}
+              {/* Form Actions */}
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => { setIsEditOpen(false); setCurrentProduct(null); }}
-                  className="px-5 py-2.5 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-[#2C1A17]/10 hover:bg-[#1E110F]/5 text-[#2C1A17] text-xs font-semibold cursor-pointer bg-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 hover:text-white text-xs font-semibold shadow-sm cursor-pointer border-none"
+                  className="px-5 py-2.5 rounded-xl bg-[#1E110F] text-[#F3EDE2] hover:bg-brand-brown-900 text-xs font-semibold border-none cursor-pointer shadow-sm"
                 >
                   Save Changes
                 </button>

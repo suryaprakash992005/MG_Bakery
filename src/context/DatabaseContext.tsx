@@ -85,6 +85,9 @@ export interface UnifiedSettings {
   holidaySettings: string;
   emergencyDisableOrdering: boolean;
   isSliderEnabled: boolean;
+  openingTime?: string;
+  closingTime?: string;
+  googleMapsLink?: string;
 }
 
 export interface UnifiedHistoryLog {
@@ -296,7 +299,10 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         businessHours: '9:00 AM - 10:00 PM',
         holidaySettings: 'Open all days including national holidays',
         emergencyDisableOrdering: false,
-        isSliderEnabled: true
+        isSliderEnabled: true,
+        openingTime: '9:00 AM',
+        closingTime: '10:00 PM',
+        googleMapsLink: 'https://maps.google.com'
       };
       setSettings(initial);
       localStorage.setItem('admin_settings', JSON.stringify(initial));

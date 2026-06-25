@@ -3,24 +3,19 @@ import { AdminRouterProvider, useAdminRouter } from './hooks/useAdminRouter';
 import { AdminStateProvider } from './hooks/useAdminState';
 import { Login } from './pages/Login';
 import { AdminLayout } from './layout/AdminLayout';
-import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
 import { GalleryManager } from './pages/GalleryManager';
 import { BannerManager } from './pages/BannerManager';
-import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
-import { Orders } from './pages/Orders';
-import { CustomOrders } from './pages/CustomOrders';
-import { Customers } from './pages/Customers';
 import { DatabaseProvider } from '../context/DatabaseContext';
 
 const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
 
   useEffect(() => {
-    // Redirect /admin or /admin/ to dashboard
+    // Redirect /admin or /admin/ to products
     if (currentPath === '/admin' || currentPath === '/admin/') {
-      navigate('/admin/dashboard');
+      navigate('/admin/products');
     }
   }, [currentPath, navigate]);
 
@@ -31,26 +26,16 @@ const AdminRouteSwitcher: React.FC = () => {
   if (currentPath.startsWith('/admin')) {
     const renderAdminPage = () => {
       switch (currentPath) {
-        case '/admin/dashboard':
-          return <Dashboard />;
         case '/admin/products':
           return <Products />;
         case '/admin/gallery-manager':
           return <GalleryManager />;
         case '/admin/banner-manager':
           return <BannerManager />;
-        case '/admin/orders':
-          return <Orders />;
-        case '/admin/custom-orders':
-          return <CustomOrders />;
-        case '/admin/customers':
-          return <Customers />;
-        case '/admin/analytics':
-          return <Analytics />;
         case '/admin/settings':
           return <Settings />;
         default:
-          return <Dashboard />;
+          return <Products />;
       }
     };
 
