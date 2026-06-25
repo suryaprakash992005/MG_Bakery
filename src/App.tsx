@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -15,98 +16,85 @@ import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
 import { DatabaseProvider } from './context/DatabaseContext';
 
-const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<string>('home');
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Intercept Admin system routes
   const isLocationAdmin = 
-    window.location.pathname.startsWith('/admin') || 
-    window.location.pathname === '/admin-login';
+    location.pathname.startsWith('/admin') || 
+    location.pathname.startsWith('/admin-');
 
-  // Scroll to top automatically when page changes
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' as any });
-  }, [currentPage]);
+  // Synchronize state-based navbar highlight
+  const getPageId = (path: string): string => {
+    if (path === '/') return 'home';
+    const sub = path.substring(1); // e.g., 'cakes' from '/cakes'
+    return sub || 'home';
+  };
+
+  const currentPage = getPageId(location.pathname);
+
+  const handleNavClick = (pageId: string) => {
+    if (pageId === 'home') navigate('/');
+    else navigate(`/${pageId}`);
+  };
 
   if (isLocationAdmin) {
     return <AdminApp />;
   }
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return <Home setCurrentPage={setCurrentPage} />;
-      case 'menu':
-        return <Menu />;
-      case 'cakes':
-        return <Cakes />;
-      case 'custom-cake':
-        return <CustomCake />;
-      case 'gallery':
-        return <Gallery />;
-      case 'about':
-        return <About />;
-      case 'contact':
-        return <Contact />;
-      default:
-        return <Home setCurrentPage={setCurrentPage} />;
-    }
-  };
+  return (
+    <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
+      {/* Premium Floating Navigation Header */}
+      <Navbar currentPage={currentPage} setCurrentPage={handleNavClick} />
 
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      y: 10
-    },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: [0.16, 1, 0.3, 1] as [number, number, number, number] // Apple-style custom ease-out
-      }
-    },
-    exit: {
-      opacity: 0,
-      y: -10,
-      transition: {
-        duration: 0.3
-      }
-    }
-  };
+      {/* Shopping Cart Side Drawer */}
+      <CartDrawer />
 
+      {/* Mobile Floating Cart Action Button */}
+      <FloatingCartButton />
+
+      {/* Main Content Area with Route Transition Animations */}
+      <main className="flex-grow">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{
+              duration: 0.4,
+              ease: [0.16, 1, 0.3, 1] // Apple-style custom ease-out
+            }}
+            className="w-full h-full"
+          >
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<Home setCurrentPage={handleNavClick} />} />
+              <Route path="/menu" element={<Menu />} />
+              <Route path="/cakes" element={<Cakes />} />
+              <Route path="/custom-cake" element={<CustomCake />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {/* Luxury Footer */}
+      <Footer setCurrentPage={handleNavClick} />
+    </div>
+  );
+};
+
+const App: React.FC = () => {
   return (
     <DatabaseProvider>
       <CartProvider>
-        <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
-          {/* Premium Floating Navigation Header */}
-          <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-
-          {/* Shopping Cart Side Drawer */}
-          <CartDrawer />
-
-          {/* Mobile Floating Cart Action Button */}
-          <FloatingCartButton />
-
-          {/* Main Content Area with Route Transition Animations */}
-          <main className="flex-grow">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentPage}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                variants={pageVariants}
-                className="w-full h-full"
-              >
-                {renderPage()}
-              </motion.div>
-            </AnimatePresence>
-          </main>
-
-          {/* Luxury Footer */}
-          <Footer setCurrentPage={setCurrentPage} />
-        </div>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </CartProvider>
     </DatabaseProvider>
   );

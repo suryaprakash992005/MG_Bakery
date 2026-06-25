@@ -14,7 +14,7 @@ const AdminRouteSwitcher: React.FC = () => {
 
   useEffect(() => {
     // Redirect /admin or /admin/ to products
-    if (currentPath === '/admin' || currentPath === '/admin/') {
+    if (currentPath === '/admin' || currentPath === '/admin/' || currentPath === '/admin-dashboard') {
       navigate('/admin/products');
     }
   }, [currentPath, navigate]);
@@ -27,12 +27,18 @@ const AdminRouteSwitcher: React.FC = () => {
     const renderAdminPage = () => {
       switch (currentPath) {
         case '/admin/products':
+        case '/admin-products':
           return <Products />;
         case '/admin/gallery-manager':
+        case '/admin-gallery':
+        case '/admin-gallery-manager':
           return <GalleryManager />;
         case '/admin/banner-manager':
+        case '/admin-banner':
+        case '/admin-banner-manager':
           return <BannerManager />;
         case '/admin/settings':
+        case '/admin-settings':
           return <Settings />;
         default:
           return <Products />;
