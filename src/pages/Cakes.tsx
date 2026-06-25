@@ -28,7 +28,7 @@ const WEIGHT_OPTIONS = [
 ];
 
 
-export const Cakes: React.FC = React.memo(() => {
+export const Cakes: React.FC = () => {
   const [selectedFlavor, setSelectedFlavor] = useState<string>('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All');
   const [selectedWeight, setSelectedWeight] = useState<string>('All');
@@ -182,4 +182,4 @@ export const Cakes: React.FC = React.memo(() => {
       </div>
     </div>
   );
-});
+};

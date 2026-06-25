@@ -4,9 +4,8 @@ import { GALLERY_ITEMS } from '../data';
 import { GalleryItem } from '../types';
 import PillFilters from '../components/PillFilters';
 import BorderGlow from '../components/BorderGlow';
-import { OptimizedImage } from '../components/OptimizedImage';
 
-export const Gallery: React.FC = React.memo(() => {
+export const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeImage, setActiveImage] = useState<GalleryItem | null>(null);
 
@@ -69,10 +68,11 @@ export const Gallery: React.FC = React.memo(() => {
               fillOpacity={0.15}
             >
               <div onClick={() => setActiveImage(item)} className="relative group w-full h-full">
-                <OptimizedImage
+                <img
                   src={item.image}
                   alt={item.title}
-                  className="transform group-hover:scale-[1.03] transition-transform duration-700"
+                  loading="lazy"
+                  className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-700"
                 />
                 
                 {/* Cover Overlay on Hover */}
@@ -135,4 +135,4 @@ export const Gallery: React.FC = React.memo(() => {
       </div>
     </div>
   );
-});
+};

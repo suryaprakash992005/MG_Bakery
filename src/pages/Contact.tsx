@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, MessageSquare, Send } from 'lucide-react';
 import { getGeneralInquiryUrl, WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 
-export const Contact: React.FC = React.memo(() => {
+export const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     contactInfo: '',
@@ -215,4 +215,4 @@ Message: ${formData.message}`;
       </div>
     </div>
   );
-});
+};

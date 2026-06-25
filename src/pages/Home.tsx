@@ -5,7 +5,6 @@ import { ProductCard } from '../components/ProductCard';
 import { PRODUCTS, REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from '../components/BorderGlow';
-import { OptimizedImage } from '../components/OptimizedImage';
 
 interface HomeProps {
   setCurrentPage: (page: string) => void;
@@ -99,11 +98,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 animated={true}
               >
                 <div className="relative w-full h-full">
-                  <OptimizedImage
+                  <img
                     src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80"
                     alt="Premium Luxury Celebration Cake"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/40 via-transparent to-transparent z-10 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/40 via-transparent to-transparent" />
                   
                   {/* Floating Micro-Card */}
                   <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
@@ -153,7 +153,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md"
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
-                  <OptimizedImage src={cat.image} alt={cat.name} />
+                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
                 </div>
                 <h3 className="font-playfair text-base font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors">
                   {cat.name}

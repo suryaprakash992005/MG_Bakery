@@ -6,7 +6,7 @@ interface FooterProps {
   setCurrentPage: (page: string) => void;
 }
 
-export const Footer: React.FC<FooterProps> = React.memo(({ setCurrentPage }) => {
+export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
   const currentYear = new Date().getFullYear();
 
   const handleNavClick = (pageId: string) => {
@@ -137,4 +137,4 @@ export const Footer: React.FC<FooterProps> = React.memo(({ setCurrentPage }) => 
       </div>
     </footer>
   );
-});
+};

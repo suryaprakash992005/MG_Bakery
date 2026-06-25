@@ -1,8 +1,7 @@
 import React from 'react';
 import { Coffee, ShieldCheck, Award, Heart, CheckCircle2, Leaf } from 'lucide-react';
-import { OptimizedImage } from '../components/OptimizedImage';
 
-export const About: React.FC = React.memo(() => {
+export const About: React.FC = () => {
   const highlights = [
     { title: 'Pure Ingredients', desc: '100% select grain flours, fresh local dairy, and organic sweet fruits with no artificial additives.', icon: Leaf },
     { title: 'Strict Hygiene', desc: 'Surgical cleanliness levels across our artisan ovens, mixing stations, and display arrays.', icon: ShieldCheck },
@@ -45,9 +44,10 @@ export const About: React.FC = React.memo(() => {
 
           <div className="relative flex justify-center">
             <div className="w-full max-w-[500px] aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white relative">
-              <OptimizedImage
+              <img
                 src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&q=80"
                 alt="Bakery kitchen interior"
+                className="w-full h-full object-cover"
               />
             </div>
           </div>
@@ -91,9 +91,10 @@ export const About: React.FC = React.memo(() => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="order-2 lg:order-1 relative flex justify-center">
             <div className="w-full max-w-[500px] aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white relative">
-              <OptimizedImage
+              <img
                 src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
                 alt="Flour wheat bread"
+                className="w-full h-full object-cover"
               />
             </div>
           </div>
@@ -128,4 +129,4 @@ export const About: React.FC = React.memo(() => {
       </div>
     </div>
   );
-});
+};

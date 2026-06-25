@@ -3,9 +3,8 @@ import { X, Plus, Minus, Trash2, ShoppingBag, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
-import { OptimizedImage } from './OptimizedImage';
 
-export const CartDrawer: React.FC = React.memo(() => {
+export const CartDrawer: React.FC = () => {
   const {
     cartItems,
     isCartOpen,
@@ -133,10 +132,11 @@ Thank you!`;
                     className="flex gap-4 p-4 bg-white rounded-2xl border border-brand-cream-100/40 shadow-sm relative group overflow-hidden"
                   >
                     {/* Item Thumbnail */}
-                    <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
-                      <OptimizedImage
+                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-brand-cream-100 shrink-0">
+                      <img
                         src={item.image}
                         alt={item.name}
+                        className="w-full h-full object-cover"
                       />
                     </div>
 
@@ -225,4 +225,4 @@ Thank you!`;
       )}
     </AnimatePresence>
   );
-});
+};

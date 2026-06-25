@@ -19,7 +19,7 @@ export interface PillFiltersProps {
   pillTextColor?: string;
 }
 
-export const PillFilters: React.FC<PillFiltersProps> = React.memo(({
+export const PillFilters: React.FC<PillFiltersProps> = ({
   items,
   activeId,
   onChange,
@@ -155,6 +155,6 @@ export const PillFilters: React.FC<PillFiltersProps> = React.memo(({
       </ul>
     </div>
   );
-});
+};
 
 export default PillFilters;

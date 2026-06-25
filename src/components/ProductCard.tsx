@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Product } from '../types';
 import { AddToCartButton } from './AddToCartButton';
 import BorderGlow from './BorderGlow';
-import { OptimizedImage } from './OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isCakeWithMultiPrice = typeof product.price === 'object';
   
   // Select initial price tier for cakes (default to halfKg if available, else piece, else first key)
@@ -58,11 +57,12 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) 
     >
       <div className="flex flex-col h-full w-full justify-between">
         {/* Product Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <OptimizedImage
+        <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100">
+          <img
             src={product.image}
             alt={product.name}
-            className="transform group-hover:scale-105 transition-transform duration-700"
+            loading="lazy"
+            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
           />
 
           {/* Floating Badges */}
@@ -148,4 +148,4 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) 
       </div>
     </BorderGlow>
   );
-});
+};

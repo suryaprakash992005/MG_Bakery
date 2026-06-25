@@ -49,7 +49,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [cartItems]);
 
-  const addToCart = React.useCallback((product: Product, selectedWeight: string, quantity: number = 1) => {
+  const addToCart = (product: Product, selectedWeight: string, quantity: number = 1) => {
     // Determine the price based on selected weight
     let itemPrice = 0;
     if (typeof product.price === 'number') {
@@ -91,15 +91,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       return [...prevItems, newItem];
     });
-  }, []);
+  };
 
-  const removeFromCart = React.useCallback((id: string, selectedWeight: string) => {
+  const removeFromCart = (id: string, selectedWeight: string) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => !(item.id === id && item.selectedWeight === selectedWeight))
     );
-  }, []);
+  };
 
-  const updateQuantity = React.useCallback((id: string, selectedWeight: string, delta: number) => {
+  const updateQuantity = (id: string, selectedWeight: string, delta: number) => {
     setCartItems((prevItems) =>
       prevItems
         .map((item) => {
@@ -111,29 +111,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
         .filter((item) => item.quantity > 0)
     );
-  }, []);
+  };
 
-  const clearCart = React.useCallback(() => {
+  const clearCart = () => {
     setCartItems([]);
-  }, []);
+  };
 
-  const totalItemsCount = React.useMemo(() => cartItems.reduce((acc, item) => acc + item.quantity, 0), [cartItems]);
-  const totalAmount = React.useMemo(() => cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0), [cartItems]);
-
-  const contextValue = React.useMemo(() => ({
-    cartItems,
-    isCartOpen,
-    setIsCartOpen,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    clearCart,
-    totalItemsCount,
-    totalAmount,
-  }), [cartItems, isCartOpen, addToCart, removeFromCart, updateQuantity, clearCart, totalItemsCount, totalAmount]);
+  const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={contextValue}>
+    <CartContext.Provider
+      value={{
+        cartItems,
+        isCartOpen,
+        setIsCartOpen,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        totalItemsCount,
+        totalAmount,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

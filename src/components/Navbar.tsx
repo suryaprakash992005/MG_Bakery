@@ -10,7 +10,7 @@ interface NavbarProps {
   setCurrentPage: (page: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPage, setCurrentPage }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'home', label: 'Home' },
     { id: 'menu', label: 'Menu' },
@@ -116,4 +116,4 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({ currentPage, setCurre
       />
     </>
   );
-});
+};

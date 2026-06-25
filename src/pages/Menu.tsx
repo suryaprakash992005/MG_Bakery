@@ -5,7 +5,7 @@ import { PRODUCTS, CATEGORIES } from '../data';
 import ShinyText from '../components/ShinyText';
 import PillFilters from '../components/PillFilters';
 
-export const Menu: React.FC = React.memo(() => {
+export const Menu: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -121,4 +121,4 @@ export const Menu: React.FC = React.memo(() => {
       </div>
     </div>
   );
-});
+};
