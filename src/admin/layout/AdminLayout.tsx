@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminRouter } from '../hooks/useAdminRouter';
+import { supabase } from '../../utils/supabase';
 import {
   Cake,
   Image as ImageIcon,
@@ -27,16 +28,13 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const [adminEmail, setAdminEmail] = useState('admin@mgiyengar.com');
 
   useEffect(() => {
-    // Check authentication
-    const auth = localStorage.getItem('admin_auth');
-    if (!auth) {
-      navigate('/admin-login');
-    }
-    const user = localStorage.getItem('admin_user');
-    if (user) {
-      setAdminEmail(user);
-    }
-  }, [navigate]);
+    // Retrieve email from Supabase session
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user && user.email) {
+        setAdminEmail(user.email);
+      }
+    });
+  }, []);
 
   const navigationItems: SidebarItem[] = [
     { name: 'Products', path: '/admin/products', icon: Cake },
@@ -45,10 +43,15 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_auth');
-    localStorage.removeItem('admin_user');
-    navigate('/admin-login');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.removeItem('admin_user');
+      navigate('/admin-login');
+    }
   };
 
   const currentNav = navigationItems.find(item => item.path === currentPath) || navigationItems[0];

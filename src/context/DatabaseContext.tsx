@@ -14,7 +14,8 @@ export interface UnifiedProduct {
   tags?: string[];
   isBestSeller?: boolean;
   isEggless?: boolean;
-  status: 'Available' | 'Out of Stock' | 'Hidden';
+  status: 'Available' |
+   'Out of Stock' | 'Hidden';
   isFeatured?: boolean;
   displayPriority: number;
   isDeleted?: boolean; // Soft delete support

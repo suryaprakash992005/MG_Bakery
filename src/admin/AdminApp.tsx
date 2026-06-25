@@ -8,6 +8,7 @@ import { GalleryManager } from './pages/GalleryManager';
 import { BannerManager } from './pages/BannerManager';
 import { Settings } from './pages/Settings';
 import { DatabaseProvider } from '../context/DatabaseContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
@@ -45,7 +46,11 @@ const AdminRouteSwitcher: React.FC = () => {
       }
     };
 
-    return <AdminLayout>{renderAdminPage()}</AdminLayout>;
+    return (
+      <ProtectedRoute>
+        <AdminLayout>{renderAdminPage()}</AdminLayout>
+      </ProtectedRoute>
+    );
   }
 
   return null;

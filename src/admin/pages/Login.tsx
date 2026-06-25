@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Coffee, Eye, EyeOff, Lock, Mail, ShieldAlert } from 'lucide-react';
 import { useAdminRouter } from '../hooks/useAdminRouter';
+import { supabase } from '../../utils/supabase';
 
 export const Login: React.FC = () => {
   const { navigate } = useAdminRouter();
@@ -12,7 +13,15 @@ export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/admin/products');
+      }
+    });
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -22,20 +31,24 @@ export const Login: React.FC = () => {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (
-        (email === 'admin@mgiyengar.com' && password === 'admin123') ||
-        (email === 'owner@mgiyengar.com' && password === 'owner123') ||
-        (email.includes('@') && password.length >= 6)
-      ) {
-        localStorage.setItem('admin_auth', 'true');
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError) {
+        setError(authError.message);
+      } else if (data.session) {
         localStorage.setItem('admin_user', email);
         navigate('/admin/products');
-      } else {
-        setError('Invalid administrator credentials.');
       }
-    }, 1000);
+    } catch (err: any) {
+      console.error('Login submit error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -175,9 +188,6 @@ export const Login: React.FC = () => {
             <span className="text-[10px] tracking-wide text-brand-gold-800 font-bold uppercase block">
               Authorized Access Only
             </span>
-            <p className="text-[9px] text-[#2C1A17]/40 mt-1 font-mono">
-              Use your admin or owner password (admin123 / owner123)
-            </p>
           </div>
         </motion.div>
       </div>
