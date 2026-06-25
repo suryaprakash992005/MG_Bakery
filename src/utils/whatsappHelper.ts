@@ -6,7 +6,8 @@ export const WHATSAPP_PHONE_NUMBER = '919345586112'; // Replace with real busine
 export const getProductOrderUrl = (
   productName: string,
   priceDetails: string,
-  quantity: number = 1
+  quantity: number = 1,
+  whatsappNumber: string = WHATSAPP_PHONE_NUMBER
 ): string => {
   const text = `Hello M.G. Iyengar Bakery,
 
@@ -18,21 +19,24 @@ Details: ${priceDetails}
 
 Please share availability and payment details. Thank you!`;
 
-  return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
 };
 
 /**
  * Generates a WhatsApp inquiry URL for custom celebration cakes
  */
-export const getCustomCakeInquiryUrl = (data: {
-  name: string;
-  mobile: string;
-  flavor: string;
-  weight: string;
-  occasion: string;
-  deliveryDate: string;
-  instructions: string;
-}): string => {
+export const getCustomCakeInquiryUrl = (
+  data: {
+    name: string;
+    mobile: string;
+    flavor: string;
+    weight: string;
+    occasion: string;
+    deliveryDate: string;
+    instructions: string;
+  },
+  whatsappNumber: string = WHATSAPP_PHONE_NUMBER
+): string => {
   const text = `🎂 *CUSTOM CAKE INQUIRY - M.G. IYENGAR* 🎂
 ----------------------------------------------
 Hello, I would like to inquire about a custom celebration cake.
@@ -52,13 +56,17 @@ Please share the pricing quote, availability, and details on how I can send refe
 
 Thank you!`;
 
-  return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
 };
 
 /**
  * Generates a WhatsApp general contact inquiry URL
  */
-export const getGeneralInquiryUrl = (name: string, message: string): string => {
+export const getGeneralInquiryUrl = (
+  name: string,
+  message: string,
+  whatsappNumber: string = WHATSAPP_PHONE_NUMBER
+): string => {
   const text = `✉️ *NEW MESSAGE - M.G. IYENGAR BAKERY* ✉️
 ----------------------------------------------
 Hello, my name is ${name}.
@@ -68,5 +76,6 @@ ${message}
 
 Please get back to me. Thank you!`;
 
-  return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
 };
+

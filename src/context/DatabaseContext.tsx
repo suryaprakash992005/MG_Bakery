@@ -150,7 +150,7 @@ interface DatabaseContextType {
   reorderBanners: (banners: UnifiedBanner[]) => void | Promise<void>;
 
   // Settings Operation
-  updateSettings: (settings: UnifiedSettings) => void;
+  updateSettings: (settings: UnifiedSettings) => void | Promise<void>;
 
   // Offer Operations
   saveOffer: (offer: UnifiedOffer) => void;
@@ -272,6 +272,64 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('No settings row found. Seeding default settings...');
+          const defaultSettings = {
+            id: 1,
+            bakery_name: 'M.G. Iyengar Bakery & Chats',
+            address: 'Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu 637015',
+            maps_link: 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015',
+            opening_time: '9:00 AM',
+            closing_time: '10:00 PM',
+            whatsapp: '+91 93455 86112',
+            instagram: 'https://instagram.com'
+          };
+          const { error: insertError } = await supabase
+            .from('settings')
+            .insert([defaultSettings]);
+          if (insertError) {
+            console.error('Error seeding default settings in Supabase:', insertError);
+          } else {
+            console.log('Seeded default settings in Supabase.');
+            await fetchSettings();
+          }
+          return;
+        }
+        console.error('Error fetching settings from Supabase:', error);
+        return;
+      }
+
+      if (data) {
+        setSettings({
+          bakeryName: data.bakery_name || 'M.G. Iyengar Bakery & Chats',
+          whatsappNumber: data.whatsapp || '+91 93455 86112',
+          storeAddress: data.address || 'Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu 637015',
+          openingTime: data.opening_time || '9:00 AM',
+          closingTime: data.closing_time || '10:00 PM',
+          googleMapsLink: data.maps_link || 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015',
+          instagramUrl: data.instagram || 'https://instagram.com',
+          phone: data.whatsapp || '+91 93455 86112',
+          deliveryCharge: 30,
+          facebookUrl: 'https://facebook.com',
+          businessHours: `${data.opening_time || '9:00 AM'} - ${data.closing_time || '10:00 PM'}`,
+          holidaySettings: 'Open all days including national holidays',
+          emergencyDisableOrdering: false,
+          isSliderEnabled: true
+        });
+      }
+    } catch (err) {
+      console.error('Error in fetchSettings:', err);
+    }
+  };
+
   // Load and initialize data
   useEffect(() => {
     // 1. Load Products from Supabase
@@ -327,30 +385,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // 5. Load Banners from Supabase
     fetchBanners();
 
-    // 6. Load Settings
-    const localSettings = localStorage.getItem('admin_settings');
-    if (localSettings) {
-      setSettings(JSON.parse(localSettings));
-    } else {
-      const initial: UnifiedSettings = {
-        bakeryName: 'M.G. Iyengar Bakery & Chats',
-        phone: '+91 93455 86112',
-        whatsappNumber: '+91 93455 86112',
-        storeAddress: 'Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu 637015',
-        deliveryCharge: 30,
-        instagramUrl: 'https://instagram.com',
-        facebookUrl: 'https://facebook.com',
-        businessHours: '9:00 AM - 10:00 PM',
-        holidaySettings: 'Open all days including national holidays',
-        emergencyDisableOrdering: false,
-        isSliderEnabled: true,
-        openingTime: '9:00 AM',
-        closingTime: '10:00 PM',
-        googleMapsLink: 'https://maps.google.com'
-      };
-      setSettings(initial);
-      localStorage.setItem('admin_settings', JSON.stringify(initial));
-    }
+    // 6. Load Settings from Supabase
+    fetchSettings();
 
     // 7. Load History
     const localHistory = localStorage.getItem('admin_history');
@@ -788,10 +824,34 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- SETTINGS ---
-  const updateSettings = (s: UnifiedSettings) => {
-    setSettings(s);
-    syncToLocal('admin_settings', s);
-    addHistoryLog('Updated Bakery Settings', 'Configuration details updated.');
+  const updateSettings = async (s: UnifiedSettings) => {
+    try {
+      const payload = {
+        bakery_name: s.bakeryName,
+        address: s.storeAddress,
+        maps_link: s.googleMapsLink || '',
+        opening_time: s.openingTime || '9:00 AM',
+        closing_time: s.closingTime || '10:00 PM',
+        whatsapp: s.whatsappNumber,
+        instagram: s.instagramUrl
+      };
+
+      const { error } = await supabase
+        .from('settings')
+        .update(payload)
+        .eq('id', 1);
+
+      if (error) {
+        console.error('Error updating settings in Supabase:', error);
+        throw error;
+      }
+
+      await fetchSettings();
+      addHistoryLog('Updated Bakery Settings', 'Configuration details updated.');
+    } catch (err) {
+      console.error('Error updating settings:', err);
+      throw err;
+    }
   };
 
   // --- OFFERS ---

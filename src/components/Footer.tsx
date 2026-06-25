@@ -1,18 +1,53 @@
 import React from 'react';
 import { Coffee, MapPin, Phone, MessageSquare, Clock, Heart } from 'lucide-react';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
+import { useBakeryDatabase } from '../context/DatabaseContext';
+
+const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 
 interface FooterProps {
   setCurrentPage: (page: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
+  const { settings } = useBakeryDatabase();
   const currentYear = new Date().getFullYear();
 
   const handleNavClick = (pageId: string) => {
     setCurrentPage(pageId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const getBakeryNameParts = () => {
+    const name = settings?.bakeryName || 'M.G. Iyengar Bakery & Chats';
+    const words = name.split(' ');
+    if (words.length > 2) {
+      const part1 = words.slice(0, 2).join(' ');
+      const part2 = words.slice(2).join(' ');
+      return { part1, part2 };
+    }
+    return { part1: name, part2: '' };
+  };
+  const { part1, part2 } = getBakeryNameParts();
+
+  const cleanNumber = settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER;
 
   return (
     <footer className="bg-brand-brown-950 text-brand-cream-50 pt-16 pb-8 border-t border-brand-brown-900">
@@ -26,11 +61,13 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
               </div>
               <div>
                 <span className="block font-playfair font-bold text-lg tracking-wide leading-none">
-                  M.G. Iyengar
+                  {part1}
                 </span>
-                <span className="block text-[10px] font-medium text-brand-gold-500 tracking-wider uppercase">
-                  Bakery & Chats
-                </span>
+                {part2 && (
+                  <span className="block text-[10px] font-medium text-brand-gold-500 tracking-wider uppercase">
+                    {part2}
+                  </span>
+                )}
               </div>
             </div>
             <p className="text-sm text-brand-cream-100/70 font-light leading-relaxed">
@@ -77,26 +114,24 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-brand-gold-500 shrink-0 mt-0.5" />
                 <a 
-                  href="https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015"
+                  href={settings?.googleMapsLink || "https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-brand-gold-500 transition-colors duration-300"
                 >
-                  M.G. Iyengar Bakery & Chat Corner,<br />
-                  Mohanur Main Road, Mohanur,<br />
-                  Namakkal, Tamil Nadu - 637015
+                  {settings?.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu 637015'}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-brand-gold-500 shrink-0" />
-                <a href="tel:+919345586112" className="hover:text-brand-gold-500 transition-colors">
-                  +91 93455 86112
+                <a href={`tel:${cleanNumber}`} className="hover:text-brand-gold-500 transition-colors">
+                  {settings?.whatsappNumber || '+91 93455 86112'}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <MessageSquare className="w-5 h-5 text-brand-gold-500 shrink-0" />
                 <a 
-                  href={`https://wa.me/${WHATSAPP_PHONE_NUMBER}`} 
+                  href={`https://wa.me/${cleanNumber}`} 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="hover:text-brand-gold-500 transition-colors"
@@ -104,6 +139,19 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
                   WhatsApp Ordering Chat
                 </a>
               </li>
+              {settings?.instagramUrl && (
+                <li className="flex items-center gap-3">
+                  <InstagramIcon className="w-5 h-5 text-brand-gold-500 shrink-0" />
+                  <a 
+                    href={settings.instagramUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="hover:text-brand-gold-500 transition-colors"
+                  >
+                    Instagram Profile
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -117,7 +165,9 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
                 <Clock className="w-5 h-5 text-brand-gold-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium text-brand-cream-50">Monday - Sunday</p>
-                  <p className="text-xs text-brand-cream-100/50 mt-1">9:00 AM - 10:00 PM</p>
+                  <p className="text-xs text-brand-cream-100/50 mt-1">
+                    {settings?.openingTime || '9:00 AM'} - {settings?.closingTime || '10:00 PM'}
+                  </p>
                   <p className="text-xs text-brand-gold-500 mt-2">Fresh batches out at 11:00 AM & 4:30 PM</p>
                 </div>
               </li>
@@ -127,7 +177,7 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
 
         {/* Bottom Bar */}
         <div className="border-t border-brand-brown-900 pt-8 mt-12 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-light text-brand-cream-100/40">
-          <p>© {currentYear} M.G. Iyengar Bakery & Chat Corner. All Rights Reserved.</p>
+          <p>© {currentYear} {settings?.bakeryName || 'M.G. Iyengar Bakery & Chat Corner'}. All Rights Reserved.</p>
           <div className="flex items-center gap-1">
             <span>Made with</span>
             <Heart className="w-3.5 h-3.5 text-brand-orange-500 fill-brand-orange-500" />
@@ -138,3 +188,4 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
     </footer>
   );
 };
+

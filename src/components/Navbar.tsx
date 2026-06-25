@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import { StaggeredMenu, StaggeredMenuItem } from './StaggeredMenu';
 import { CartIcon } from './CartIcon';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 
 interface NavbarProps {
   currentPage: string;
@@ -11,6 +12,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) => {
+  const { settings } = useBakeryDatabase();
+
   const navItems = [
     { id: 'home', label: 'Home' },
     { id: 'menu', label: 'Menu' },
@@ -32,9 +35,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
     onClick: () => handleNavClick(item.id)
   }));
 
+  const getBakeryNameParts = () => {
+    const name = settings?.bakeryName || 'M.G. Iyengar Bakery & Chats';
+    const words = name.split(' ');
+    if (words.length > 2) {
+      const part1 = words.slice(0, 2).join(' ');
+      const part2 = words.slice(2).join(' ');
+      return { part1, part2 };
+    }
+    return { part1: name, part2: '' };
+  };
+  const { part1, part2 } = getBakeryNameParts();
+
+  const cleanNumber = settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER;
+
   const socialItems = [
-    { label: 'WhatsApp', link: `https://wa.me/${WHATSAPP_PHONE_NUMBER}` },
-    { label: 'Location Directions', link: 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015' }
+    { label: 'WhatsApp', link: `https://wa.me/${cleanNumber}` },
+    { label: 'Location Directions', link: settings?.googleMapsLink || 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015' },
+    ...(settings?.instagramUrl ? [{ label: 'Instagram', link: settings.instagramUrl }] : [])
   ];
 
   return (
@@ -52,11 +70,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
               </div>
               <div>
                 <span className="block font-playfair font-bold text-base sm:text-lg text-brand-brown-950 tracking-wide leading-tight">
-                  M.G. Iyengar
+                  {part1}
                 </span>
-                <span className="block text-[10px] sm:text-xs font-medium text-brand-gold-700 tracking-widest uppercase">
-                  Bakery & Chats
-                </span>
+                {part2 && (
+                  <span className="block text-[10px] sm:text-xs font-medium text-brand-gold-700 tracking-widest uppercase">
+                    {part2}
+                  </span>
+                )}
               </div>
             </button>
 
@@ -89,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
             <div className="hidden lg:flex items-center gap-3">
               <CartIcon />
               <a
-                href={`https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to explore your menu and place an order.')}`}
+                href={`https://wa.me/${cleanNumber}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to explore your menu and place an order.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full shadow-md shadow-brand-brown-950/20 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-1.5"
@@ -117,3 +137,4 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
     </>
   );
 };
+

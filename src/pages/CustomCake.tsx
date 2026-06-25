@@ -7,7 +7,7 @@ import { useBakeryDatabase } from '../context/DatabaseContext';
 
 
 export const CustomCake: React.FC = () => {
-  const { products } = useBakeryDatabase();
+  const { products, settings } = useBakeryDatabase();
   const [formData, setFormData] = useState<CustomCakeInquiry>({
     name: '',
     mobile: '',
@@ -122,7 +122,8 @@ export const CustomCake: React.FC = () => {
       return;
     }
 
-    const whatsappUrl = getCustomCakeInquiryUrl(formData);
+    const cleanNumber = settings?.whatsappNumber?.replace(/[^0-9]/g, '') || '919345586112';
+    const whatsappUrl = getCustomCakeInquiryUrl(formData, cleanNumber);
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     setIsSubmitted(true);
   };

@@ -100,7 +100,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
-                  href={`https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to order a fresh cake or inquire about today\'s specials.')}`}
+                  href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order a fresh cake or inquire about today's specials.`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary w-full sm:w-auto"
@@ -487,9 +487,9 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-brand-gold-850 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-bold text-brand-brown-950">M.G. Iyengar Bakery & Chat Corner</p>
+                      <p className="text-sm font-bold text-brand-brown-950">{settings?.bakeryName || 'M.G. Iyengar Bakery & Chat Corner'}</p>
                       <p className="text-xs text-brand-brown-800/70 mt-1">
-                        Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu - 637015
+                        {settings?.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu - 637015'}
                       </p>
                     </div>
                   </div>
@@ -497,14 +497,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                     <Star className="w-5 h-5 text-brand-gold-850 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-bold text-brand-brown-950">Open Daily</p>
-                      <p className="text-xs text-brand-brown-800/70 mt-1">9:00 AM - 10:00 PM</p>
+                      <p className="text-xs text-brand-brown-800/70 mt-1">
+                        {settings?.openingTime || '9:00 AM'} - {settings?.closingTime || '10:00 PM'}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-4">
                   <a
-                    href={`https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to get directions or place a quick chat/cake order.')}`}
+                    href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to get directions or place a quick chat/cake order.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-primary w-full sm:w-auto inline-flex"

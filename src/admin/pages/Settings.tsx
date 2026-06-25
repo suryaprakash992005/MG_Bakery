@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBakeryDatabase } from '../../context/DatabaseContext';
 import { 
   Save, 
@@ -7,7 +7,8 @@ import {
   MapPin, 
   Clock, 
   CheckCircle2, 
-  Map
+  Map,
+  ShieldAlert
 } from 'lucide-react';
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -36,6 +37,8 @@ export const Settings: React.FC = () => {
   } = useBakeryDatabase();
 
   const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Editable settings fields
   const [bakeryName, setBakeryName] = useState(settings.bakeryName);
@@ -46,29 +49,51 @@ export const Settings: React.FC = () => {
   const [instagramUrl, setInstagramUrl] = useState(settings.instagramUrl);
   const [googleMapsLink, setGoogleMapsLink] = useState(settings.googleMapsLink || '');
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  // Synchronize input fields when settings load from Supabase
+  useEffect(() => {
+    if (settings) {
+      setBakeryName(settings.bakeryName || '');
+      setWhatsappNumber(settings.whatsappNumber || '');
+      setStoreAddress(settings.storeAddress || '');
+      setOpeningTime(settings.openingTime || '9:00 AM');
+      setClosingTime(settings.closingTime || '10:00 PM');
+      setInstagramUrl(settings.instagramUrl || '');
+      setGoogleMapsLink(settings.googleMapsLink || '');
+    }
+  }, [settings]);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg('');
+    setErrorMsg('');
+    setLoading(true);
 
-    updateSettings({
-      ...settings,
-      bakeryName,
-      whatsappNumber,
-      storeAddress,
-      openingTime,
-      closingTime,
-      googleMapsLink,
-      instagramUrl,
-      // Backwards compatibility for businessHours string
-      businessHours: `${openingTime} - ${closingTime}`
-    });
+    try {
+      await updateSettings({
+        ...settings,
+        bakeryName,
+        whatsappNumber,
+        storeAddress,
+        openingTime,
+        closingTime,
+        googleMapsLink,
+        instagramUrl,
+        // Backwards compatibility for businessHours string
+        businessHours: `${openingTime} - ${closingTime}`
+      });
 
-    setSuccessMsg('Website settings saved successfully!');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      setSuccessMsg('Website settings saved successfully!');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    setTimeout(() => {
-      setSuccessMsg('');
-    }, 3000);
+      setTimeout(() => {
+        setSuccessMsg('');
+      }, 3000);
+    } catch (err: any) {
+      console.error('Error saving settings:', err);
+      setErrorMsg(err.message || 'Failed to save settings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -85,6 +110,14 @@ export const Settings: React.FC = () => {
         <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl p-4 text-xs font-semibold flex items-center gap-2.5 shadow-sm">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {errorMsg && (
+        <div className="bg-rose-50 border border-rose-250 text-rose-800 rounded-2xl p-4 text-xs font-semibold flex items-center gap-2.5 shadow-sm">
+          <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -227,10 +260,13 @@ export const Settings: React.FC = () => {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="flex items-center gap-2 bg-[#1E110F] text-[#FAF6F0] hover:bg-brand-brown-900 font-bold text-xs px-5 py-3 rounded-xl shadow-sm transition-all border-none cursor-pointer"
+            disabled={loading}
+            className={`flex items-center gap-2 bg-[#1E110F] text-[#FAF6F0] hover:bg-brand-brown-900 font-bold text-xs px-5 py-3 rounded-xl shadow-sm transition-all border-none cursor-pointer ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
           >
             <Save className="w-4 h-4 text-brand-gold-500" />
-            <span>Save Settings</span>
+            <span>{loading ? 'Saving Settings...' : 'Save Settings'}</span>
           </button>
         </div>
 
