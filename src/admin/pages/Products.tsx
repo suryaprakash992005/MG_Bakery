@@ -1,30 +1,42 @@
 import React, { useState } from 'react';
-import { useAdminState } from '../hooks/useAdminState';
-import { AdminProduct } from '../types';
+import { useBakeryDatabase, UnifiedProduct } from '../../context/DatabaseContext';
+import { ImageUploader } from '../components/ImageUploader';
 import { 
   Plus, 
   Search, 
   Edit3, 
   Trash2, 
-  PackageCheck,
-  PackageX,
-  X,
-  Clock,
-  Scale,
-  Cake,
-  FolderOpen
+  X, 
+  Cake, 
+  FolderOpen,
+  Copy,
+  RotateCcw,
+  Star,
+  EyeOff,
+  Eye,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 
-
 export const Products: React.FC = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useAdminState();
+  const { 
+    products: allProducts, 
+    saveProduct, 
+    softDeleteProduct, 
+    restoreProduct, 
+    permanentlyDeleteProduct, 
+    duplicateProduct,
+    reorderProducts,
+    categories
+  } = useBakeryDatabase();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<AdminProduct | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<UnifiedProduct | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -32,50 +44,88 @@ export const Products: React.FC = () => {
   const [price, setPrice] = useState(0);
   const [weight, setWeight] = useState('');
   const [category, setCategory] = useState('Cakes');
-  const [prepTime, setPrepTime] = useState('');
-  const [isAvailable, setIsAvailable] = useState(true);
+  const [status, setStatus] = useState<UnifiedProduct['status']>('Available');
   const [image, setImage] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [displayPriority, setDisplayPriority] = useState(1);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [dailySpecial, setDailySpecial] = useState(false);
+  const [badge, setBadge] = useState<UnifiedProduct['badge']>('None');
+  const [limitedStockCount, setLimitedStockCount] = useState<number | undefined>(undefined);
+  const [publishDate, setPublishDate] = useState('');
+  const [visibilityExpiryDate, setVisibilityExpiryDate] = useState('');
 
-  // Extract all categories dynamically + 'All'
-  const categoriesList = ['All', ...Array.from(new Set(products.map(p => p.category)))];
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Extract products
+  const products = allProducts.filter(p => !p.isDeleted);
+  const trashProducts = allProducts.filter(p => p.isDeleted);
+
+  // Extract all categories list dynamically
+  const categoriesList = ['All', ...categories.map(c => c.name)];
 
   const handleOpenAdd = () => {
     setName('');
     setDescription('');
     setPrice(350);
     setWeight('0.5 Kg');
-    setCategory('Cakes');
-    setPrepTime('3 hours');
-    setIsAvailable(true);
+    setCategory(categories[0]?.name || 'Cakes');
+    setStatus('Available');
     setImage('https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80');
+    setImages([]);
+    setDisplayPriority(products.length + 1);
+    setIsFeatured(false);
+    setDailySpecial(false);
+    setBadge('None');
+    setLimitedStockCount(undefined);
+    setPublishDate('');
+    setVisibilityExpiryDate('');
     setIsAddOpen(true);
   };
 
-  const handleOpenEdit = (p: AdminProduct) => {
+  const handleOpenEdit = (p: UnifiedProduct) => {
     setCurrentProduct(p);
     setName(p.name);
     setDescription(p.description);
-    setPrice(p.price);
-    setWeight(p.weight);
+    setPrice(typeof p.price === 'number' ? p.price : (p.price.halfKg || p.price.piece || 0));
+    setWeight(p.weight || '');
     setCategory(p.category);
-    setPrepTime(p.prepTime);
-    setIsAvailable(p.isAvailable);
+    setStatus(p.status);
     setImage(p.image);
+    setImages(p.images || []);
+    setDisplayPriority(p.displayPriority);
+    setIsFeatured(p.isFeatured || false);
+    setDailySpecial(p.dailySpecial || false);
+    setBadge(p.badge || 'None');
+    setLimitedStockCount(p.limitedStockCount);
+    setPublishDate(p.publishDate || '');
+    setVisibilityExpiryDate(p.visibilityExpiryDate || '');
     setIsEditOpen(true);
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !price || !category) return;
-    addProduct({
+    
+    saveProduct({
+      id: `p-${Date.now()}`,
       name,
       description,
       price: Number(price),
       weight,
       category,
-      prepTime,
-      isAvailable,
-      image: image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'
+      image,
+      images: images.length > 0 ? images : [image],
+      status,
+      displayPriority: Number(displayPriority) || products.length + 1,
+      isFeatured,
+      dailySpecial,
+      badge,
+      limitedStockCount: limitedStockCount ? Number(limitedStockCount) : undefined,
+      publishDate: publishDate || undefined,
+      visibilityExpiryDate: visibilityExpiryDate || undefined,
+      createdDate: new Date().toISOString().split('T')[0]
     });
     setIsAddOpen(false);
   };
@@ -83,26 +133,45 @@ export const Products: React.FC = () => {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProduct || !name || !price || !category) return;
-    updateProduct({
+
+    saveProduct({
       ...currentProduct,
       name,
       description,
       price: Number(price),
       weight,
       category,
-      prepTime,
-      isAvailable,
-      image
+      image,
+      images: images.length > 0 ? images : [image],
+      status,
+      displayPriority: Number(displayPriority),
+      isFeatured,
+      dailySpecial,
+      badge,
+      limitedStockCount: limitedStockCount ? Number(limitedStockCount) : undefined,
+      publishDate: publishDate || undefined,
+      visibilityExpiryDate: visibilityExpiryDate || undefined
     });
     setIsEditOpen(false);
     setCurrentProduct(null);
   };
 
-  const handleToggleAvailability = (p: AdminProduct) => {
-    updateProduct({
-      ...p,
-      isAvailable: !p.isAvailable
-    });
+  // Drag and Drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const reordered = [...filteredProducts];
+    const [movedItem] = reordered.splice(draggedIndex, 1);
+    reordered.splice(index, 0, movedItem);
+    reorderProducts(reordered);
+    setDraggedIndex(null);
   };
 
   // Filters
@@ -135,17 +204,17 @@ export const Products: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-8 select-none font-poppins">
       
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-playfair font-bold text-slate-800">Inventory Catalog</h2>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">Manage cakes, pastries, puffs, breads, and beverages</p>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">Manage cakes, pastries, puffs, breads, and categories. Drag rows to reorder customer view sequence.</p>
         </div>
         <button
           onClick={handleOpenAdd}
-          className="bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 font-semibold text-xs px-5 py-3 rounded-full shadow-md flex items-center gap-1.5 transition-all duration-300 transform active:scale-95 cursor-pointer hover:text-white"
+          className="bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 font-semibold text-xs px-5 py-3 rounded-full shadow-md flex items-center gap-1.5 transition-all duration-300 transform active:scale-95 cursor-pointer hover:text-white border-none"
         >
           <Plus className="w-4 h-4 text-brand-gold-850" />
           <span>Add New Product</span>
@@ -165,7 +234,7 @@ export const Products: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search items..."
-            className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-full py-2 pl-9 pr-4 text-xs font-medium focus:outline-none transition-all focus:bg-white"
+            className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-full py-2.5 pl-9 pr-4 text-xs font-medium focus:outline-none transition-all focus:bg-white"
           />
         </div>
 
@@ -194,39 +263,73 @@ export const Products: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase bg-slate-50/20">
-                <th className="py-4 px-6 w-20">Image</th>
-                <th className="py-4 px-6">Product Name</th>
+                <th className="py-4 px-6 w-20">Priority & Image</th>
+                <th className="py-4 px-6">Product Details</th>
                 <th className="py-4 px-6">Category</th>
                 <th className="py-4 px-6">Price</th>
-                <th className="py-4 px-6">Weight</th>
-                <th className="py-4 px-6">Prep Time</th>
-                <th className="py-4 px-6 text-center">Availability</th>
+                <th className="py-4 px-6 text-center">Status</th>
+                <th className="py-4 px-6 text-center">Badges</th>
                 <th className="py-4 px-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
               {filteredProducts.length > 0 ? (
-                filteredProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/20 transition-colors">
-                    
-                    {/* Product Image with hover zoom */}
+                filteredProducts.map((p, idx) => (
+                  <tr 
+                    key={p.id} 
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(idx)}
+                    className="hover:bg-slate-50/40 transition-colors cursor-grab active:cursor-grabbing"
+                  >
+                    {/* Priority Order Label & Product Image */}
                     <td className="py-3.5 px-6">
-                      <div className="w-12 h-12 rounded-xl border border-slate-100 overflow-hidden bg-slate-50 shrink-0 shadow-sm relative group">
-                        <img 
-                          src={p.image} 
-                          alt={p.name} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                        />
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded w-6 text-center">{p.displayPriority || idx + 1}</span>
+                        <div className="w-12 h-12 rounded-xl border border-slate-150 overflow-hidden bg-slate-50 shrink-0 shadow-sm relative group">
+                          <img 
+                            src={p.image} 
+                            alt={p.name} 
+                            className="w-full h-full object-cover" 
+                          />
+                        </div>
                       </div>
                     </td>
 
-                    {/* Name & description */}
+                    {/* Name & description & schedule notices */}
                     <td className="py-3.5 px-6">
-                      <div className="flex flex-col">
-                        <span className="text-slate-800 font-bold text-sm leading-tight">{p.name}</span>
-                        <span className="text-[10px] text-slate-400 max-w-[220px] truncate mt-1 font-light leading-normal" title={p.description}>
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-800 font-bold text-sm">{p.name}</span>
+                          {p.dailySpecial && (
+                            <span className="bg-brand-gold-50 text-brand-gold-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-brand-gold-200">Daily Special</span>
+                          )}
+                          {p.limitedStockCount !== undefined && (
+                            <span className="bg-amber-50 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-200">Stock: {p.limitedStockCount} left</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 max-w-[280px] truncate" title={p.description}>
                           {p.description || 'No description added.'}
                         </span>
+                        
+                        {/* Publishing / Expiry Indicators */}
+                        {(p.publishDate || p.visibilityExpiryDate) && (
+                          <div className="flex gap-2.5 mt-1 text-[9px] font-semibold text-slate-400 items-center">
+                            {p.publishDate && (
+                              <span className="flex items-center gap-0.5 text-blue-600 bg-blue-50 px-1 rounded">
+                                <Calendar className="w-2.5 h-2.5" />
+                                <span>Pub: {p.publishDate}</span>
+                              </span>
+                            )}
+                            {p.visibilityExpiryDate && (
+                              <span className="flex items-center gap-0.5 text-rose-600 bg-rose-50 px-1 rounded">
+                                <AlertCircle className="w-2.5 h-2.5" />
+                                <span>Exp: {p.visibilityExpiryDate}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -237,72 +340,68 @@ export const Products: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* Price */}
-                    <td className="py-3.5 px-6 font-bold text-slate-800">
-                      ₹{p.price}
+                    {/* Price & weight */}
+                    <td className="py-3.5 px-6">
+                      <div className="flex flex-col">
+                        <span className="text-slate-800 font-bold">₹{typeof p.price === 'number' ? p.price : (p.price.halfKg || p.price.piece || 0)}</span>
+                        <span className="text-[10px] text-slate-400 font-medium mt-0.5">{p.weight || 'Standard'}</span>
+                      </div>
                     </td>
 
-                    {/* Weight */}
-                    <td className="py-3.5 px-6 font-medium text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Scale className="w-3 h-3 text-slate-300" />
-                        <span>{p.weight || 'N/A'}</span>
-                      </span>
-                    </td>
-
-                    {/* Prep time */}
-                    <td className="py-3.5 px-6 text-slate-500 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-300" />
-                        <span>{p.prepTime || 'Instant'}</span>
-                      </span>
-                    </td>
-
-                    {/* Availability toggle */}
+                    {/* Availability / status toggle */}
                     <td className="py-3.5 px-6 text-center">
-                      <button
-                        onClick={() => handleToggleAvailability(p)}
-                        className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
-                          p.isAvailable
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100/50'
-                            : 'bg-rose-50 text-red-700 border-rose-200/80 hover:bg-red-100/50'
-                        }`}
-                        title={p.isAvailable ? 'Click to Mark Out of Stock' : 'Click to Mark Available'}
-                      >
-                        {p.isAvailable ? (
-                          <>
-                            <PackageCheck className="w-3.5 h-3.5" />
-                            <span>In Stock</span>
-                          </>
-                        ) : (
-                          <>
-                            <PackageX className="w-3.5 h-3.5" />
-                            <span>Out of Stock</span>
-                          </>
-                        )}
-                      </button>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                        p.status === 'Available' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          : p.status === 'Out of Stock' 
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}>
+                        {p.status === 'Available' ? <Eye className="w-3.5 h-3.5" /> : p.status === 'Out of Stock' ? <AlertCircle className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        <span>{p.status}</span>
+                      </span>
                     </td>
 
-                    {/* Actions dropdown/buttons */}
+                    {/* Badges / Featured */}
+                    <td className="py-3.5 px-6 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        {p.isFeatured && (
+                          <span className="bg-brand-gold-850 text-[#1A1110] text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                            <Star className="w-2.5 h-2.5 fill-current" />
+                            <span>Featured</span>
+                          </span>
+                        )}
+                        {p.badge && p.badge !== 'None' && (
+                          <span className="bg-slate-100 text-slate-650 border border-slate-250 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                            {p.badge}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Actions */}
                     <td className="py-3.5 px-6 text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(p)}
-                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-brand-gold-700 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-brand-gold-700 hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center transition-all cursor-pointer bg-white"
                           title="Edit Product"
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
-                              deleteProduct(p.id);
-                            }
-                          }}
-                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all cursor-pointer"
-                          title="Delete Product"
+                          onClick={() => duplicateProduct(p.id)}
+                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 flex items-center justify-center transition-all cursor-pointer bg-white"
+                          title="Duplicate Cake"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => softDeleteProduct(p.id)}
+                          className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-red-650 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all cursor-pointer bg-white"
+                          title="Soft Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -311,7 +410,7 @@ export const Products: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-12 px-6 text-center text-slate-400 font-medium">
+                  <td colSpan={7} className="py-12 px-6 text-center text-slate-400 font-medium">
                     <FolderOpen className="w-10 h-10 mx-auto text-slate-200 mb-2" />
                     <span>No products found matching filters.</span>
                   </td>
@@ -322,10 +421,66 @@ export const Products: React.FC = () => {
         </div>
       </div>
 
+      {/* --- TRASH / SOFT DELETE LOG DRAWER --- */}
+      {trashProducts.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 shadow-inner space-y-4">
+          <div className="flex items-center gap-2">
+            <Trash2 className="w-5 h-5 text-red-500" />
+            <h3 className="font-playfair text-lg font-bold text-slate-800">Product Trashbin (Soft Deleted)</h3>
+            <span className="text-[10px] bg-red-100 text-red-750 font-bold px-2 py-0.5 rounded-full">{trashProducts.length} Items</span>
+          </div>
+
+          <div className="overflow-x-auto bg-white rounded-xl border border-slate-150">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-450 uppercase bg-slate-50/50">
+                  <th className="py-3 px-5">Image</th>
+                  <th className="py-3 px-5">Product Name</th>
+                  <th className="py-3 px-5">Category</th>
+                  <th className="py-3 px-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                {trashProducts.map(p => (
+                  <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-2.5 px-5">
+                      <img src={p.image} alt={p.name} className="w-8 h-8 rounded-lg object-cover" />
+                    </td>
+                    <td className="py-2.5 px-5 font-bold text-slate-800">{p.name}</td>
+                    <td className="py-2.5 px-5">{p.category}</td>
+                    <td className="py-2.5 px-5 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => restoreProduct(p.id)}
+                          className="px-2.5 py-1 border border-slate-200 text-slate-650 hover:bg-slate-50 rounded font-semibold text-[10px] flex items-center gap-1 cursor-pointer bg-white"
+                        >
+                          <RotateCcw className="w-3 h-3 text-slate-500" />
+                          <span>Restore</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you absolutely sure you want to permanently delete "${p.name}"? This cannot be undone.`)) {
+                              permanentlyDeleteProduct(p.id);
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded font-bold text-[10px] cursor-pointer"
+                        >
+                          Purge
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* --- ADD PRODUCT MODAL --- */}
       {isAddOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col animate-fade-in-up">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-8 animate-fade-in-up">
             
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -333,27 +488,53 @@ export const Products: React.FC = () => {
                 <Cake className="w-5 h-5 text-brand-gold-600" />
                 <h3 className="font-playfair text-lg font-bold text-slate-800">Add New Cake & Product</h3>
               </div>
-              <button onClick={() => setIsAddOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setIsAddOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-450 hover:text-slate-600 cursor-pointer border-none bg-transparent">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleAddSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
-              {/* Product Image URL */}
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+              
+              {/* Product Image Uploader */}
+              <ImageUploader 
+                value={image} 
+                onChange={setImage} 
+                label="Primary Product Image (JPG/PNG/WEBP)" 
+              />
+
+              {/* Multiple Images Upload grid */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Image URL</label>
-                <input
-                  type="text"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/... or /assets/..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Additional Screenshots / View Angles (Max 4)</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-50 border border-slate-200 group">
+                      <img src={img} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 shadow-sm border-none cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 4 && (
+                    <div className="aspect-square bg-slate-50 border border-dashed border-slate-300 rounded-xl relative hover:border-slate-400 transition-colors">
+                      <ImageUploader
+                        value=""
+                        onChange={(newImg) => {
+                          if (newImg) setImages([...images, newImg]);
+                        }}
+                        label="Add Angle"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Cake/Product Name */}
+                {/* Product Name */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Cake/Product Name</label>
                   <input
@@ -362,7 +543,7 @@ export const Products: React.FC = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="E.g., Butterscotch Cake"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white animate-none"
                   />
                 </div>
 
@@ -372,10 +553,10 @@ export const Products: React.FC = () => {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
                   >
-                    {['Cakes', 'Pastries', 'Cookies', 'Puffs', 'Breads', 'Snacks', 'Beverages'].map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -407,14 +588,57 @@ export const Products: React.FC = () => {
                   />
                 </div>
 
-                {/* Prep Time */}
+                {/* displayPriority */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Prep Time</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Display Priority Order</label>
                   <input
-                    type="text"
-                    value={prepTime}
-                    onChange={(e) => setPrepTime(e.target.value)}
-                    placeholder="E.g. 3 hours, 1 day"
+                    type="number"
+                    min={1}
+                    value={displayPriority}
+                    onChange={(e) => setDisplayPriority(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* status select */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Stock Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
+                  >
+                    <option value="Available">Available (Visible & Orderable)</option>
+                    <option value="Out of Stock">Out of Stock (Visible, Orders Disabled)</option>
+                    <option value="Hidden">Hidden (Not visible to users)</option>
+                  </select>
+                </div>
+
+                {/* badge select */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Badge Badge</label>
+                  <select
+                    value={badge}
+                    onChange={(e) => setBadge(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
+                  >
+                    <option value="None">No Special Badge</option>
+                    <option value="Bestseller">Bestseller</option>
+                    <option value="New Arrival">New Arrival</option>
+                  </select>
+                </div>
+
+                {/* limitedStockCount */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Limited Stock Count (Optional)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Unlimited"
+                    value={limitedStockCount === undefined ? '' : limitedStockCount}
+                    onChange={(e) => setLimitedStockCount(e.target.value === '' ? undefined : Number(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
                   />
                 </div>
@@ -426,29 +650,69 @@ export const Products: React.FC = () => {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
+                  rows={2}
                   placeholder="Details about flavor layers, ingredients, toppings, allergens, etc."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white leading-normal"
                 />
               </div>
 
-              {/* Availability Toggle */}
-              <div className="flex items-center gap-3 pt-2">
+              {/* Dates grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                {/* Publish Date */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Scheduled Publish Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={publishDate}
+                    onChange={(e) => setPublishDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  />
+                </div>
+
+                {/* Visibility Expiry */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Visibility Expiry Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={visibilityExpiryDate}
+                    onChange={(e) => setVisibilityExpiryDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex flex-wrap gap-6 pt-2 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                {/* Featured Toggle */}
                 <label className="relative flex items-center cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    checked={isAvailable}
-                    onChange={(e) => setIsAvailable(e.target.checked)}
+                    checked={isFeatured}
+                    onChange={(e) => setIsFeatured(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-5 h-5 bg-slate-100 border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 rounded flex items-center justify-center transition-all mr-2.5">
-                    {isAvailable && (
-                      <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-brand-gold-500 peer-checked:bg-brand-gold-500/10 rounded flex items-center justify-center transition-all mr-2.5">
+                    {isFeatured && (
+                      <Star className="w-3.5 h-3.5 text-brand-gold-700 fill-current" />
                     )}
                   </div>
-                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Mark Immediately Available</span>
+                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Featured Homepage Product</span>
+                </label>
+
+                {/* Daily Special Toggle */}
+                <label className="relative flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={dailySpecial}
+                    onChange={(e) => setDailySpecial(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 rounded flex items-center justify-center transition-all mr-2.5">
+                    {dailySpecial && (
+                      <div className="w-2.5 h-2.5 rounded bg-amber-500" />
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Daily Special Product</span>
                 </label>
               </div>
 
@@ -463,7 +727,7 @@ export const Products: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 hover:text-white text-xs font-semibold shadow-sm cursor-pointer"
+                  className="px-5 py-2.5 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 hover:text-white text-xs font-semibold shadow-sm cursor-pointer border-none"
                 >
                   Save Product
                 </button>
@@ -476,36 +740,62 @@ export const Products: React.FC = () => {
 
       {/* --- EDIT PRODUCT MODAL --- */}
       {isEditOpen && currentProduct && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col animate-fade-in-up">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col my-8 animate-fade-in-up">
             
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div className="flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-brand-gold-600" />
-                <h3 className="font-playfair text-lg font-bold text-slate-800">Edit Product: {currentProduct.name}</h3>
+                <h3 className="font-playfair text-lg font-bold text-slate-800">Edit Product: {name}</h3>
               </div>
-              <button onClick={() => { setIsEditOpen(false); setCurrentProduct(null); }} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => { setIsEditOpen(false); setCurrentProduct(null); }} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-450 hover:text-slate-600 cursor-pointer border-none bg-transparent">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
-              {/* Product Image URL */}
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+              
+              {/* Product Image Uploader */}
+              <ImageUploader 
+                value={image} 
+                onChange={setImage} 
+                label="Primary Product Image" 
+              />
+
+              {/* Multiple Images Upload grid */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Image URL</label>
-                <input
-                  type="text"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/... or /assets/..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
-                />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Additional Screenshots / View Angles (Max 4)</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-50 border border-slate-200 group">
+                      <img src={img} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 shadow-sm border-none cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 4 && (
+                    <div className="aspect-square bg-slate-50 border border-dashed border-slate-300 rounded-xl relative hover:border-slate-450 transition-colors">
+                      <ImageUploader
+                        value=""
+                        onChange={(newImg) => {
+                          if (newImg) setImages([...images, newImg]);
+                        }}
+                        label="Add Angle"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Cake/Product Name */}
+                {/* Product Name */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Name</label>
                   <input
@@ -524,10 +814,10 @@ export const Products: React.FC = () => {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
                   >
-                    {['Cakes', 'Pastries', 'Cookies', 'Puffs', 'Breads', 'Snacks', 'Beverages'].map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -559,14 +849,57 @@ export const Products: React.FC = () => {
                   />
                 </div>
 
-                {/* Prep Time */}
+                {/* displayPriority */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Prep Time</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Display Priority Order</label>
                   <input
-                    type="text"
-                    value={prepTime}
-                    onChange={(e) => setPrepTime(e.target.value)}
-                    placeholder="E.g. 3 hours, 1 day"
+                    type="number"
+                    min={1}
+                    value={displayPriority}
+                    onChange={(e) => setDisplayPriority(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* status select */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Stock Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
+                  >
+                    <option value="Available">Available (Visible & Orderable)</option>
+                    <option value="Out of Stock">Out of Stock (Visible, Orders Disabled)</option>
+                    <option value="Hidden">Hidden (Not visible to users)</option>
+                  </select>
+                </div>
+
+                {/* badge select */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Product Badge</label>
+                  <select
+                    value={badge}
+                    onChange={(e) => setBadge(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white cursor-pointer"
+                  >
+                    <option value="None">No Special Badge</option>
+                    <option value="Bestseller">Bestseller</option>
+                    <option value="New Arrival">New Arrival</option>
+                  </select>
+                </div>
+
+                {/* limitedStockCount */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Limited Stock Count (Optional)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Unlimited"
+                    value={limitedStockCount === undefined ? '' : limitedStockCount}
+                    onChange={(e) => setLimitedStockCount(e.target.value === '' ? undefined : Number(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
                   />
                 </div>
@@ -578,29 +911,69 @@ export const Products: React.FC = () => {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
+                  rows={2}
                   placeholder="Details about flavor layers, ingredients, toppings, allergens, etc."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2.5 px-3.5 text-xs focus:outline-none transition-all focus:bg-white leading-normal"
                 />
               </div>
 
-              {/* Availability Toggle */}
-              <div className="flex items-center gap-3 pt-2">
+              {/* Dates grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                {/* Publish Date */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Scheduled Publish Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={publishDate}
+                    onChange={(e) => setPublishDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  />
+                </div>
+
+                {/* Visibility Expiry */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Visibility Expiry Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={visibilityExpiryDate}
+                    onChange={(e) => setVisibilityExpiryDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex flex-wrap gap-6 pt-2 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                {/* Featured Toggle */}
                 <label className="relative flex items-center cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    checked={isAvailable}
-                    onChange={(e) => setIsAvailable(e.target.checked)}
+                    checked={isFeatured}
+                    onChange={(e) => setIsFeatured(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-5 h-5 bg-slate-100 border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 rounded flex items-center justify-center transition-all mr-2.5">
-                    {isAvailable && (
-                      <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-brand-gold-500 peer-checked:bg-brand-gold-500/10 rounded flex items-center justify-center transition-all mr-2.5">
+                    {isFeatured && (
+                      <Star className="w-3.5 h-3.5 text-brand-gold-700 fill-current" />
                     )}
                   </div>
-                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Product Available in Stock</span>
+                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Featured Homepage Product</span>
+                </label>
+
+                {/* Daily Special Toggle */}
+                <label className="relative flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={dailySpecial}
+                    onChange={(e) => setDailySpecial(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-5 h-5 bg-white border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 rounded flex items-center justify-center transition-all mr-2.5">
+                    {dailySpecial && (
+                      <div className="w-2.5 h-2.5 rounded bg-amber-500" />
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Daily Special Product</span>
                 </label>
               </div>
 
@@ -615,7 +988,7 @@ export const Products: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 hover:text-white text-xs font-semibold shadow-sm cursor-pointer"
+                  className="px-5 py-2.5 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 hover:text-white text-xs font-semibold shadow-sm cursor-pointer border-none"
                 >
                   Save Changes
                 </button>

@@ -3,10 +3,7 @@ import { useAdminRouter } from '../hooks/useAdminRouter';
 import {
   LayoutDashboard,
   Cake,
-  ShoppingBag,
-  HeartHandshake,
   Image as ImageIcon,
-  Users,
   BarChart3,
   Settings,
   LogOut,
@@ -17,7 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Coffee,
-  Globe
+  Globe,
+  ShoppingBag,
+  Sparkles,
+  Users,
+  Layers
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -49,9 +50,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const navigationItems: SidebarItem[] = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Products', path: '/admin/products', icon: Cake },
-    { name: 'Orders', path: '/admin/orders', icon: ShoppingBag },
-    { name: 'Custom Orders', path: '/admin/custom-orders', icon: HeartHandshake },
     { name: 'Gallery Manager', path: '/admin/gallery-manager', icon: ImageIcon },
+    { name: 'Banner Manager', path: '/admin/banner-manager', icon: Layers },
+    { name: 'Orders', path: '/admin/orders', icon: ShoppingBag },
+    { name: 'Custom Orders', path: '/admin/custom-orders', icon: Sparkles },
     { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
     { name: 'Settings', path: '/admin/settings', icon: Settings },

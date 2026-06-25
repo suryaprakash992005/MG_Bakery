@@ -65,6 +65,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
           />
 
+          {product.status === 'Out of Stock' && (
+            <div className="absolute inset-0 bg-brand-brown-950/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+              <span className="text-brand-cream-50 font-playfair border-2 border-brand-gold-500/80 px-4 py-1.5 rounded-md text-xs sm:text-sm uppercase tracking-widest font-semibold bg-brand-brown-950/30">
+                Sold Out
+              </span>
+            </div>
+          )}
+
           {/* Floating Badges */}
           <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
             <div className="flex flex-col gap-1.5">

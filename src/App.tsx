@@ -13,6 +13,7 @@ import { AdminApp } from './admin/AdminApp';
 import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
+import { DatabaseProvider } from './context/DatabaseContext';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('home');
@@ -75,37 +76,39 @@ const App: React.FC = () => {
   };
 
   return (
-    <CartProvider>
-      <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
-        {/* Premium Floating Navigation Header */}
-        <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+    <DatabaseProvider>
+      <CartProvider>
+        <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
+          {/* Premium Floating Navigation Header */}
+          <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
 
-        {/* Shopping Cart Side Drawer */}
-        <CartDrawer />
+          {/* Shopping Cart Side Drawer */}
+          <CartDrawer />
 
-        {/* Mobile Floating Cart Action Button */}
-        <FloatingCartButton />
+          {/* Mobile Floating Cart Action Button */}
+          <FloatingCartButton />
 
-        {/* Main Content Area with Route Transition Animations */}
-        <main className="flex-grow">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPage}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              variants={pageVariants}
-              className="w-full h-full"
-            >
-              {renderPage()}
-            </motion.div>
-          </AnimatePresence>
-        </main>
+          {/* Main Content Area with Route Transition Animations */}
+          <main className="flex-grow">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentPage}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={pageVariants}
+                className="w-full h-full"
+              >
+                {renderPage()}
+              </motion.div>
+            </AnimatePresence>
+          </main>
 
-        {/* Luxury Footer */}
-        <Footer setCurrentPage={setCurrentPage} />
-      </div>
-    </CartProvider>
+          {/* Luxury Footer */}
+          <Footer setCurrentPage={setCurrentPage} />
+        </div>
+      </CartProvider>
+    </DatabaseProvider>
   );
 };
 

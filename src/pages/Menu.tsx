@@ -1,25 +1,45 @@
 import React, { useState } from 'react';
 import { Search, Sparkles } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
-import { PRODUCTS, CATEGORIES } from '../data';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 import ShinyText from '../components/ShinyText';
 import PillFilters from '../components/PillFilters';
 
 export const Menu: React.FC = () => {
+  const { products, categories } = useBakeryDatabase();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const filterCategories = ['All', ...CATEGORIES];
+  // Sort categories by displayPriority
+  const sortedCategories = [...categories]
+    .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999))
+    .map(c => c.name);
 
-  const filteredProducts = PRODUCTS.filter((product) => {
-    const matchesCategory =
-      selectedCategory === 'All' || product.category === selectedCategory;
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filterCategories = ['All', ...sortedCategories];
+
+  const isCurrentlyVisible = (p: any): boolean => {
+    if (p.isDeleted) return false;
+    if (p.status === 'Hidden') return false;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (p.publishDate && p.publishDate > todayStr) return false;
+    if (p.visibilityExpiryDate && p.visibilityExpiryDate < todayStr) return false;
+    return true;
+  };
+
+  const filteredProducts = products
+    .filter((product) => {
+      if (!isCurrentlyVisible(product)) return false;
+
+      const matchesCategory =
+        selectedCategory === 'All' || product.category === selectedCategory;
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
   return (
     <div className="pt-28 pb-20 min-h-screen bg-brand-cream-50/10">

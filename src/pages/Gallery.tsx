@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ZoomIn, Sparkles } from 'lucide-react';
-import { GALLERY_ITEMS } from '../data';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 import { GalleryItem } from '../types';
 import PillFilters from '../components/PillFilters';
 import BorderGlow from '../components/BorderGlow';
@@ -8,6 +8,8 @@ import BorderGlow from '../components/BorderGlow';
 export const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeImage, setActiveImage] = useState<GalleryItem | null>(null);
+
+  const { gallery } = useBakeryDatabase();
 
   const categories = [
     { id: 'all', label: 'All Photos' },
@@ -18,9 +20,12 @@ export const Gallery: React.FC = () => {
     { id: 'celebrations', label: 'Celebrations' }
   ];
 
-  const filteredGallery = GALLERY_ITEMS.filter((item) => {
-    return selectedCategory === 'all' || item.category === selectedCategory;
-  });
+  const filteredGallery = gallery
+    .filter((item) => {
+      if (item.isDeleted) return false;
+      return selectedCategory === 'all' || item.category === selectedCategory;
+    })
+    .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
   return (
     <div className="pt-28 pb-20 min-h-screen bg-brand-cream-50/10">

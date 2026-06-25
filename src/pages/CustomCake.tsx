@@ -3,10 +3,11 @@ import { Cake, Calendar, FileText, Send, Image as ImageIcon } from 'lucide-react
 import { CustomCakeInquiry } from '../types';
 import { getCustomCakeInquiryUrl } from '../utils/whatsappHelper';
 import FlowingSelect from '../components/FlowingSelect';
-import { PRODUCTS } from '../data';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 
 
 export const CustomCake: React.FC = () => {
+  const { products } = useBakeryDatabase();
   const [formData, setFormData] = useState<CustomCakeInquiry>({
     name: '',
     mobile: '',
@@ -60,7 +61,7 @@ export const CustomCake: React.FC = () => {
   ];
 
   const flavorOptionsMapped = flavorOptions.map(flavor => {
-    const matchingProduct = PRODUCTS.find(p => p.name.toLowerCase() === flavor.toLowerCase());
+    const matchingProduct = products.find(p => p.name.toLowerCase() === flavor.toLowerCase());
     return {
       value: flavor,
       label: flavor,

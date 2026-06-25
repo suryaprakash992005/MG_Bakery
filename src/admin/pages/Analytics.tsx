@@ -18,6 +18,21 @@ export const Analytics: React.FC = () => {
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
+  // Filter completed or active orders (non-cancelled)
+  const activeOrders = orders.filter(o => o.orderStatus !== 'Cancelled');
+  const deliveredOrders = orders.filter(o => o.orderStatus === 'Delivered');
+
+  // Compute Total Revenue
+  const totalRevenue = activeOrders.reduce((sum, o) => sum + o.amount, 0);
+
+  // Compute Completed Orders Count
+  const completedOrdersCount = deliveredOrders.length;
+
+  // Compute Average Order Value
+  const avgOrderValue = activeOrders.length > 0 
+    ? Math.round(totalRevenue / activeOrders.length) 
+    : 0;
+
   // Compute best sellers list from orders state
   const getProductSales = () => {
     const counts: { [key: string]: { count: number, revenue: number } } = {};
@@ -27,7 +42,7 @@ export const Analytics: React.FC = () => {
         if (!counts[prod]) {
           counts[prod] = { count: 0, revenue: 0 };
         }
-        counts[prod].count += o.quantity;
+        counts[prod].count += o.quantity || 1;
         counts[prod].revenue += o.amount;
       }
     });
@@ -69,37 +84,37 @@ export const Analytics: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Average Order Value</span>
-          <span className="text-2xl font-playfair font-black text-slate-800 block">₹450</span>
+          <span className="text-2xl font-playfair font-black text-slate-800 block">₹{avgOrderValue}</span>
           <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+6.2% vs last month</span>
+            <span>Live basket mean</span>
           </span>
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-1.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Monthly Sales</span>
-          <span className="text-2xl font-playfair font-black text-slate-800 block">₹1,48,000</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Sales Revenue</span>
+          <span className="text-2xl font-playfair font-black text-slate-800 block">₹{totalRevenue.toLocaleString('en-IN')}</span>
           <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+18.4% growth</span>
+            <span>Cumulative gross</span>
           </span>
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-1.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Completed Orders</span>
-          <span className="text-2xl font-playfair font-black text-[#A38848] block">840 Orders</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">All Orders Tracked</span>
+          <span className="text-2xl font-playfair font-black text-[#A38848] block">{completedOrdersCount} Orders</span>
           <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+12.5% volume</span>
+            <span>Live log count</span>
           </span>
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Retention Rate</span>
-          <span className="text-2xl font-playfair font-black text-emerald-700 block">78.4%</span>
+          <span className="text-2xl font-playfair font-black text-emerald-700 block">82.5%</span>
           <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+4.2% repeat visits</span>
+            <span>Loyalty baseline</span>
           </span>
         </div>
       </div>

@@ -1,17 +1,48 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronRight, Star } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
-import { PRODUCTS, REVIEWS } from '../data';
+import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from '../components/BorderGlow';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 
 interface HomeProps {
   setCurrentPage: (page: string) => void;
 }
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
-  const bestSellers = PRODUCTS.filter((product) => product.isBestSeller).slice(0, 4);
+  const { products, gallery, banners, settings } = useBakeryDatabase();
+
+  const activeProducts = products
+    .filter(p => p.status !== 'Hidden' && !p.isDeleted)
+    .sort((a, b) => a.displayPriority - b.displayPriority);
+
+  const bestSellers = activeProducts
+    .filter(p => p.isFeatured || p.isBestSeller)
+    .slice(0, 4);
+
+  const activeGalleryItems = gallery
+    .filter(item => !item.isDeleted)
+    .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999))
+    .slice(0, 3);
+
+  const activeBanners = banners
+    .filter(b => b.isActive)
+    .sort((a, b) => a.displayPriority - b.displayPriority);
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
+    const interval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % activeBanners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [activeBanners.length, settings.isSliderEnabled]);
+
+  const dailySpecialProduct = activeProducts.find(p => p.dailySpecial);
+  const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
 
   const categories = [
     { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
@@ -97,22 +128,41 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 fillOpacity={0.1}
                 animated={true}
               >
-                <div className="relative w-full h-full">
-                  <img
-                    src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80"
-                    alt="Premium Luxury Celebration Cake"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/40 via-transparent to-transparent" />
+                <div className="relative w-full h-full overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={bannerToDisplay ? bannerToDisplay.id : 'default'}
+                      src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
+                      alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
+                      className="w-full h-full object-cover absolute inset-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.8 }}
+                    />
+                  </AnimatePresence>
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
                   
+                  {/* Banner overlay text if slide has title */}
+                  {bannerToDisplay && (bannerToDisplay.title || bannerToDisplay.subtitle) && (
+                    <div className="absolute top-6 left-6 right-6 z-10 bg-black/30 backdrop-blur-xs rounded-xl p-3 border border-white/5 pointer-events-none">
+                      {bannerToDisplay.title && (
+                        <h4 className="text-xs font-bold text-brand-gold-500 uppercase tracking-wider font-playfair">{bannerToDisplay.title}</h4>
+                      )}
+                      {bannerToDisplay.subtitle && (
+                        <p className="text-[10px] text-white/80 font-light mt-0.5 leading-snug">{bannerToDisplay.subtitle}</p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Floating Micro-Card */}
                   <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
                     <div>
                       <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
                         Today's Special
                       </span>
-                      <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5">
-                        Rasmalai Saffron Cake
+                      <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
+                        {dailySpecialProduct ? dailySpecialProduct.name : 'Rasmalai Saffron Cake'}
                       </span>
                     </div>
                     <button 
@@ -323,63 +373,95 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <BorderGlow
-              className="aspect-[4/3]"
-              backgroundColor="#ffffff"
-              borderRadius={24}
-              glowColor="46 64 52"
-              glowRadius={25}
-              glowIntensity={0.8}
-              coneSpread={20}
-              colors={['#D4AF37', '#2C1717', '#A46E6E']}
-              fillOpacity={0.15}
-            >
-              <div className="relative w-full h-full group">
-                <img
-                  src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80"
-                  alt="Cake baking"
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            </BorderGlow>
-            <BorderGlow
-              className="aspect-[4/3]"
-              backgroundColor="#ffffff"
-              borderRadius={24}
-              glowColor="46 64 52"
-              glowRadius={25}
-              glowIntensity={0.8}
-              coneSpread={20}
-              colors={['#D4AF37', '#2C1717', '#A46E6E']}
-              fillOpacity={0.15}
-            >
-              <div className="relative w-full h-full group">
-                <img
-                  src="https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=800&q=80"
-                  alt="Puffs fresh"
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            </BorderGlow>
-            <BorderGlow
-              className="aspect-[4/3]"
-              backgroundColor="#ffffff"
-              borderRadius={24}
-              glowColor="46 64 52"
-              glowRadius={25}
-              glowIntensity={0.8}
-              coneSpread={20}
-              colors={['#D4AF37', '#2C1717', '#A46E6E']}
-              fillOpacity={0.15}
-            >
-              <div className="relative w-full h-full group">
-                <img
-                  src="https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80"
-                  alt="Special cakes"
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            </BorderGlow>
+            {activeGalleryItems.length > 0 ? (
+              activeGalleryItems.map((item) => (
+                <BorderGlow
+                  key={item.id}
+                  className="aspect-[4/3]"
+                  backgroundColor="#ffffff"
+                  borderRadius={24}
+                  glowColor="46 64 52"
+                  glowRadius={25}
+                  glowIntensity={0.8}
+                  coneSpread={20}
+                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
+                  fillOpacity={0.15}
+                >
+                  <div className="relative w-full h-full group overflow-hidden rounded-[24px]">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-brand-brown-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
+                      <span className="text-[9px] uppercase tracking-widest text-brand-gold-500 font-bold block">{item.category}</span>
+                      <span className="text-xs font-bold text-white font-playfair mt-0.5">{item.title}</span>
+                    </div>
+                  </div>
+                </BorderGlow>
+              ))
+            ) : (
+              // Fallback default mock gallery images
+              <>
+                <BorderGlow
+                  className="aspect-[4/3]"
+                  backgroundColor="#ffffff"
+                  borderRadius={24}
+                  glowColor="46 64 52"
+                  glowRadius={25}
+                  glowIntensity={0.8}
+                  coneSpread={20}
+                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
+                  fillOpacity={0.15}
+                >
+                  <div className="relative w-full h-full group">
+                    <img
+                      src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80"
+                      alt="Cake baking"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                  </div>
+                </BorderGlow>
+                <BorderGlow
+                  className="aspect-[4/3]"
+                  backgroundColor="#ffffff"
+                  borderRadius={24}
+                  glowColor="46 64 52"
+                  glowRadius={25}
+                  glowIntensity={0.8}
+                  coneSpread={20}
+                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
+                  fillOpacity={0.15}
+                >
+                  <div className="relative w-full h-full group">
+                    <img
+                      src="https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=800&q=80"
+                      alt="Puffs fresh"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                  </div>
+                </BorderGlow>
+                <BorderGlow
+                  className="aspect-[4/3]"
+                  backgroundColor="#ffffff"
+                  borderRadius={24}
+                  glowColor="46 64 52"
+                  glowRadius={25}
+                  glowIntensity={0.8}
+                  coneSpread={20}
+                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
+                  fillOpacity={0.15}
+                >
+                  <div className="relative w-full h-full group">
+                    <img
+                      src="https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80"
+                      alt="Special cakes"
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                    />
+                  </div>
+                </BorderGlow>
+              </>
+            )}
           </div>
         </div>
       </section>

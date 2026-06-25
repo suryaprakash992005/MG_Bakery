@@ -1,65 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAdminState } from '../hooks/useAdminState';
 import { useAdminRouter } from '../hooks/useAdminRouter';
 import { 
   TrendingUp, 
   TrendingDown, 
-  ShoppingBag, 
-  DollarSign, 
-  Clock, 
   Package, 
+  Clock, 
   Calendar, 
-  Users2, 
   ArrowRight,
-  ClipboardList,
-  ChevronRight,
-  X
+  ClipboardList
 } from 'lucide-react';
-import { OrderStatus } from '../types';
 
 export const Dashboard: React.FC = () => {
-  const { orders, products, updateOrderStatus } = useAdminState();
+  const { products } = useAdminState();
   const { navigate } = useAdminRouter();
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   // Dynamic calculations from live state
-  const pendingOrdersCount = orders.filter(o => o.orderStatus === 'Pending').length;
   const activeProductsCount = products.filter(p => p.isAvailable).length;
-  
-  // Static-dynamic blend for premium display
-  const ordersToday = 42;
-  const revenueToday = orders
-    .filter(o => o.orderStatus !== 'Cancelled' && o.createdDate.startsWith('2026-06-23'))
-    .reduce((sum, o) => sum + o.amount, 0) + 12450; // blend live + baseline
 
   const kpis = [
-    {
-      title: 'Orders Today',
-      value: ordersToday,
-      change: '+12%',
-      isPositive: true,
-      icon: ShoppingBag,
-      color: 'from-amber-500 to-brand-gold-500',
-      textColor: 'text-brand-gold-700'
-    },
-    {
-      title: 'Revenue Today',
-      value: `₹${revenueToday.toLocaleString('en-IN')}`,
-      change: '+8.4%',
-      isPositive: true,
-      icon: DollarSign,
-      color: 'from-emerald-500 to-teal-600',
-      textColor: 'text-emerald-700'
-    },
-    {
-      title: 'Pending Orders',
-      value: pendingOrdersCount,
-      change: pendingOrdersCount > 5 ? '+15%' : '-8%',
-      isPositive: pendingOrdersCount <= 5,
-      icon: Clock,
-      color: 'from-orange-500 to-amber-600',
-      textColor: 'text-orange-700'
-    },
     {
       title: 'Active Products',
       value: activeProductsCount,
@@ -70,58 +29,33 @@ export const Dashboard: React.FC = () => {
       textColor: 'text-blue-700'
     },
     {
-      title: 'Weekly Revenue',
-      value: '₹98,450',
-      change: '+14.2%',
+      title: 'Menu Categories',
+      value: '7 Categories',
+      change: 'Fully Stocked',
       isPositive: true,
-      icon: Calendar,
-      color: 'from-purple-500 to-pink-600',
-      textColor: 'text-purple-700'
+      icon: ClipboardList,
+      color: 'from-amber-500 to-brand-gold-500',
+      textColor: 'text-brand-gold-700'
     },
     {
-      title: 'Returning Customers',
-      value: '78%',
-      change: '+4.5%',
+      title: 'Store Hours',
+      value: '9:00 AM - 10:00 PM',
+      change: '7 Days a Week',
       isPositive: true,
-      icon: Users2,
-      color: 'from-rose-500 to-red-600',
-      textColor: 'text-rose-700'
+      icon: Clock,
+      color: 'from-orange-500 to-amber-600',
+      textColor: 'text-orange-700'
+    },
+    {
+      title: 'Baking Batches',
+      value: '2 Batches Daily',
+      change: 'Fresh Out of Oven',
+      isPositive: true,
+      icon: Calendar,
+      color: 'from-emerald-500 to-teal-600',
+      textColor: 'text-emerald-700'
     }
   ];
-
-  const getStatusBadge = (status: OrderStatus) => {
-    switch (status) {
-      case 'Pending':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">Pending</span>;
-      case 'Accepted':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-purple-50 text-purple-700 border border-purple-200">Accepted</span>;
-      case 'Preparing':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">Preparing</span>;
-      case 'Ready':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Ready</span>;
-      case 'Out for Delivery':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 border border-teal-200">Out for Delivery</span>;
-      case 'Delivered':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Delivered</span>;
-      case 'Cancelled':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-red-700 border border-rose-200">Cancelled</span>;
-      default:
-        return null;
-    }
-  };
-
-  const getPaymentStatusBadge = (status: string) => {
-    if (status === 'Paid') {
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Paid</span>;
-    }
-    if (status === 'Failed') {
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">Failed</span>;
-    }
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Unpaid</span>;
-  };
-
-  // Recent 6 orders
-  const recentOrders = orders.slice(0, 6);
 
   return (
     <div className="space-y-8 select-none">
@@ -133,21 +67,21 @@ export const Dashboard: React.FC = () => {
             Welcome Back, Chef!
           </h2>
           <p className="text-xs md:text-sm text-[#F3EDE2]/60 font-light leading-relaxed">
-            Here's what's happening at M.G. Iyengar Bakery today. You have <span className="text-[#D4AF37] font-semibold">{pendingOrdersCount} orders</span> awaiting review.
+            Here's what's happening at M.G. Iyengar Bakery today. You have <span className="text-[#D4AF37] font-semibold">{activeProductsCount} products</span> active.
           </p>
         </div>
         <button 
-          onClick={() => navigate('/admin/orders')}
+          onClick={() => navigate('/admin/products')}
           className="bg-brand-gold-850 hover:bg-brand-gold-600 text-[#1A1110] font-semibold text-xs px-5 py-3 rounded-full transition-all duration-300 transform active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer shrink-0 z-10 hover:text-white"
         >
           <ClipboardList className="w-4 h-4" />
-          <span>Manage Live Orders</span>
+          <span>Manage Products</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
@@ -159,9 +93,9 @@ export const Dashboard: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div className="space-y-3">
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">{kpi.title}</span>
-                  <span className="text-3xl font-playfair font-bold text-slate-800 block">{kpi.value}</span>
+                  <span className="text-xl md:text-2xl font-playfair font-bold text-slate-800 block truncate" title={kpi.value.toString()}>{kpi.value}</span>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-[#1A1110] group-hover:text-[#D4AF37] transition-all duration-300 shadow-sm">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-[#1A1110] group-hover:text-[#D4AF37] transition-all duration-300 shadow-sm shrink-0">
                   <Icon className="w-6 h-6" />
                 </div>
               </div>
@@ -172,201 +106,49 @@ export const Dashboard: React.FC = () => {
                   {kpi.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {kpi.change}
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">vs last week</span>
+                <span className="text-[10px] text-slate-400 font-medium">status</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Recent Orders section */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <div>
-            <h3 className="font-playfair text-lg font-bold text-slate-800">Recent Customer Orders</h3>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">Overview of latest checkouts and walk-in receipts</p>
+      {/* Quick Administration Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Products Management Card */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col justify-between min-h-[180px]">
+          <div className="space-y-3">
+            <h3 className="font-playfair text-xl font-bold text-slate-800">Products Catalog</h3>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed">
+              Add new celebration cakes, update pricing tiers, adjust daily baking availability status, and upload product photos.
+            </p>
           </div>
-          <button 
-            onClick={() => navigate('/admin/orders')}
-            className="text-xs font-semibold text-[#D4AF37] hover:text-[#B89B1C] transition-colors flex items-center gap-1"
+          <button
+            onClick={() => navigate('/admin/products')}
+            className="mt-6 bg-[#1A1110] hover:bg-[#2C1717] text-brand-gold-850 hover:text-white font-semibold text-xs py-3 px-6 rounded-xl transition-all duration-300 w-fit flex items-center gap-1.5 cursor-pointer"
           >
-            <span>View All Orders</span>
-            <ChevronRight className="w-4 h-4" />
+            <span>Go to Products</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase bg-slate-50/20">
-                <th className="py-4 px-6">Order ID</th>
-                <th className="py-4 px-6">Customer Name</th>
-                <th className="py-4 px-6">Product Ordered</th>
-                <th className="py-4 px-6">Amount</th>
-                <th className="py-4 px-6">Payment</th>
-                <th className="py-4 px-6 text-center">Status</th>
-                <th className="py-4 px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
-              {recentOrders.map((order) => (
-                <tr 
-                  key={order.id} 
-                  className="hover:bg-slate-50/40 transition-colors group cursor-pointer"
-                  onClick={() => setSelectedOrder(order)}
-                >
-                  <td className="py-4 px-6 font-mono text-slate-800 font-bold">{order.id}</td>
-                  <td className="py-4 px-6 text-slate-800 font-semibold">{order.customerName}</td>
-                  <td className="py-4 px-6 truncate max-w-[200px]">{order.orderedProduct}</td>
-                  <td className="py-4 px-6 text-slate-800 font-bold">₹{order.amount}</td>
-                  <td className="py-4 px-6">{getPaymentStatusBadge(order.paymentStatus)}</td>
-                  <td className="py-4 px-6 text-center">{getStatusBadge(order.orderStatus)}</td>
-                  <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => setSelectedOrder(order)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer"
-                      title="Quick View Details"
-                    >
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Gallery Showcases Card */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col justify-between min-h-[180px]">
+          <div className="space-y-3">
+            <h3 className="font-playfair text-xl font-bold text-slate-800">Gallery Manager</h3>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed">
+              Update store showcase images, celebration party photos, cake visual portfolio, and filter categories.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/admin/gallery-manager')}
+            className="mt-6 bg-[#1A1110] hover:bg-[#2C1717] text-brand-gold-850 hover:text-white font-semibold text-xs py-3 px-6 rounded-xl transition-all duration-300 w-fit flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Go to Gallery Manager</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
-
-      {/* Order Details Modal (Dynamic sheet) */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-end">
-          <div className="w-full max-w-md h-full bg-white shadow-2xl flex flex-col p-6 overflow-y-auto">
-            {/* Header */}
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-slate-400 font-mono">{selectedOrder.id}</span>
-                <h3 className="font-playfair text-lg font-bold text-slate-800 mt-1">Order Summary</h3>
-              </div>
-              <button 
-                onClick={() => setSelectedOrder(null)}
-                className="w-8 h-8 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 py-6 space-y-6">
-              
-              {/* Status pill & update */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Live Delivery Status</span>
-                <div className="mt-2 flex justify-between items-center">
-                  {getStatusBadge(selectedOrder.orderStatus)}
-                  {getPaymentStatusBadge(selectedOrder.paymentStatus)}
-                </div>
-
-                {/* Accept/Reject buttons if Pending */}
-                {selectedOrder.orderStatus === 'Pending' && (
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => {
-                        updateOrderStatus(selectedOrder.id, 'Accepted');
-                        setSelectedOrder({ ...selectedOrder, orderStatus: 'Accepted' });
-                      }}
-                      className="bg-brand-gold-850 hover:bg-brand-gold-600 text-[#1A1110] text-xs font-semibold py-2.5 rounded-lg transition-all"
-                    >
-                      Accept Order
-                    </button>
-                    <button
-                      onClick={() => {
-                        updateOrderStatus(selectedOrder.id, 'Cancelled');
-                        setSelectedOrder({ ...selectedOrder, orderStatus: 'Cancelled' });
-                      }}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold py-2.5 rounded-lg border border-red-100 transition-all"
-                    >
-                      Reject Order
-                    </button>
-                  </div>
-                )}
-
-                {/* Progress flow controls */}
-                {selectedOrder.orderStatus !== 'Pending' && selectedOrder.orderStatus !== 'Cancelled' && selectedOrder.orderStatus !== 'Delivered' && (
-                  <div className="mt-4 space-y-2">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Change Status</label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['Preparing', 'Ready', 'Out for Delivery', 'Delivered'] as OrderStatus[]).map((st) => (
-                        <button
-                          key={st}
-                          onClick={() => {
-                            updateOrderStatus(selectedOrder.id, st);
-                            setSelectedOrder({ ...selectedOrder, orderStatus: st });
-                          }}
-                          className={`text-[10px] px-2.5 py-1.5 rounded-lg font-medium border transition-all ${
-                            selectedOrder.orderStatus === st
-                              ? 'bg-[#1A1110] text-white border-[#1A1110]'
-                              : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
-                          }`}
-                        >
-                          {st}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Customer information */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer Details</h4>
-                <div className="space-y-1.5 text-xs text-slate-600 font-medium">
-                  <p><span className="text-slate-400">Name:</span> {selectedOrder.customerName}</p>
-                  <p><span className="text-slate-400">Phone:</span> {selectedOrder.phone}</p>
-                  <p className="leading-relaxed"><span className="text-slate-400">Address:</span> {selectedOrder.deliveryAddress}</p>
-                </div>
-              </div>
-
-              {/* Items details */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Items Ordered</h4>
-                <div className="flex justify-between items-center bg-[#FAF8F5] border border-slate-100 rounded-xl p-3 text-xs font-medium">
-                  <div>
-                    <p className="text-slate-800 font-semibold">{selectedOrder.orderedProduct}</p>
-                    <p className="text-slate-400 mt-0.5">Qty: {selectedOrder.quantity}</p>
-                  </div>
-                  <span className="text-slate-800 font-bold text-sm">₹{selectedOrder.amount}</span>
-                </div>
-              </div>
-
-              {/* Payment methods */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Logistics & Payment</h4>
-                <div className="space-y-1.5 text-xs text-slate-600 font-medium">
-                  <p><span className="text-slate-400">Method:</span> {selectedOrder.paymentMethod}</p>
-                  <p><span className="text-slate-400">Receipt Type:</span> Home Delivery</p>
-                  <p><span className="text-slate-400">Created At:</span> {new Date(selectedOrder.createdDate).toLocaleString('en-IN')}</p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-slate-100 pt-4 flex gap-3">
-              <button 
-                onClick={() => {
-                  setSelectedOrder(null);
-                  navigate('/admin/orders');
-                }}
-                className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold py-3 rounded-xl text-center transition-all"
-              >
-                Go to Orders Console
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

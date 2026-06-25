@@ -5,12 +5,14 @@ import { Login } from './pages/Login';
 import { AdminLayout } from './layout/AdminLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
-import { Orders } from './pages/Orders';
-import { CustomOrders } from './pages/CustomOrders';
 import { GalleryManager } from './pages/GalleryManager';
-import { Customers } from './pages/Customers';
+import { BannerManager } from './pages/BannerManager';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
+import { Orders } from './pages/Orders';
+import { CustomOrders } from './pages/CustomOrders';
+import { Customers } from './pages/Customers';
+import { DatabaseProvider } from '../context/DatabaseContext';
 
 const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
@@ -33,12 +35,14 @@ const AdminRouteSwitcher: React.FC = () => {
           return <Dashboard />;
         case '/admin/products':
           return <Products />;
+        case '/admin/gallery-manager':
+          return <GalleryManager />;
+        case '/admin/banner-manager':
+          return <BannerManager />;
         case '/admin/orders':
           return <Orders />;
         case '/admin/custom-orders':
           return <CustomOrders />;
-        case '/admin/gallery-manager':
-          return <GalleryManager />;
         case '/admin/customers':
           return <Customers />;
         case '/admin/analytics':
@@ -58,10 +62,12 @@ const AdminRouteSwitcher: React.FC = () => {
 
 export const AdminApp: React.FC = () => {
   return (
-    <AdminRouterProvider>
-      <AdminStateProvider>
-        <AdminRouteSwitcher />
-      </AdminStateProvider>
-    </AdminRouterProvider>
+    <DatabaseProvider>
+      <AdminRouterProvider>
+        <AdminStateProvider>
+          <AdminRouteSwitcher />
+        </AdminStateProvider>
+      </AdminRouterProvider>
+    </DatabaseProvider>
   );
 };

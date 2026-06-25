@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Star, Filter } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
-import { PRODUCTS } from '../data';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 import CurvedLoop from '../components/CurvedLoop';
 import FlowingSelect from '../components/FlowingSelect';
 
@@ -33,8 +33,22 @@ export const Cakes: React.FC = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All');
   const [selectedWeight, setSelectedWeight] = useState<string>('All');
 
-  // Filter celebration cakes
-  const cakeProducts = PRODUCTS.filter((p) => p.category === 'Cakes');
+  const { products } = useBakeryDatabase();
+
+  const isCurrentlyVisible = (p: any): boolean => {
+    if (p.isDeleted) return false;
+    if (p.status === 'Hidden') return false;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (p.publishDate && p.publishDate > todayStr) return false;
+    if (p.visibilityExpiryDate && p.visibilityExpiryDate < todayStr) return false;
+    return true;
+  };
+
+  // Filter celebration cakes and sort by displayPriority
+  const cakeProducts = products
+    .filter((p) => p.category === 'Cakes' && isCurrentlyVisible(p))
+    .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
   const filteredCakes = cakeProducts.filter((cake) => {
     // 1. Flavor Filter

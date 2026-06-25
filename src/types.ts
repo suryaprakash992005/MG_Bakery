@@ -11,10 +11,15 @@ export interface Product {
   description: string;
   price: number | ProductPrice;
   image: string;
-  category: 'Cakes' | 'Pastries' | 'Cookies' | 'Puffs' | 'Breads' | 'Snacks' | 'Beverages' | 'Fresh Cream Cakes' | 'Birthday Cakes' | 'Custom Cakes' | 'Cake Pieces';
+  category: string;
   tags?: string[];
   isBestSeller?: boolean;
   isEggless?: boolean;
+  status?: 'Available' | 'Out of Stock' | 'Hidden';
+  displayPriority?: number;
+  dailySpecial?: boolean;
+  images?: string[];
+  isFeatured?: boolean;
 }
 
 export interface Review {
@@ -29,8 +34,9 @@ export interface Review {
 export interface GalleryItem {
   id: string;
   title: string;
-  category: 'cakes' | 'pastries' | 'interior' | 'products' | 'celebrations';
+  category: string;
   image: string;
+  displayPriority?: number;
 }
 
 export interface CustomCakeInquiry {
@@ -42,3 +48,4 @@ export interface CustomCakeInquiry {
   deliveryDate: string;
   instructions: string;
 }
+

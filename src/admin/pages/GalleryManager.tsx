@@ -1,108 +1,120 @@
 import React, { useState } from 'react';
-import { useAdminState } from '../hooks/useAdminState';
+import { useBakeryDatabase, UnifiedGalleryItem } from '../../context/DatabaseContext';
+import { ImageUploader } from '../components/ImageUploader';
 import { 
-  Plus, 
   Trash2, 
-  RefreshCw, 
-  X,
+  X, 
   Calendar,
   Filter,
-  Upload
+  Upload,
+  RotateCcw
 } from 'lucide-react';
 
-
 export const GalleryManager: React.FC = () => {
-  const { gallery, setGallery } = useAdminState();
+  const { 
+    gallery: allGalleryItems, 
+    saveGalleryItem, 
+    softDeleteGalleryItem, 
+    restoreGalleryItem, 
+    permanentlyDeleteGalleryItem, 
+    reorderGallery 
+  } = useBakeryDatabase();
+
   const [selectedFilter, setSelectedFilter] = useState('All');
   
-  // Upload states
+  // Upload form modal states
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [currentGalleryItem, setCurrentGalleryItem] = useState<UnifiedGalleryItem | null>(null);
+
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('cakes');
-  const [imageUrl, setImageUrl] = useState('');
+  const [image, setImage] = useState('');
+  const [displayPriority, setDisplayPriority] = useState(1);
 
-  // Replace states
-  const [replaceId, setReplaceId] = useState<string | null>(null);
-  const [replaceUrl, setReplaceUrl] = useState('');
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  const handleUpload = (e: React.FormEvent) => {
+  // Filter lists
+  const gallery = allGalleryItems.filter(item => !item.isDeleted);
+  const trashItems = allGalleryItems.filter(item => item.isDeleted);
+
+  const handleOpenAdd = () => {
+    setTitle('');
+    setCategory('cakes');
+    setImage('');
+    setDisplayPriority(gallery.length + 1);
+    setShowAddForm(true);
+  };
+
+  const handleOpenEdit = (item: UnifiedGalleryItem) => {
+    setCurrentGalleryItem(item);
+    setTitle(item.title);
+    setCategory(item.category);
+    setImage(item.image);
+    setDisplayPriority(item.displayPriority || 99);
+    setIsEditOpen(true);
+  };
+
+  const handleSaveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !imageUrl) return;
+    if (!title || !image) return;
 
-    const newItem = {
-      id: `g-${Date.now()}`,
+    saveGalleryItem({
+      id: currentGalleryItem ? currentGalleryItem.id : `g-${Date.now()}`,
       title,
-      category,
-      image: imageUrl,
-      uploadDate: new Date().toISOString().split('T')[0],
-      isBanner: false
-    };
-
-    const updated = [newItem, ...gallery];
-    setGallery(updated);
-    localStorage.setItem('admin_gallery', JSON.stringify(updated));
+      category: category as any,
+      image,
+      displayPriority: Number(displayPriority) || gallery.length + 1
+    });
 
     // Reset Form
     setTitle('');
-    setImageUrl('');
+    setImage('');
     setShowAddForm(false);
+    setIsEditOpen(false);
+    setCurrentGalleryItem(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this image from the gallery?')) {
-      const updated = gallery.filter(item => item.id !== id);
-      setGallery(updated);
-      localStorage.setItem('admin_gallery', JSON.stringify(updated));
-    }
+  // Drag and Drop reordering handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
   };
 
-  const handleToggleBanner = (id: string) => {
-    const updated = gallery.map(item => {
-      if (item.id === id) {
-        return { ...item, isBanner: !item.isBanner };
-      }
-      return item;
-    });
-    setGallery(updated);
-    localStorage.setItem('admin_gallery', JSON.stringify(updated));
-  };
-
-  const handleReplaceSubmit = (e: React.FormEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!replaceId || !replaceUrl) return;
+  };
 
-    const updated = gallery.map(item => {
-      if (item.id === replaceId) {
-        return { ...item, image: replaceUrl };
-      }
-      return item;
-    });
-    setGallery(updated);
-    localStorage.setItem('admin_gallery', JSON.stringify(updated));
-    
-    setReplaceId(null);
-    setReplaceUrl('');
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const reordered = [...filteredItems];
+    const [movedItem] = reordered.splice(draggedIndex, 1);
+    reordered.splice(index, 0, movedItem);
+    reorderGallery(reordered);
+    setDraggedIndex(null);
   };
 
   // Filters
   const filters = ['All', 'cakes', 'pastries', 'products', 'interior', 'celebrations'];
 
-  const filteredItems = gallery.filter(item => {
-    return selectedFilter === 'All' || item.category === selectedFilter;
-  });
+  const filteredItems = gallery
+    .filter(item => {
+      return selectedFilter === 'All' || item.category === selectedFilter;
+    })
+    .sort((a, b) => (a.displayPriority || 999) - (b.displayPriority || 999));
 
   return (
-    <div className="space-y-6 select-none animate-fade-in">
+    <div className="space-y-8 select-none font-poppins animate-fade-in">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-playfair font-bold text-slate-800">Media Gallery Manager</h2>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">Manage public portfolio pictures, homepage slider image loops, and promotional banners</p>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">Manage portfolio pictures and visual sections. Drag cards to reorder display sequence on the website.</p>
         </div>
         <button
-          onClick={() => setShowAddForm(true)}
-          className="bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 font-semibold text-xs px-5 py-3 rounded-full shadow-md flex items-center gap-1.5 transition-all duration-300 cursor-pointer hover:text-white"
+          onClick={handleOpenAdd}
+          className="bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 font-semibold text-xs px-5 py-3 rounded-full shadow-md flex items-center gap-1.5 transition-all duration-300 cursor-pointer hover:text-white border-none"
         >
           <Upload className="w-4 h-4 text-brand-gold-850" />
           <span>Upload New Photo</span>
@@ -136,19 +148,24 @@ export const GalleryManager: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {/* Upload Mock Box Card inside the Grid */}
-        {showAddForm ? (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-350 rounded-2xl p-6 flex flex-col justify-between h-[360px] animate-fade-in">
+        {showAddForm && (
+          <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col justify-between h-[450px] animate-fade-in">
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">New Portfolio Item</span>
               <button 
                 onClick={() => setShowAddForm(false)}
-                className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-650 cursor-pointer border-none bg-transparent"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             
-            <form onSubmit={handleUpload} className="space-y-3.5 my-3">
+            <form onSubmit={handleSaveSubmit} className="space-y-3 my-3 overflow-y-auto pr-1 flex-grow">
+              <ImageUploader 
+                value={image} 
+                onChange={setImage} 
+                label="Portfolio Image File" 
+              />
               <input
                 type="text"
                 required
@@ -157,57 +174,54 @@ export const GalleryManager: React.FC = () => {
                 placeholder="Image Title (e.g. Wedding Cake Setup)"
                 className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
               />
-              <input
-                type="text"
-                required
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Direct Image URL link"
-                className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
-              />
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
-              >
-                {['cakes', 'pastries', 'products', 'interior', 'celebrations'].map(cat => (
-                  <option key={cat} value={cat}>{cat.toUpperCase()}</option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer font-bold text-slate-600"
+                >
+                  {['cakes', 'pastries', 'products', 'interior', 'celebrations'].map(cat => (
+                    <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  value={displayPriority}
+                  onChange={(e) => setDisplayPriority(Number(e.target.value))}
+                  placeholder="Priority"
+                  className="w-full bg-white border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  title="Display Priority"
+                />
+              </div>
               <button
                 type="submit"
-                className="w-full bg-[#1A1110] text-[#F3EDE2] font-semibold text-xs py-2.5 rounded-xl hover:text-white transition-all cursor-pointer"
+                className="w-full bg-[#1A1110] text-[#F3EDE2] font-semibold text-xs py-2.5 rounded-xl hover:text-white transition-all cursor-pointer border-none mt-2"
               >
                 Save to Portfolio
               </button>
             </form>
-
-            <span className="text-[10px] text-slate-400 text-center font-medium">Image will instantly post to public cakes / gallery page.</span>
-          </div>
-        ) : (
-          <div 
-            onClick={() => setShowAddForm(true)}
-            className="border-2 border-dashed border-slate-200 hover:border-brand-gold-500 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 text-slate-400 hover:text-brand-gold-700 bg-white hover:bg-brand-gold-50/10 cursor-pointer h-[360px] transition-all group"
-          >
-            <div className="w-14 h-14 rounded-full bg-slate-50 group-hover:bg-brand-gold-100 border border-slate-100 flex items-center justify-center text-slate-500 group-hover:text-brand-gold-800 transition-colors">
-              <Plus className="w-6 h-6" />
-            </div>
-            <div className="space-y-1">
-              <span className="text-sm font-bold block text-slate-800">Add Portfolio Photo</span>
-              <span className="text-xs font-light block leading-relaxed max-w-[180px] mx-auto text-slate-400">Drag files here, click to browse, or paste image URL</span>
-            </div>
           </div>
         )}
 
         {/* Gallery Cards */}
-        {filteredItems.map((item) => (
-          <div key={item.id} className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden h-[360px] flex flex-col justify-between group hover:border-[#D4AF37]/35 transition-all">
-            
+        {filteredItems.map((item, idx) => (
+          <div 
+            key={item.id} 
+            draggable
+            onDragStart={() => handleDragStart(idx)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(idx)}
+            className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden h-[450px] flex flex-col justify-between group hover:border-[#D4AF37]/35 transition-all cursor-grab active:cursor-grabbing"
+          >
             {/* Image Preview */}
-            <div className="h-44 relative bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border-b border-slate-100">
+            <div className="h-56 relative bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border-b border-slate-100">
               <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute top-3 left-3 bg-[#1A1110]/80 text-[#D4AF37] border border-[#D4AF37]/30 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase backdrop-blur-sm">
                 {item.category}
+              </div>
+              <div className="absolute top-3 right-3 bg-white/95 text-slate-800 px-2 py-0.5 rounded text-[9px] font-bold shadow-sm">
+                Priority: {item.displayPriority || idx + 1}
               </div>
             </div>
 
@@ -219,41 +233,21 @@ export const GalleryManager: React.FC = () => {
                 </h4>
                 <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase">
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>Posted: {item.uploadDate || '2026-06-20'}</span>
+                  <span>Portfolio Showcase Asset</span>
                 </div>
-              </div>
-
-              {/* Slider / Promo banner switches */}
-              <div className="bg-[#FAF8F5] border border-slate-100 rounded-xl p-2.5 flex justify-between items-center text-xs">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Home Slider Loop</span>
-                <label className="relative flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={item.isBanner}
-                    onChange={() => handleToggleBanner(item.id)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-8 h-4 bg-slate-200 peer-checked:bg-brand-gold-500 rounded-full flex items-center transition-all p-0.5 cursor-pointer">
-                    <div className={`w-3.5 h-3.5 bg-white rounded-full shadow transition-transform ${item.isBanner ? 'translate-x-3.5' : ''}`} />
-                  </div>
-                </label>
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => {
-                    setReplaceId(item.id);
-                    setReplaceUrl(item.image);
-                  }}
-                  className="flex-1 bg-white hover:bg-slate-50 border border-slate-250 text-slate-600 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  onClick={() => handleOpenEdit(item)}
+                  className="flex-1 bg-white hover:bg-slate-50 border border-slate-250 text-slate-650 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Replace URL</span>
+                  <span>Edit Details</span>
                 </button>
                 <button
-                  onClick={() => handleDelete(item.id)}
-                  className="w-9 h-9 rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all cursor-pointer"
+                  onClick={() => softDeleteGalleryItem(item.id)}
+                  className="w-9 h-9 rounded-lg border border-slate-200 text-slate-400 hover:text-red-650 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all cursor-pointer bg-white"
                   title="Remove from Gallery"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -265,46 +259,131 @@ export const GalleryManager: React.FC = () => {
         ))}
       </div>
 
-      {/* --- REPLACE IMAGE URL MODAL --- */}
-      {replaceId !== null && (
+      {/* --- TRASH / SOFT DELETE GALLERY ITEMS --- */}
+      {trashItems.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 shadow-inner space-y-4">
+          <div className="flex items-center gap-2">
+            <Trash2 className="w-5 h-5 text-red-500" />
+            <h3 className="font-playfair text-lg font-bold text-slate-800">Gallery Trashbin (Soft Deleted)</h3>
+            <span className="text-[10px] bg-red-100 text-red-750 font-bold px-2 py-0.5 rounded-full">{trashItems.length} Photos</span>
+          </div>
+
+          <div className="overflow-x-auto bg-white rounded-xl border border-slate-150">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-450 uppercase bg-slate-50/50">
+                  <th className="py-3 px-5">Image</th>
+                  <th className="py-3 px-5">Image Title</th>
+                  <th className="py-3 px-5">Category</th>
+                  <th className="py-3 px-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+                {trashItems.map(item => (
+                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-2.5 px-5">
+                      <img src={item.image} alt={item.title} className="w-8 h-8 rounded-lg object-cover" />
+                    </td>
+                    <td className="py-2.5 px-5 font-bold text-slate-800">{item.title}</td>
+                    <td className="py-2.5 px-5 uppercase">{item.category}</td>
+                    <td className="py-2.5 px-5 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => restoreGalleryItem(item.id)}
+                          className="px-2.5 py-1 border border-slate-200 text-slate-650 hover:bg-slate-50 rounded font-semibold text-[10px] flex items-center gap-1 cursor-pointer bg-white"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Restore</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you absolutely sure you want to permanently delete "${item.title}"?`)) {
+                              permanentlyDeleteGalleryItem(item.id);
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded font-bold text-[10px] cursor-pointer"
+                        >
+                          Purge
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* --- EDIT MODAL --- */}
+      {isEditOpen && currentGalleryItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 space-y-4 border border-slate-200">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 flex flex-col my-8 animate-fade-in-up">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4 bg-slate-50 -mx-6 -mt-6 p-4">
               <h3 className="font-playfair text-base font-bold text-slate-800 flex items-center gap-1.5">
-                <RefreshCw className="w-4.5 h-4.5 text-brand-gold-600" />
-                <span>Replace Image Link</span>
+                <span>Edit Photo Details</span>
               </h3>
-              <button onClick={() => setReplaceId(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => { setIsEditOpen(false); setCurrentGalleryItem(null); }} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer border-none bg-transparent">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleReplaceSubmit} className="space-y-4">
+            <form onSubmit={handleSaveSubmit} className="space-y-4">
+              <ImageUploader 
+                value={image} 
+                onChange={setImage} 
+                label="Portfolio Image File" 
+              />
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">New Image URL Address</label>
-                <textarea
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Image Title</label>
+                <input
+                  type="text"
                   required
-                  value={replaceUrl}
-                  onChange={(e) => setReplaceUrl(e.target.value)}
-                  rows={4}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all focus:bg-white"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all cursor-pointer font-bold text-slate-600"
+                  >
+                    {['cakes', 'pastries', 'products', 'interior', 'celebrations'].map(cat => (
+                      <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Display Priority</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={displayPriority}
+                    onChange={(e) => setDisplayPriority(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
 
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setReplaceId(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer"
+                  onClick={() => { setIsEditOpen(false); setCurrentGalleryItem(null); }}
+                  className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-full bg-[#1A1110] text-[#F3EDE2] hover:bg-brand-brown-900 text-xs font-semibold cursor-pointer border-none"
                 >
-                  Apply Replacement
+                  Save Changes
                 </button>
               </div>
             </form>

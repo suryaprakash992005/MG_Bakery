@@ -17,15 +17,29 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
+  const isOutOfStock = product.status === 'Out of Stock';
+
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (isOutOfStock) return;
     addToCart(product, selectedWeight, 1);
     setAdded(true);
     setTimeout(() => {
       setAdded(false);
     }, 2000);
   };
+
+  if (isOutOfStock) {
+    return (
+      <button
+        disabled
+        className={`relative overflow-hidden font-semibold bg-slate-200 text-slate-400 border border-slate-350/50 py-2.5 px-6 rounded-full text-xs cursor-not-allowed shadow-none ${className}`}
+      >
+        <span>Sold Out</span>
+      </button>
+    );
+  }
 
   return (
     <button
@@ -34,7 +48,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         added
           ? 'bg-brand-gold-850 text-brand-brown-950 scale-105 shadow-brand-gold-500/20'
           : 'bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 hover:text-brand-gold-850 shadow-brand-brown-950/15'
-      } ${className}`}
+      } peer-disabled:opacity-50 ${className}`}
     >
       <span className="flex items-center gap-1.5 justify-center">
         {added ? (
