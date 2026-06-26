@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Coffee, PhoneCall } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -13,6 +13,15 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) => {
   const { settings } = useBakeryDatabase();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
     { id: 'home', label: 'Home' },
@@ -57,19 +66,27 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
 
   return (
     <>
-      <nav className="hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 lg:px-8 py-4">
+      <nav className={`hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-4 sm:px-6 lg:px-8 ${scrolled ? 'py-2.5' : 'py-5'}`}>
         <div className="max-w-7xl mx-auto">
-          <div className="glass-nav rounded-full px-6 py-3 flex items-center justify-between shadow-lg shadow-brand-brown-950/10">
+          <div className={`flex items-center justify-between transition-all duration-500 rounded-full px-6 ${
+            scrolled 
+              ? 'bg-brand-cream-50/90 backdrop-blur-md border border-brand-cream-100/60 shadow-xl py-2.5' 
+              : 'bg-transparent border border-transparent shadow-none py-4'
+          }`}>
             {/* Logo */}
             <button 
               onClick={() => handleNavClick('home')}
               className="flex items-center gap-2 group text-left cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-full bg-brand-brown-950 flex items-center justify-center text-brand-gold-850 group-hover:scale-105 transition-transform duration-300">
+              <motion.div 
+                whileHover={{ rotate: 15, scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-10 h-10 rounded-full bg-brand-brown-950 flex items-center justify-center text-brand-gold-850 shadow-md group-hover:shadow-brand-gold-500/20 transition-shadow"
+              >
                 <Coffee className="w-5 h-5" />
-              </div>
+              </motion.div>
               <div>
-                <span className="block font-playfair font-bold text-base sm:text-lg text-brand-brown-950 tracking-wide leading-tight">
+                <span className="block font-playfair font-bold text-base sm:text-lg text-brand-brown-950 tracking-wide leading-tight group-hover:text-brand-gold-700 transition-colors">
                   {part1}
                 </span>
                 {part2 && (
@@ -85,11 +102,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
               {navItems.map((item) => {
                 const isActive = currentPage === item.id;
                 return (
-                  <button
+                  <motion.button
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className={`relative px-4 py-2 text-sm font-medium transition-colors duration-300 rounded-full cursor-pointer ${
-                      isActive ? 'text-brand-brown-950' : 'text-brand-brown-800/75 hover:text-brand-brown-950 hover:bg-brand-cream-100/30'
+                      isActive ? 'text-brand-brown-950 font-semibold' : 'text-brand-brown-800/75 hover:text-brand-brown-950 hover:bg-brand-cream-100/30'
                     }`}
                   >
                     {item.label}
@@ -100,23 +119,27 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
                         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                       />
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
 
             {/* Quick WhatsApp Action Button (Desktop) & Shopping Cart */}
             <div className="hidden lg:flex items-center gap-3">
-              <CartIcon />
-              <a
+              <div id="shopping-cart-icon" className="relative">
+                <CartIcon />
+              </div>
+              <motion.a
+                whileHover={{ scale: 1.04, boxShadow: '0 10px 20px rgba(44, 26, 23, 0.15)' }}
+                whileTap={{ scale: 0.96 }}
                 href={`https://wa.me/${cleanNumber}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to explore your menu and place an order.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full shadow-md shadow-brand-brown-950/20 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-1.5"
+                className="bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full shadow-md transition-all duration-300 flex items-center gap-1.5"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-brand-gold-850" />
                 <span>Order on WhatsApp</span>
-              </a>
+              </motion.a>
             </div>
           </div>
         </div>
@@ -137,4 +160,5 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
     </>
   );
 };
+
 

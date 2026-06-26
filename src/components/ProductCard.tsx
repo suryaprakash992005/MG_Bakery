@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Product } from '../types';
 import { AddToCartButton } from './AddToCartButton';
 import BorderGlow from './BorderGlow';
@@ -9,6 +10,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isCakeWithMultiPrice = typeof product.price === 'object';
+  const cardRef = useRef<HTMLDivElement>(null);
   
   // Select initial price tier for cakes (default to halfKg if available, else piece, else first key)
   const getInitialTier = (): string => {
@@ -20,6 +22,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const [selectedTier, setSelectedTier] = useState<string>(getInitialTier());
+  const [tiltX, setTiltX] = useState(0);
+  const [tiltY, setTiltY] = useState(0);
 
   const getPriceDisplay = (): number => {
     if (!isCakeWithMultiPrice) {
@@ -41,119 +45,162 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    // Max 3D tilt 5 degrees
+    const rotateX = ((centerY - y) / centerY) * 5;
+    const rotateY = ((x - centerX) / centerX) * 5;
+    
+    setTiltX(rotateX);
+    setTiltY(rotateY);
+  };
+
+  const handleMouseLeave = () => {
+    setTiltX(0);
+    setTiltY(0);
+  };
+
+  // Determine if it should rotate slightly (e.g. cakes rotate by 2 degrees for visual playfulness)
+  const hoverRotate = product.category?.toLowerCase().includes('cake') ? 2 : 0;
 
   return (
-    <BorderGlow
-      className="h-full group"
-      backgroundColor="#ffffff"
-      glowColor="46 64 52"
-      borderRadius={24}
-      glowRadius={30}
-      glowIntensity={0.8}
-      coneSpread={20}
-      animated={false}
-      colors={['#D4AF37', '#2C1717', '#A46E6E']}
-      fillOpacity={0.1}
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      whileHover={{
+        y: -8,
+        rotate: hoverRotate,
+        boxShadow: '0 20px 45px rgba(44, 26, 23, 0.12)'
+      }}
+      style={{
+        transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
+        transition: 'transform 0.15s ease-out, box-shadow 0.3s ease-out',
+        borderRadius: '24px'
+      }}
+      className="h-full"
     >
-      <div className="flex flex-col h-full w-full justify-between">
-        {/* Product Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100">
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-          />
+      <BorderGlow
+        className="h-full group"
+        backgroundColor="#ffffff"
+        glowColor="46 64 52"
+        borderRadius={24}
+        glowRadius={30}
+        glowIntensity={0.8}
+        coneSpread={20}
+        animated={false}
+        colors={['#D4AF37', '#2C1717', '#A46E6E']}
+        fillOpacity={0.1}
+      >
+        <div className="flex flex-col h-full w-full justify-between">
+          {/* Product Image Container */}
+          <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100 rounded-t-3xl">
+            <motion.img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              whileHover={{ scale: 1.08 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full h-full object-cover"
+            />
 
-          {product.status === 'Out of Stock' && (
-            <div className="absolute inset-0 bg-brand-brown-950/60 backdrop-blur-[1px] flex items-center justify-center z-10">
-              <span className="text-brand-cream-50 font-playfair border-2 border-brand-gold-500/80 px-4 py-1.5 rounded-md text-xs sm:text-sm uppercase tracking-widest font-semibold bg-brand-brown-950/30">
-                Sold Out
-              </span>
-            </div>
-          )}
-
-          {/* Floating Badges */}
-          <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
-            <div className="flex flex-col gap-1.5">
-              {product.isBestSeller && (
-                <span className="bg-brand-gold-850 text-brand-brown-950 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                  Best Seller
+            {product.status === 'Out of Stock' && (
+              <div className="absolute inset-0 bg-brand-brown-950/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+                <span className="text-brand-cream-50 font-playfair border-2 border-brand-gold-500/80 px-4 py-1.5 rounded-md text-xs sm:text-sm uppercase tracking-widest font-semibold bg-brand-brown-950/30">
+                  Sold Out
                 </span>
-              )}
-              {product.tags?.slice(0, 1).map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="bg-brand-brown-950/90 text-brand-cream-50 text-[10px] font-medium px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {product.isEggless && (
-              <span 
-                className="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-sm"
-                title="100% Eggless Option Available"
-              >
-                <span className="w-2 h-2 rounded-full bg-green-600 block"></span>
-                EGGLESS
-              </span>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 flex flex-col flex-grow justify-between">
-          <div>
-            <h3 className="font-playfair text-lg sm:text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300">
-              {product.name}
-            </h3>
-            <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
-              {product.description}
-            </p>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
-            {/* Cake Tier Selector */}
-            {isCakeWithMultiPrice && (
-              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mb-4">
-                {Object.keys(product.price as object).map((tier) => (
-                  <button
-                    key={tier}
-                    onClick={() => setSelectedTier(tier)}
-                    className={`text-[10px] font-semibold px-2 sm:px-2.5 py-1 rounded-full transition-all border ${
-                      selectedTier === tier
-                        ? 'bg-brand-gold-850 text-brand-brown-950 border-brand-gold-850 shadow-sm'
-                        : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
-                    }`}
+            {/* Floating Badges */}
+            <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
+              <div className="flex flex-col gap-1.5">
+                {product.isBestSeller && (
+                  <span className="bg-brand-gold-850 text-brand-brown-950 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    Best Seller
+                  </span>
+                )}
+                {product.tags?.slice(0, 1).map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-brand-brown-950/90 text-brand-cream-50 text-[10px] font-medium px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm"
                   >
-                    {getTierLabel(tier)}
-                  </button>
+                    {tag}
+                  </span>
                 ))}
               </div>
-            )}
 
-            {/* Pricing & Add to Cart Button */}
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <span className="text-xs text-brand-brown-800/40 block font-light leading-none">
-                  Price
+              {product.isEggless && (
+                <span 
+                  className="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-sm"
+                  title="100% Eggless Option Available"
+                >
+                  <span className="w-2 h-2 rounded-full bg-green-600 block"></span>
+                  EGGLESS
                 </span>
-                <span className="text-xl font-bold text-brand-brown-950 mt-1 block">
-                  ₹{getPriceDisplay()}
-                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 flex flex-col flex-grow justify-between">
+            <div>
+              <h3 className="font-playfair text-lg sm:text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300">
+                {product.name}
+              </h3>
+              <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
+                {product.description}
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
+              {/* Cake Tier Selector */}
+              {isCakeWithMultiPrice && (
+                <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mb-4">
+                  {Object.keys(product.price as object).map((tier) => (
+                    <button
+                      key={tier}
+                      onClick={() => setSelectedTier(tier)}
+                      className={`text-[10px] font-semibold px-2 sm:px-2.5 py-1 rounded-full transition-all border ${
+                        selectedTier === tier
+                          ? 'bg-brand-gold-850 text-brand-brown-950 border-brand-gold-850 shadow-sm'
+                          : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
+                      }`}
+                    >
+                      {getTierLabel(tier)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Pricing & Add to Cart Button */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs text-brand-brown-800/40 block font-light leading-none">
+                    Price
+                  </span>
+                  <span className="text-xl font-bold text-brand-brown-950 mt-1 block">
+                    ₹{getPriceDisplay()}
+                  </span>
+                </div>
+
+                <AddToCartButton
+                  product={product}
+                  selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
+                  className="px-4 py-2.5 rounded-full text-xs font-semibold"
+                />
               </div>
-
-              <AddToCartButton
-                product={product}
-                selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
-                className="px-4 py-2.5 rounded-full text-xs font-semibold"
-              />
             </div>
           </div>
         </div>
-      </div>
-    </BorderGlow>
+      </BorderGlow>
+    </motion.div>
   );
 };

@@ -32,6 +32,18 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     .sort((a, b) => a.displayPriority - b.displayPriority);
 
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - left) / width - 0.5;
+    const y = (e.clientY - top) / height - 0.5;
+    setMousePos({ x, y });
+  };
+
+  const handleMouseLeave = () => {
+    setMousePos({ x: 0, y: 0 });
+  };
 
   useEffect(() => {
     if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
@@ -39,10 +51,44 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       setCurrentSlide(prev => (prev + 1) % activeBanners.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [activeBanners.length, settings.isSliderEnabled]);
+  }, [activeBanners.length, settings.isSliderEnabled, currentSlide]);
 
   const dailySpecialProduct = activeProducts.find(p => p.dailySpecial);
   const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
+
+  const words = "Freshly Baked Happiness for Every Celebration".split(" ");
+  const headingContainerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.08
+      }
+    }
+  };
+  const wordVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring" as const,
+        stiffness: 100,
+        damping: 10
+      }
+    }
+  };
+
+  const revealVariants = {
+    hidden: { opacity: 0, y: 40 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.8,
+        ease: [0.16, 1, 0.3, 1] as const
+      }
+    }
+  };
 
   const categories = [
     { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
@@ -78,15 +124,28 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="space-y-6 max-w-xl text-center lg:text-left"
+              className="space-y-6 max-w-xl text-center lg:text-left font-sans"
             >
               <div className="inline-flex items-center gap-2 bg-brand-cream-100/80 border border-brand-cream-200 px-4 py-1.5 rounded-full text-xs font-semibold text-brand-gold-700 tracking-wider uppercase">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>The Artisan Bakery of Mohanur</span>
               </div>
-              <h1 className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950 leading-tight">
-                Freshly Baked Happiness for Every Celebration
-              </h1>
+              <motion.h1 
+                variants={headingContainerVariants}
+                initial="hidden"
+                animate="visible"
+                className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950 leading-tight flex flex-wrap justify-center lg:justify-start gap-x-3 gap-y-1"
+              >
+                {words.map((word, index) => (
+                  <motion.span
+                    key={index}
+                    variants={wordVariants}
+                    className="inline-block"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </motion.h1>
               <p className="text-sm sm:text-base text-brand-brown-800/80 font-light leading-relaxed">
                 Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
               </p>
@@ -111,76 +170,115 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </motion.div>
 
             {/* Hero Right Media */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1 }}
+            <div
               className="relative flex justify-center lg:justify-end w-full"
+              style={{ perspective: 1000 }}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
             >
-              <BorderGlow
-                className="w-full max-w-[480px] aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white animate-float"
-                backgroundColor="#ffffff"
-                borderRadius={40}
-                glowColor="46 64 52"
-                glowRadius={40}
-                glowIntensity={1.0}
-                colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                fillOpacity={0.1}
-                animated={true}
+              <motion.div
+                animate={{
+                  rotateX: -mousePos.y * 15,
+                  rotateY: mousePos.x * 15,
+                  z: mousePos.x || mousePos.y ? 15 : 0
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="w-full max-w-[480px] flex justify-center lg:justify-end"
               >
-                <div className="relative w-full h-full overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={bannerToDisplay ? bannerToDisplay.id : 'default'}
-                      src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
-                      alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                      className="w-full h-full object-cover absolute inset-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8 }}
-                    />
-                  </AnimatePresence>
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
-                  
-                  {/* Banner overlay text if slide has title */}
-                  {bannerToDisplay && (bannerToDisplay.title || bannerToDisplay.subtitle) && (
-                    <div className="absolute top-6 left-6 right-6 z-10 bg-black/30 backdrop-blur-xs rounded-xl p-3 border border-white/5 pointer-events-none">
-                      {bannerToDisplay.title && (
-                        <h4 className="text-xs font-bold text-brand-gold-500 uppercase tracking-wider font-playfair">{bannerToDisplay.title}</h4>
-                      )}
-                      {bannerToDisplay.subtitle && (
-                        <p className="text-[10px] text-white/80 font-light mt-0.5 leading-snug">{bannerToDisplay.subtitle}</p>
-                      )}
-                    </div>
-                  )}
+                <BorderGlow
+                  className="w-full aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white animate-float"
+                  backgroundColor="#ffffff"
+                  borderRadius={40}
+                  glowColor="46 64 52"
+                  glowRadius={40}
+                  glowIntensity={1.0}
+                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
+                  fillOpacity={0.1}
+                  animated={true}
+                >
+                  <div className="relative w-full h-full overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={bannerToDisplay ? bannerToDisplay.id : 'default'}
+                        src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
+                        alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
+                        className="w-full h-full object-cover absolute inset-0"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8 }}
+                      />
+                    </AnimatePresence>
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
+                    
+                    {/* Banner overlay text if slide has title */}
+                    {bannerToDisplay && (bannerToDisplay.title || bannerToDisplay.subtitle) && (
+                      <div className="absolute top-6 left-6 right-6 z-10 bg-black/30 backdrop-blur-xs rounded-xl p-3 border border-white/5 pointer-events-none">
+                        {bannerToDisplay.title && (
+                          <h4 className="text-xs font-bold text-brand-gold-500 uppercase tracking-wider font-playfair">{bannerToDisplay.title}</h4>
+                        )}
+                        {bannerToDisplay.subtitle && (
+                          <p className="text-[10px] text-white/80 font-light mt-0.5 leading-snug">{bannerToDisplay.subtitle}</p>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Floating Micro-Card */}
-                  <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
-                        Today's Special
-                      </span>
-                      <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
-                        {dailySpecialProduct ? dailySpecialProduct.name : 'Rasmalai Saffron Cake'}
-                      </span>
+                    {/* Auto-slider Progress indicators */}
+                    {activeBanners.length > 1 && settings.isSliderEnabled && (
+                      <div className="absolute bottom-24 left-6 flex gap-2 z-20">
+                        {activeBanners.map((_, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => setCurrentSlide(idx)}
+                            className="w-12 h-1.5 rounded-full bg-white/30 overflow-hidden cursor-pointer backdrop-blur-xs"
+                          >
+                            {currentSlide === idx && (
+                              <motion.div
+                                key={currentSlide}
+                                initial={{ width: "0%" }}
+                                animate={{ width: "100%" }}
+                                transition={{ duration: 5, ease: "linear" }}
+                                className="h-full bg-brand-gold-500"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Floating Micro-Card */}
+                    <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
+                          Today's Special
+                        </span>
+                        <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
+                          {dailySpecialProduct ? dailySpecialProduct.name : 'Rasmalai Saffron Cake'}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => setCurrentPage('cakes')}
+                        className="w-10 h-10 rounded-full bg-brand-brown-950 text-brand-gold-850 flex items-center justify-center hover:scale-105 transition-transform"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => setCurrentPage('cakes')}
-                      className="w-10 h-10 rounded-full bg-brand-brown-950 text-brand-gold-850 flex items-center justify-center hover:scale-105 transition-transform"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
                   </div>
-                </div>
-              </BorderGlow>
-            </motion.div>
+                </BorderGlow>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* 2. Featured Categories Section */}
-      <section className="py-20 bg-white">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={revealVariants}
+        className="py-20 bg-white"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
@@ -215,10 +313,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 3. Best Sellers Section */}
-      <section className="py-20 bg-brand-cream-50/30">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={revealVariants}
+        className="py-20 bg-brand-cream-50/30"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-end justify-between mb-16 gap-6">
             <div className="max-w-xl">
@@ -244,10 +348,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 4. Why Choose Us Section */}
-      <section className="py-20 bg-white">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={revealVariants}
+        className="py-20 bg-white"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
@@ -290,10 +400,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             })}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 5. Customer Reviews Carousel */}
-      <section className="py-20 bg-gradient-to-b from-white to-brand-cream-50/50">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={revealVariants}
+        className="py-20 bg-gradient-to-b from-white to-brand-cream-50/50"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
@@ -349,10 +465,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 6. Gallery Preview Section */}
-      <section className="py-20 bg-white">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={revealVariants}
+        className="py-20 bg-white"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-end justify-between mb-16 gap-6">
             <div className="max-w-xl">
@@ -464,10 +586,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* 7. Location Section */}
-      <section className="py-20 bg-brand-cream-50/50">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        variants={revealVariants}
+        className="py-20 bg-brand-cream-50/50"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="glass-card rounded-[2.5rem] p-8 sm:p-12 lg:p-16 relative overflow-hidden shadow-xl border border-white">
             <div className="absolute top-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-brand-gold-100/30 blur-2xl pointer-events-none" />
@@ -532,7 +660,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 };

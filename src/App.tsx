@@ -15,6 +15,8 @@ import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
 import { DatabaseProvider } from './context/DatabaseContext';
+import { Preloader } from './components/Preloader';
+import { CustomCursor } from './components/CustomCursor';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -44,7 +46,17 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
+    <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none relative overflow-x-hidden">
+      {/* Apple-style Custom Cursor */}
+      <CustomCursor />
+
+      {/* Brand Preloader */}
+      <Preloader />
+
+      {/* Floating background graphic bubbles */}
+      <div className="fixed top-1/3 left-[-5%] w-[450px] h-[450px] rounded-full bg-brand-gold-100/15 blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-1/4 right-[-5%] w-[500px] h-[500px] rounded-full bg-brand-orange-100/10 blur-[130px] pointer-events-none z-0" />
+
       {/* Premium Floating Navigation Header */}
       <Navbar currentPage={currentPage} setCurrentPage={handleNavClick} />
 
@@ -55,7 +67,7 @@ const AppContent: React.FC = () => {
       <FloatingCartButton />
 
       {/* Main Content Area with Route Transition Animations */}
-      <main className="flex-grow">
+      <main className="flex-grow z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
