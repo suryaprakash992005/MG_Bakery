@@ -4,80 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 
-const fireConfetti = () => {
-  const canvas = document.createElement('canvas');
-  canvas.style.position = 'fixed';
-  canvas.style.top = '0';
-  canvas.style.left = '0';
-  canvas.style.width = '100vw';
-  canvas.style.height = '100vh';
-  canvas.style.pointerEvents = 'none';
-  canvas.style.zIndex = '9999';
-  document.body.appendChild(canvas);
-
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-
-  const resizeCanvas = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  };
-  resizeCanvas();
-
-  const colors = ['#D4AF37', '#2C1717', '#A46E6E', '#5B3535', '#F5E6D3'];
-  const particles: any[] = [];
-
-  for (let i = 0; i < 150; i++) {
-    particles.push({
-      x: canvas.width / 2,
-      y: canvas.height / 2 - 100,
-      vx: (Math.random() - 0.5) * 15,
-      vy: (Math.random() - 0.8) * 15,
-      r: Math.random() * 6 + 4,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 10,
-      opacity: 1
-    });
-  }
-
-  const update = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let active = false;
-
-    particles.forEach(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.3; // gravity
-      p.vx *= 0.98; // air resistance
-      p.vy *= 0.98;
-      p.rotation += p.rotationSpeed;
-      p.opacity -= 0.01;
-
-      if (p.opacity > 0) {
-        active = true;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rotation * Math.PI) / 180);
-        ctx.globalAlpha = p.opacity;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
-        ctx.restore();
-      }
-    });
-
-    if (active) {
-      requestAnimationFrame(update);
-    } else {
-      if (document.body.contains(canvas)) {
-        document.body.removeChild(canvas);
-      }
-    }
-  };
-
-  update();
-};
-
 export const CartDrawer: React.FC = () => {
   const {
     cartItems,
@@ -185,9 +111,6 @@ We look forward to serving you!`;
     clearCart();
     setIsCheckoutMode(false);
     setIsCartOpen(false);
-
-    // Trigger luxury confetti burst!
-    fireConfetti();
 
     // 4. Open WhatsApp
     const cleanNumber = settings.whatsappNumber.replace(/[^0-9]/g, '');
@@ -313,15 +236,9 @@ We look forward to serving you!`;
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <motion.span
-                                key={item.quantity}
-                                initial={{ scale: 0.8, opacity: 0.5 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 10 }}
-                                className="w-8 text-center text-xs font-bold text-brand-brown-950 inline-block"
-                              >
+                              <span className="w-8 text-center text-xs font-bold text-brand-brown-950">
                                 {item.quantity}
-                              </motion.span>
+                              </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.selectedWeight, 1)}
                                 className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
@@ -331,15 +248,9 @@ We look forward to serving you!`;
                               </button>
                             </div>
 
-                            <motion.span
-                              key={item.price * item.quantity}
-                              initial={{ scale: 0.9, opacity: 0.8 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                              className="text-xs font-bold text-brand-brown-950 inline-block"
-                            >
+                            <span className="text-xs font-bold text-brand-brown-950">
                               ₹{item.price * item.quantity}
-                            </motion.span>
+                            </span>
                           </div>
                         </div>
 
@@ -359,15 +270,7 @@ We look forward to serving you!`;
                   <div className="p-6 border-t border-brand-cream-100 bg-white space-y-4 shadow-lg shadow-brand-brown-950/5">
                     <div className="flex items-center justify-between text-brand-brown-950">
                       <span className="text-xs font-medium text-brand-brown-800/60">Subtotal</span>
-                      <motion.span
-                        key={totalAmount}
-                        initial={{ scale: 0.9 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 12 }}
-                        className="text-lg font-bold inline-block"
-                      >
-                        ₹{totalAmount}
-                      </motion.span>
+                      <span className="text-lg font-bold">₹{totalAmount}</span>
                     </div>
 
                     {settings.emergencyDisableOrdering ? (
@@ -422,7 +325,7 @@ We look forward to serving you!`;
                       placeholder="Enter your name"
                       value={custName}
                       onChange={(e) => setCustName(e.target.value)}
-                      className="w-full bg-white border border-brand-cream-200 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none transition-all duration-300 shadow-xs focus:shadow-md"
+                      className="w-full bg-white border border-brand-cream-200 focus:border-brand-gold-500 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none transition-all"
                     />
                   </div>
 
@@ -435,7 +338,7 @@ We look forward to serving you!`;
                       placeholder="e.g. +91 98765 43210"
                       value={custPhone}
                       onChange={(e) => setCustPhone(e.target.value)}
-                      className="w-full bg-white border border-brand-cream-200 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none transition-all duration-300 shadow-xs focus:shadow-md"
+                      className="w-full bg-white border border-brand-cream-200 focus:border-brand-gold-500 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none transition-all"
                     />
                   </div>
 
@@ -447,7 +350,7 @@ We look forward to serving you!`;
                       value={custAddress}
                       onChange={(e) => setCustAddress(e.target.value)}
                       rows={3}
-                      className="w-full bg-white border border-brand-cream-200 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none transition-all duration-300 leading-normal shadow-xs focus:shadow-md"
+                      className="w-full bg-white border border-brand-cream-200 focus:border-brand-gold-500 rounded-2xl py-3 px-4 text-xs font-medium focus:outline-none transition-all leading-normal"
                     />
                   </div>
                 </div>

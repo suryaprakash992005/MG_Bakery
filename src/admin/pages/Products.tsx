@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useBakeryDatabase, UnifiedProduct } from '../../context/DatabaseContext';
 import { ImageUploader } from '../components/ImageUploader';
-import { AnimatedCounter } from '../components/AnimatedCounter';
 import { 
   Plus, 
   Search, 
@@ -216,34 +214,6 @@ export const Products: React.FC = () => {
         </button>
       </div>
 
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-[#2C1A17]/10 p-5 rounded-2xl shadow-sm">
-        <div className="p-4 bg-[#FAF6F0]/40 rounded-xl border border-[#2C1A17]/5 flex flex-col justify-center">
-          <span className="text-[10px] font-bold text-brand-gold-800 uppercase tracking-wider">Total Products</span>
-          <span className="text-2xl font-bold font-playfair mt-1.5 text-[#2C1A17]">
-            <AnimatedCounter value={products.length} />
-          </span>
-        </div>
-        <div className="p-4 bg-[#FAF6F0]/40 rounded-xl border border-[#2C1A17]/5 flex flex-col justify-center">
-          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Available</span>
-          <span className="text-2xl font-bold font-playfair mt-1.5 text-emerald-700">
-            <AnimatedCounter value={products.filter(p => p.status === 'Available').length} />
-          </span>
-        </div>
-        <div className="p-4 bg-[#FAF6F0]/40 rounded-xl border border-[#2C1A17]/5 flex flex-col justify-center">
-          <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Out of Stock</span>
-          <span className="text-2xl font-bold font-playfair mt-1.5 text-amber-700">
-            <AnimatedCounter value={products.filter(p => p.status === 'Out of Stock').length} />
-          </span>
-        </div>
-        <div className="p-4 bg-[#FAF6F0]/40 rounded-xl border border-[#2C1A17]/5 flex flex-col justify-center">
-          <span className="text-[10px] font-bold text-brand-brown-800 uppercase tracking-wider">Categories</span>
-          <span className="text-2xl font-bold font-playfair mt-1.5 text-brand-brown-900">
-            <AnimatedCounter value={categories.length} />
-          </span>
-        </div>
-      </div>
-
       {/* Filters & Search Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#2C1A17]/10 p-4 rounded-2xl shadow-sm">
         
@@ -453,23 +423,9 @@ export const Products: React.FC = () => {
       )}
 
       {/* --- ADD PRODUCT MODAL --- */}
-      <AnimatePresence>
-        {isAddOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAddOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#2C1A17]/10 flex flex-col my-8 z-10"
-            >
+      {isAddOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#2C1A17]/10 flex flex-col my-8">
             
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-[#2C1A17]/5 flex justify-between items-center bg-[#FAF6F0]">
@@ -667,29 +623,14 @@ export const Products: React.FC = () => {
               </div>
 
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
-      </AnimatePresence>
 
       {/* --- EDIT PRODUCT MODAL --- */}
-      <AnimatePresence>
-        {isEditOpen && currentProduct && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => { setIsEditOpen(false); setCurrentProduct(null); }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#2C1A17]/10 flex flex-col my-8 z-10"
-            >
+      {isEditOpen && currentProduct && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#2C1A17]/10 flex flex-col my-8">
             
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-[#2C1A17]/5 flex justify-between items-center bg-[#FAF6F0]">
@@ -887,10 +828,9 @@ export const Products: React.FC = () => {
               </div>
 
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
-      </AnimatePresence>
 
     </div>
   );

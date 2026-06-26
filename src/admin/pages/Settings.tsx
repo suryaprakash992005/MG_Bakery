@@ -138,7 +138,7 @@ export const Settings: React.FC = () => {
               required
               value={bakeryName}
               onChange={(e) => setBakeryName(e.target.value)}
-              className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 shadow-xs focus:shadow-md"
+              className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
             />
           </div>
         </div>
@@ -158,7 +158,7 @@ export const Settings: React.FC = () => {
                 value={storeAddress}
                 onChange={(e) => setStoreAddress(e.target.value)}
                 rows={2}
-                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 leading-normal shadow-xs focus:shadow-md"
+                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all leading-normal"
               />
             </div>
 
@@ -173,7 +173,7 @@ export const Settings: React.FC = () => {
                   value={googleMapsLink}
                   onChange={(e) => setGoogleMapsLink(e.target.value)}
                   placeholder="https://maps.google.com/..."
-                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 shadow-xs focus:shadow-md"
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -196,7 +196,7 @@ export const Settings: React.FC = () => {
                 value={openingTime}
                 onChange={(e) => setOpeningTime(e.target.value)}
                 placeholder="E.g., 9:00 AM"
-                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 shadow-xs focus:shadow-md"
+                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
               />
             </div>
 
@@ -208,7 +208,7 @@ export const Settings: React.FC = () => {
                 value={closingTime}
                 onChange={(e) => setClosingTime(e.target.value)}
                 placeholder="E.g., 10:00 PM"
-                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 shadow-xs focus:shadow-md"
+                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
               />
             </div>
           </div>
@@ -233,7 +233,7 @@ export const Settings: React.FC = () => {
                   required
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
-                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 shadow-xs focus:shadow-md"
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -249,7 +249,7 @@ export const Settings: React.FC = () => {
                   value={instagramUrl}
                   onChange={(e) => setInstagramUrl(e.target.value)}
                   placeholder="https://instagram.com/..."
-                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all duration-300 shadow-xs focus:shadow-md"
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -265,14 +265,7 @@ export const Settings: React.FC = () => {
               loading ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
-            {loading ? (
-              <svg className="animate-spin h-4 w-4 text-brand-gold-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <Save className="w-4 h-4 text-brand-gold-500" />
-            )}
+            <Save className="w-4 h-4 text-brand-gold-500" />
             <span>{loading ? 'Saving Settings...' : 'Save Settings'}</span>
           </button>
         </div>

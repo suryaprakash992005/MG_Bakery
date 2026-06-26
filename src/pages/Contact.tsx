@@ -162,7 +162,7 @@ Message: ${formData.message}`;
                   placeholder="Your Name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full bg-brand-cream-50 border border-brand-cream-100 rounded-xl px-4 py-3 text-xs text-brand-brown-950 focus:outline-none focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 shadow-xs focus:shadow-md transition-all duration-300"
+                  className="w-full bg-brand-cream-50 border border-brand-cream-100 rounded-xl px-4 py-3 text-xs text-brand-brown-950 focus:outline-none focus:ring-2 focus:ring-brand-gold-500/20"
                 />
               </div>
 
@@ -177,7 +177,7 @@ Message: ${formData.message}`;
                   placeholder="e.g. +91 98765 43210 or name@example.com"
                   value={formData.contactInfo}
                   onChange={handleChange}
-                  className="w-full bg-brand-cream-50 border border-brand-cream-100 rounded-xl px-4 py-3 text-xs text-brand-brown-950 focus:outline-none focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 shadow-xs focus:shadow-md transition-all duration-300"
+                  className="w-full bg-brand-cream-50 border border-brand-cream-100 rounded-xl px-4 py-3 text-xs text-brand-brown-950 focus:outline-none focus:ring-2 focus:ring-brand-gold-500/20"
                 />
               </div>
 
@@ -193,7 +193,7 @@ Message: ${formData.message}`;
                   placeholder="Write your question, party catering inquiry, or feedback here..."
                   value={formData.message}
                   onChange={handleChange}
-                  className="w-full bg-brand-cream-50 border border-brand-cream-100 rounded-xl px-4 py-3 text-xs text-brand-brown-950 placeholder-brand-brown-800/35 focus:outline-none focus:border-brand-gold-500 focus:ring-4 focus:ring-brand-gold-200/50 shadow-xs focus:shadow-md transition-all duration-300 resize-none leading-relaxed"
+                  className="w-full bg-brand-cream-50 border border-brand-cream-100 rounded-xl px-4 py-3 text-xs text-brand-brown-950 placeholder-brand-brown-800/35 focus:outline-none focus:ring-2 focus:ring-brand-gold-500/20 resize-none leading-relaxed"
                 />
               </div>
 

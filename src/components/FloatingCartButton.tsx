@@ -26,7 +26,6 @@ export const FloatingCartButton: React.FC = () => {
             },
           }}
           onClick={() => setIsCartOpen(true)}
-          id="shopping-cart-icon-mobile"
           className="fixed bottom-6 right-6 z-40 lg:hidden bg-brand-brown-950 text-brand-gold-850 hover:bg-brand-brown-900 p-4 rounded-full shadow-xl shadow-brand-brown-950/20 border border-brand-brown-900/50 flex items-center justify-center cursor-pointer pointer-events-auto"
           aria-label="View Shopping Cart"
           whileTap={{ scale: 0.9 }}
