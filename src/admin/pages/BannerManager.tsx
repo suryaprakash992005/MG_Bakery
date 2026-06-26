@@ -134,6 +134,7 @@ export const BannerManager: React.FC = () => {
                 value={image} 
                 onChange={setImage} 
                 label="Slide Background Banner" 
+                bucket="banners"
               />
               <input
                 type="text"
@@ -267,6 +268,7 @@ export const BannerManager: React.FC = () => {
                 value={image} 
                 onChange={setImage} 
                 label="Slide Background Banner" 
+                bucket="banners"
               />
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#2C1A17]/60 uppercase tracking-wider block">Slide Title</label>

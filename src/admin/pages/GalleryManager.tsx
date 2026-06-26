@@ -165,6 +165,7 @@ export const GalleryManager: React.FC = () => {
                 value={image} 
                 onChange={setImage} 
                 label="Portfolio Image File" 
+                bucket="gallery"
               />
               <input
                 type="text"
@@ -324,6 +325,7 @@ export const GalleryManager: React.FC = () => {
                 value={image} 
                 onChange={setImage} 
                 label="Portfolio Image File" 
+                bucket="gallery"
               />
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#2C1A17]/60 uppercase tracking-wider block">Image Title</label>

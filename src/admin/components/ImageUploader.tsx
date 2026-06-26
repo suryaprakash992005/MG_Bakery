@@ -77,7 +77,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             try {
               setUploadProgress(25);
               const cleanName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-              const filePath = `products/${cleanName}`;
+              const filePath = cleanName;
               
               setUploadProgress(50);
               const { error: uploadError } = await supabase.storage
