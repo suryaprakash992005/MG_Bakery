@@ -18,9 +18,15 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
     .sort((a, b) => a.displayPriority - b.displayPriority);
 
-  const bestSellers = activeProducts
-    .filter(p => p.isFeatured || p.isBestSeller)
-    .slice(0, 4);
+  // Prioritize products marked as best seller/featured, and all Cakes.
+  // If fewer than 4 items, fall back to other active products to ensure section is populated.
+  let bestSellers = activeProducts.filter(p => p.isFeatured || p.isBestSeller || p.category === 'Cakes');
+  if (bestSellers.length < 4) {
+    const ids = new Set(bestSellers.map(p => p.id));
+    const fallbackItems = activeProducts.filter(p => !ids.has(p.id));
+    bestSellers = [...bestSellers, ...fallbackItems];
+  }
+  bestSellers = bestSellers.slice(0, 4);
 
   const activeGalleryItems = gallery
     .filter(item => !item.isDeleted)
