@@ -6,6 +6,7 @@ import { Heart, X, PhoneCall, ShoppingBag, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
+import BorderGlow from './BorderGlow';
 
 interface ProductCardProps {
   product: Product;
@@ -75,117 +76,234 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <>
-      {/* 1. Main Luxury Product Card Grid Element */}
-      <motion.div
-        whileHover={{ y: -6, scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setIsOpen(true)}
-        className="flex flex-col h-full w-full justify-between bg-white rounded-[25px] overflow-hidden border border-brand-cream-100/50 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer select-none group animate-fade-in-up"
-      >
-        {/* Product Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100/30">
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-          />
+      {/* ----------------- DESKTOP CARD VIEW (PREVIOUS STYLE) ----------------- */}
+      <div className="hidden lg:block h-full">
+        <BorderGlow
+          className="h-full group"
+          backgroundColor="#ffffff"
+          glowColor="46 64 52"
+          borderRadius={24}
+          glowRadius={30}
+          glowIntensity={0.8}
+          coneSpread={20}
+          animated={false}
+          colors={['#C9A227', '#2A0E0A', '#A46E6E']}
+          fillOpacity={0.1}
+        >
+          <div className="flex flex-col h-full w-full justify-between">
+            {/* Product Image Container */}
+            <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100">
+              <img
+                src={product.image}
+                alt={product.name}
+                loading="lazy"
+                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+              />
 
-          {product.status === 'Out of Stock' && (
-            <div className="absolute inset-0 bg-[#2A0E0A]/60 backdrop-blur-[1px] flex items-center justify-center z-10">
-              <span className="text-white font-playfair border-2 border-brand-gold-800/80 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-bold bg-[#2A0E0A]/50">
-                Sold Out
-              </span>
-            </div>
-          )}
-
-          {/* Floating Badges */}
-          <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
-            <div className="flex flex-col gap-1.5">
-              {product.isBestSeller && (
-                <span className="bg-[#C9A227] text-[#2A0E0A] text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                  Best Seller
-                </span>
+              {product.status === 'Out of Stock' && (
+                <div className="absolute inset-0 bg-brand-brown-950/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+                  <span className="text-brand-cream-50 font-playfair border-2 border-brand-gold-500/80 px-4 py-1.5 rounded-md text-xs sm:text-sm uppercase tracking-widest font-semibold bg-brand-brown-950/30">
+                    Sold Out
+                  </span>
+                </div>
               )}
-              {product.tags?.slice(0, 1).map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="bg-[#2A0E0A]/90 text-white text-[9px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-xs"
-                >
-                  {tag}
-                </span>
-              ))}
+
+              {/* Floating Badges */}
+              <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
+                <div className="flex flex-col gap-1.5">
+                  {product.isBestSeller && (
+                    <span className="bg-brand-gold-850 text-brand-brown-950 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                      Best Seller
+                    </span>
+                  )}
+                  {product.tags?.slice(0, 1).map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-brand-brown-950/90 text-brand-cream-50 text-[10px] font-medium px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {product.isEggless && (
+                  <span 
+                    className="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-sm"
+                    title="100% Eggless Option Available"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-green-600 block"></span>
+                    EGGLESS
+                  </span>
+                )}
+              </div>
             </div>
 
-            {product.isEggless && (
-              <span 
-                className="bg-green-50 text-green-700 border border-green-200 text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-xs"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-green-600 block"></span>
-                EGGLESS
-              </span>
+            {/* Content */}
+            <div className="p-6 flex flex-col flex-grow justify-between">
+              <div>
+                <h3 className="font-playfair text-lg sm:text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300">
+                  {product.name}
+                </h3>
+                <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
+                  {product.description}
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
+                {/* Cake Tier Selector */}
+                {isCakeWithMultiPrice && (
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mb-4">
+                    {Object.keys(product.price as object).map((tier) => (
+                      <button
+                        key={tier}
+                        onClick={() => setSelectedTier(tier)}
+                        className={`text-[10px] font-semibold px-2 sm:px-2.5 py-1 rounded-full transition-all border cursor-pointer ${
+                          selectedTier === tier
+                            ? 'bg-brand-gold-850 text-brand-brown-950 border-brand-gold-850 shadow-sm'
+                            : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
+                        }`}
+                      >
+                        {getTierLabel(tier)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pricing & Add to Cart Button */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs text-brand-brown-800/40 block font-light leading-none">
+                      Price
+                    </span>
+                    <span className="text-xl font-bold text-brand-brown-950 mt-1 block">
+                      ₹{getPriceDisplay()}
+                    </span>
+                  </div>
+
+                  <AddToCartButton
+                    product={product}
+                    selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
+                    className="px-4 py-2.5 rounded-full text-xs font-semibold"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </BorderGlow>
+      </div>
+
+      {/* ----------------- MOBILE CARD VIEW (PREMIUM REDESIGN WITH SHEET MODAL) ----------------- */}
+      <div className="block lg:hidden h-full">
+        <motion.div
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsOpen(true)}
+          className="flex flex-col h-full w-full justify-between bg-white rounded-[25px] overflow-hidden border border-brand-cream-100/50 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer select-none group animate-fade-in-up"
+        >
+          {/* Product Image Container */}
+          <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100/30">
+            <img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+            />
+
+            {product.status === 'Out of Stock' && (
+              <div className="absolute inset-0 bg-[#2A0E0A]/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+                <span className="text-white font-playfair border-2 border-brand-gold-800/80 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-bold bg-[#2A0E0A]/50">
+                  Sold Out
+                </span>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Content Section */}
-        <div className="p-6 flex flex-col flex-grow justify-between">
-          <div>
-            <h3 className="font-playfair text-lg font-bold text-brand-brown-950 group-hover:text-brand-gold-850 transition-colors duration-300">
-              {product.name}
-            </h3>
-            <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
-              {product.description}
-            </p>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
-            {/* Cake Tier Selector */}
-            {isCakeWithMultiPrice && (
-              <div 
-                className="flex flex-wrap items-center gap-1.5 mb-4"
-                onClick={(e) => e.stopPropagation()} // Prevent opening details modal when selecting weight
-              >
-                {Object.keys(product.price as object).map((tier) => (
-                  <button
-                    key={tier}
-                    onClick={() => setSelectedTier(tier)}
-                    className={`text-[10px] font-semibold px-3 py-1 rounded-full transition-all border cursor-pointer ${
-                      selectedTier === tier
-                        ? 'bg-[#C9A227] text-[#2A0E0A] border-[#C9A227] shadow-sm'
-                        : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
-                    }`}
+            {/* Floating Badges */}
+            <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
+              <div className="flex flex-col gap-1.5">
+                {product.isBestSeller && (
+                  <span className="bg-[#C9A227] text-[#2A0E0A] text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    Best Seller
+                  </span>
+                )}
+                {product.tags?.slice(0, 1).map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-[#2A0E0A]/90 text-white text-[9px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-xs"
                   >
-                    {getTierLabel(tier)}
-                  </button>
+                    {tag}
+                  </span>
                 ))}
               </div>
-            )}
 
-            {/* Pricing & Add to Cart Action */}
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <span className="text-[10px] text-[#2A0E0A]/40 block font-semibold uppercase tracking-wider">
-                  Price
+              {product.isEggless && (
+                <span 
+                  className="bg-green-50 text-green-700 border border-green-200 text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-xs"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-600 block"></span>
+                  EGGLESS
                 </span>
-                <span className="text-lg font-bold text-[#2A0E0A] mt-0.5 block">
-                  ₹{getPriceDisplay()}
-                </span>
-              </div>
+              )}
+            </div>
+          </div>
 
-              <div onClick={(e) => e.stopPropagation()}>
-                <AddToCartButton
-                  product={product}
-                  selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
-                  className="px-4 py-2.5 rounded-full text-[11px] font-bold"
-                />
+          {/* Content Section */}
+          <div className="p-6 flex flex-col flex-grow justify-between">
+            <div>
+              <h3 className="font-playfair text-lg font-bold text-brand-brown-950 group-hover:text-brand-gold-850 transition-colors duration-300">
+                {product.name}
+              </h3>
+              <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
+                {product.description}
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
+              {/* Cake Tier Selector */}
+              {isCakeWithMultiPrice && (
+                <div 
+                  className="flex flex-wrap items-center gap-1.5 mb-4"
+                  onClick={(e) => e.stopPropagation()} // Prevent opening details modal when selecting weight
+                >
+                  {Object.keys(product.price as object).map((tier) => (
+                    <button
+                      key={tier}
+                      onClick={() => setSelectedTier(tier)}
+                      className={`text-[10px] font-semibold px-3 py-1 rounded-full transition-all border cursor-pointer ${
+                        selectedTier === tier
+                          ? 'bg-[#C9A227] text-[#2A0E0A] border-[#C9A227] shadow-sm'
+                          : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
+                      }`}
+                    >
+                      {getTierLabel(tier)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Pricing & Add to Cart Action */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] text-[#2A0E0A]/40 block font-semibold uppercase tracking-wider">
+                    Price
+                  </span>
+                  <span className="text-lg font-bold text-[#2A0E0A] mt-0.5 block">
+                    ₹{getPriceDisplay()}
+                  </span>
+                </div>
+
+                <div onClick={(e) => e.stopPropagation()}>
+                  <AddToCartButton
+                    product={product}
+                    selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
+                    className="px-4 py-2.5 rounded-full text-[11px] font-bold"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
-      {/* 2. Premium Details Sheet Modal (inspired by Magnolia Bakery) */}
+      {/* 2. Premium Details Sheet Modal (Mobile Only) */}
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[#2A0E0A]/70 backdrop-blur-sm">
@@ -304,7 +422,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               </div>
 
               {/* Bottom Actions Sticky Panel */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-brand-cream-100 flex items-center justify-between gap-4 z-25">
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-brand-cream-100 flex items-center justify-between gap-4 z-[25]">
                 {/* Price tag */}
                 <div>
                   <span className="text-[10px] text-[#2A0E0A]/40 font-semibold uppercase tracking-wider block">

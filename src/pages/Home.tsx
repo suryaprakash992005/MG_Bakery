@@ -45,7 +45,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
     const interval = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % activeBanners.length);
-    }, 4000);
+    }, 7000);
     return () => clearInterval(interval);
   }, [activeBanners.length, settings.isSliderEnabled]);
 
@@ -95,12 +95,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
   return (
     <div className="pt-0">
-      {/* 1. Hero Section - Full screen bleed inspired by Magnolia Bakery */}
+      {/* 1. Hero Section - Mobile View (Inspired by Magnolia Bakery full bleed) */}
       <section 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="relative h-[90vh] lg:h-[95vh] flex items-center justify-center overflow-hidden bg-[#FAF7F2] select-none"
+        className="block lg:hidden relative h-[88vh] overflow-hidden bg-[#FAF7F2] select-none pt-20"
       >
         {/* Full-bleed Slideshow Background */}
         <div className="absolute inset-0 z-0">
@@ -150,25 +150,25 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </motion.div>
             
             {/* Title with stagger */}
-            <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight">
+            <h1 className="font-playfair text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
               {bannerToDisplay?.title || 'Freshly Baked Happiness'}
             </h1>
             
-            <p className="text-sm sm:text-base text-white/95 font-light leading-relaxed max-w-xl mx-auto">
+            <p className="text-sm text-white/95 font-light leading-relaxed max-w-xl mx-auto">
               {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.'}
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center pt-6">
+            <div className="flex flex-col items-center gap-4 justify-center pt-6">
               <button
                 onClick={() => setCurrentPage('menu')}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/20 cursor-pointer animate-pulse"
+                className="w-full px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/20 cursor-pointer animate-pulse"
               >
                 Explore Menu
               </button>
               <button
                 onClick={() => setCurrentPage('cakes')}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold tracking-wide hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-white/35 backdrop-blur-xs cursor-pointer"
+                className="w-full px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold tracking-wide hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-white/35 backdrop-blur-xs cursor-pointer"
               >
                 Order Cakes
               </button>
@@ -208,6 +208,120 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
           >
             <ChevronRight className="w-5 h-5" />
           </button>
+        </div>
+      </section>
+
+      {/* 1. Hero Section - Desktop View (Previous split columns with BorderGlow restored) */}
+      <section className="hidden lg:flex relative min-h-[90vh] items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-12 pt-28 select-none">
+        {/* Floating background graphics */}
+        <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
+        <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Hero Left Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-6 max-w-xl text-left"
+            >
+              <div className="inline-flex items-center gap-2 bg-brand-cream-100/80 border border-brand-cream-200 px-4 py-1.5 rounded-full text-xs font-semibold text-brand-gold-700 tracking-wider uppercase">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>The Artisan Bakery of Mohanur</span>
+              </div>
+              <h1 className="font-playfair text-5xl font-bold text-brand-brown-950 leading-tight">
+                Freshly Baked Happiness for Every Celebration
+              </h1>
+              <p className="text-base text-brand-brown-805/85 font-light leading-relaxed">
+                Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
+              </p>
+              
+              <div className="flex flex-row items-center gap-4 justify-start pt-4">
+                <button
+                  onClick={() => setCurrentPage('menu')}
+                  className="btn-primary cursor-pointer"
+                >
+                  <span>Explore Menu</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <a
+                  href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order a fresh cake or inquire about today's specials.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                >
+                  <span>Order on WhatsApp</span>
+                </a>
+              </div>
+            </motion.div>
+
+            {/* Hero Right Media */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1 }}
+              className="relative flex justify-end w-full"
+            >
+              <BorderGlow
+                className="w-full max-w-[480px] aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white animate-float"
+                backgroundColor="#ffffff"
+                borderRadius={40}
+                glowColor="46 64 52"
+                glowRadius={40}
+                glowIntensity={1.0}
+                colors={['#C9A227', '#2A0E0A', '#A46E6E']}
+                fillOpacity={0.1}
+                animated={true}
+              >
+                <div className="relative w-full h-full overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={bannerToDisplay ? bannerToDisplay.id : 'default'}
+                      src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
+                      alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
+                      className="w-full h-full object-cover absolute inset-0 animate-fade-in"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.8 }}
+                    />
+                  </AnimatePresence>
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
+                  
+                  {/* Banner overlay text if slide has title */}
+                  {bannerToDisplay && (bannerToDisplay.title || bannerToDisplay.subtitle) && (
+                    <div className="absolute top-6 left-6 right-6 z-10 bg-black/30 backdrop-blur-xs rounded-xl p-3 border border-white/5 pointer-events-none">
+                      {bannerToDisplay.title && (
+                        <h4 className="text-xs font-bold text-brand-gold-500 uppercase tracking-wider font-playfair">{bannerToDisplay.title}</h4>
+                      )}
+                      {bannerToDisplay.subtitle && (
+                        <p className="text-[10px] text-white/80 font-light mt-0.5 leading-snug">{bannerToDisplay.subtitle}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Floating Micro-Card */}
+                  <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
+                        {bannerToDisplay?.cta_text || 'Featured Cake'}
+                      </span>
+                      <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
+                        {bannerToDisplay?.featured_product_name || 'Fresh Bakery Special'}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentPage('cakes')}
+                      className="w-10 h-10 rounded-full bg-brand-brown-950 text-brand-gold-850 flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </BorderGlow>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -325,15 +439,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 5. Customer Reviews Carousel */}
-      <section className="py-24 bg-[#2A0E0A] text-white overflow-hidden relative">
+      {/* Mobile Quote Carousel View */}
+      <section className="block lg:hidden py-24 bg-[#2A0E0A] text-white overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#FAF7F2]/10 via-transparent to-transparent opacity-50 pointer-events-none" />
         
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+        <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
           <div className="max-w-2xl mx-auto mb-16">
             <span className="text-[10px] uppercase tracking-widest text-[#C9A227] font-bold block mb-3">
               TESTIMONIALS
             </span>
-            <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-white">
+            <h2 className="font-playfair text-3xl font-bold text-white">
               Sweet Words from Customers
             </h2>
             <div className="w-16 h-[2px] bg-[#C9A227] mx-auto mt-4" />
@@ -351,7 +466,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                   ))}
                 </div>
 
-                <blockquote className="font-playfair text-lg sm:text-xl md:text-2xl font-light italic leading-relaxed text-white/95">
+                <blockquote className="font-playfair text-lg italic leading-relaxed text-white/95">
                   "{REVIEWS[currentSlide % REVIEWS.length].comment}"
                 </blockquote>
 
@@ -385,6 +500,65 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 }`}
                 aria-label={`Go to review ${idx + 1}`}
               />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Desktop Grid Reviews View */}
+      <section className="hidden lg:block py-20 bg-gradient-to-b from-white to-brand-cream-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
+              Sweet Words from Customers
+            </h2>
+            <p className="text-sm text-brand-brown-800/60 font-light mt-4">
+              Real reviews from real people in Mohanur and surrounding regions.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-4 gap-6">
+            {REVIEWS.map((review) => (
+              <BorderGlow
+                key={review.id}
+                backgroundColor="#ffffff"
+                borderRadius={24}
+                glowColor="46 64 52"
+                glowRadius={25}
+                glowIntensity={0.6}
+                coneSpread={20}
+                colors={['#C9A227', '#2A0E0A', '#A46E6E']}
+                fillOpacity={0.08}
+                className="h-full"
+              >
+                <div className="p-6 flex flex-col h-full justify-between">
+                  <div>
+                    <div className="flex items-center gap-1 text-brand-gold-500 mb-4">
+                      {Array.from({ length: 5 }).map((_, idx) => (
+                        <Star key={idx} className="w-4 h-4 fill-[#C9A227] text-[#C9A227]" />
+                      ))}
+                    </div>
+                    <p className="text-xs sm:text-sm text-brand-brown-800/80 font-light italic leading-relaxed">
+                      "{review.comment}"
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 mt-6 pt-4 border-t border-brand-cream-50">
+                    <img
+                      src={review.avatar}
+                      alt={review.name}
+                      className="w-10 h-10 rounded-full object-cover border border-brand-cream-100"
+                    />
+                    <div>
+                      <h4 className="text-xs font-bold text-brand-brown-950 leading-tight">
+                        {review.name}
+                      </h4>
+                      <span className="text-[10px] text-brand-brown-800/50 font-medium">
+                        {review.role}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </BorderGlow>
             ))}
           </div>
         </div>
