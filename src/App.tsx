@@ -15,6 +15,10 @@ import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
 import { DatabaseProvider } from './context/DatabaseContext';
+import { AuthProvider } from './context/AuthContext';
+import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import { Profile } from './pages/Profile';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -94,6 +98,9 @@ const AppContent: React.FC = () => {
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>
@@ -109,11 +116,13 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <DatabaseProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </CartProvider>
+      </AuthProvider>
     </DatabaseProvider>
   );
 };

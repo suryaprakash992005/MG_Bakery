@@ -6,6 +6,8 @@ import { StaggeredMenu, StaggeredMenuItem } from './StaggeredMenu';
 import { CartIcon } from './CartIcon';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 
+import { useAuth } from '../context/AuthContext';
+
 interface NavbarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
@@ -13,6 +15,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) => {
   const { settings } = useBakeryDatabase();
+  const { user } = useAuth();
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -35,6 +38,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
     { id: 'gallery', label: 'Gallery' },
     { id: 'about', label: 'About Us' },
     { id: 'contact', label: 'Contact' },
+    user 
+      ? { id: 'profile', label: 'Account' }
+      : { id: 'login', label: 'Login' }
   ];
 
   const handleNavClick = (pageId: string) => {

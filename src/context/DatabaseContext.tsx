@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CATEGORIES as DEFAULT_CATEGORIES } from '../data';
-import { INITIAL_ORDERS, INITIAL_SETTINGS } from '../admin/utils/mockData';
+import { INITIAL_SETTINGS } from '../admin/utils/mockData';
 import { supabase } from '../utils/supabase';
 
 export interface UnifiedProduct {
@@ -141,10 +141,11 @@ interface DatabaseContextType {
   reorderCategories: (categories: UnifiedCategory[]) => void;
 
   // Order Operations
-  addOrder: (order: Omit<UnifiedOrder, 'id' | 'createdDate'>) => UnifiedOrder;
+  addOrder: (order: Omit<UnifiedOrder, 'id' | 'createdDate'>) => Promise<UnifiedOrder>;
   updateOrderStatus: (id: string, status: UnifiedOrder['orderStatus']) => void;
   updateOrderPaymentStatus: (id: string, status: UnifiedOrder['paymentStatus']) => void;
   deleteOrder: (id: string) => void;
+  fetchSupabaseOrders: () => Promise<void>;
 
   // Banner Operations
   saveBanner: (banner: UnifiedBanner) => void | Promise<void>;
@@ -243,6 +244,61 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (err) {
       console.error('Error fetching gallery:', err);
+    }
+  };
+
+  const fetchSupabaseOrders = async () => {
+    try {
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ordersError) {
+        console.error('Error fetching orders from Supabase:', ordersError);
+        return;
+      }
+
+      if (ordersData && ordersData.length > 0) {
+        const orderIds = ordersData.map(o => o.id);
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('order_items')
+          .select('*')
+          .in('order_id', orderIds);
+
+        if (itemsError) {
+          console.error('Error fetching order items from Supabase:', itemsError);
+          return;
+        }
+
+        const mapped: UnifiedOrder[] = ordersData.map((order: any) => ({
+          id: order.id,
+          customerName: order.customer_name,
+          phone: order.phone,
+          deliveryAddress: order.delivery_address || undefined,
+          orderedProduct: order.ordered_product,
+          amount: Number(order.amount),
+          paymentMethod: order.payment_method,
+          paymentStatus: order.payment_status as any,
+          orderStatus: order.order_status as any,
+          createdDate: order.created_at,
+          items: (itemsData || [])
+            .filter((item: any) => item.order_id === order.id)
+            .map((item: any) => ({
+              id: item.product_id,
+              name: item.name,
+              selectedWeight: item.selected_weight,
+              price: Number(item.price),
+              quantity: item.quantity,
+              image: item.image_url || undefined
+            }))
+        }));
+        setOrders(mapped);
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.error('Error loading Supabase orders:', err);
     }
   };
 
@@ -356,35 +412,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       localStorage.setItem('admin_categories', JSON.stringify(initial));
     }
 
-    // 4. Load Orders
-    const localOrders = localStorage.getItem('admin_orders');
-    if (localOrders) {
-      setOrders(JSON.parse(localOrders));
-    } else {
-      const initial: UnifiedOrder[] = INITIAL_ORDERS.map((o) => ({
-        id: o.id,
-        customerName: o.customerName,
-        phone: o.phone,
-        deliveryAddress: o.deliveryAddress,
-        orderedProduct: o.orderedProduct,
-        amount: o.amount,
-        paymentMethod: o.paymentMethod,
-        paymentStatus: o.paymentStatus as any,
-        orderStatus: o.orderStatus as any,
-        createdDate: o.createdDate,
-        items: [
-          {
-            id: `item-${Date.now()}`,
-            name: o.orderedProduct,
-            selectedWeight: 'Standard',
-            price: o.amount / o.quantity,
-            quantity: o.quantity
-          }
-        ]
-      }));
-      setOrders(initial);
-      localStorage.setItem('admin_orders', JSON.stringify(initial));
-    }
+    // 4. Load Orders from Supabase
+    fetchSupabaseOrders();
 
     // 5. Load Banners from Supabase
     fetchBanners();
@@ -706,44 +735,135 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- ORDERS ---
-  const addOrder = (o: Omit<UnifiedOrder, 'id' | 'createdDate'>): UnifiedOrder => {
-    const newOrder: UnifiedOrder = {
-      ...o,
-      id: `ORD-${Date.now().toString().slice(-6)}`,
-      createdDate: new Date().toISOString()
-    };
-    const updated = [newOrder, ...orders];
-    setOrders(updated);
-    syncToLocal('admin_orders', updated);
-    addHistoryLog(`New Order Received: ${newOrder.id}`, `Customer: ${newOrder.customerName} | Amount: ₹${newOrder.amount}`);
-    return newOrder;
-  };
+  const addOrder = async (o: Omit<UnifiedOrder, 'id' | 'createdDate'>): Promise<UnifiedOrder> => {
+    const orderId = `ORD-${Date.now().toString().slice(-6)}`;
+    const createdDate = new Date().toISOString();
 
-  const updateOrderStatus = (id: string, status: UnifiedOrder['orderStatus']) => {
-    const updated = orders.map(item => {
-      if (item.id === id) {
-        const paymentStatus = status === 'Delivered' ? 'Paid' as const : item.paymentStatus;
-        return { ...item, orderStatus: status, paymentStatus };
+    try {
+      // 1. Get current logged-in user profile UUID (if any)
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 2. Insert into orders table
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            id: orderId,
+            user_id: user?.id || null,
+            customer_name: o.customerName,
+            phone: o.phone,
+            delivery_address: o.deliveryAddress || null,
+            ordered_product: o.orderedProduct,
+            amount: o.amount,
+            payment_method: o.paymentMethod,
+            payment_status: o.paymentStatus,
+            order_status: o.orderStatus,
+            created_at: createdDate
+          }
+        ]);
+
+      if (orderError) {
+        console.error('Error inserting order in Supabase:', orderError);
+        throw orderError;
       }
-      return item;
-    });
-    setOrders(updated);
-    syncToLocal('admin_orders', updated);
-    addHistoryLog(`Updated Order Status: ${id}`, `New Status: ${status}`);
+
+      // 3. Insert into order_items table
+      if (o.items && o.items.length > 0) {
+        const itemsPayload = o.items.map(item => ({
+          order_id: orderId,
+          product_id: item.id,
+          name: item.name,
+          selected_weight: item.selectedWeight,
+          price: item.price,
+          quantity: item.quantity,
+          image_url: item.image || null
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(itemsPayload);
+
+        if (itemsError) {
+          console.error('Error inserting order items in Supabase:', itemsError);
+          throw itemsError;
+        }
+      }
+
+      addHistoryLog(`New Order Received: ${orderId}`, `Customer: ${o.customerName} | Amount: ₹${o.amount}`);
+      await fetchSupabaseOrders();
+
+      return {
+        ...o,
+        id: orderId,
+        createdDate
+      };
+    } catch (err) {
+      console.error('Failed to submit order to Supabase:', err);
+      throw err;
+    }
   };
 
-  const updateOrderPaymentStatus = (id: string, status: UnifiedOrder['paymentStatus']) => {
-    const updated = orders.map(item => item.id === id ? { ...item, paymentStatus: status } : item);
-    setOrders(updated);
-    syncToLocal('admin_orders', updated);
-    addHistoryLog(`Updated Order Payment Status: ${id}`, `Payment Status: ${status}`);
+  const updateOrderStatus = async (id: string, status: UnifiedOrder['orderStatus']) => {
+    try {
+      const paymentStatus = status === 'Delivered' ? 'Paid' : undefined;
+      const payload: any = { order_status: status };
+      if (paymentStatus) {
+        payload.payment_status = paymentStatus;
+      }
+
+      const { error } = await supabase
+        .from('orders')
+        .update(payload)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating order status in Supabase:', error);
+        return;
+      }
+
+      addHistoryLog(`Updated Order Status: ${id}`, `New Status: ${status}`);
+      await fetchSupabaseOrders();
+    } catch (err) {
+      console.error('Error updating order status:', err);
+    }
   };
 
-  const deleteOrder = (id: string) => {
-    const updated = orders.filter(item => item.id !== id);
-    setOrders(updated);
-    syncToLocal('admin_orders', updated);
-    addHistoryLog(`Removed Order Archive: ${id}`, `ID: ${id}`);
+  const updateOrderPaymentStatus = async (id: string, status: UnifiedOrder['paymentStatus']) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ payment_status: status })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating payment status in Supabase:', error);
+        return;
+      }
+
+      addHistoryLog(`Updated Order Payment Status: ${id}`, `Payment Status: ${status}`);
+      await fetchSupabaseOrders();
+    } catch (err) {
+      console.error('Error updating payment status:', err);
+    }
+  };
+
+  const deleteOrder = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting order from Supabase:', error);
+        return;
+      }
+
+      addHistoryLog(`Removed Order Archive: ${id}`, `ID: ${id}`);
+      await fetchSupabaseOrders();
+    } catch (err) {
+      console.error('Error deleting order:', err);
+    }
   };
 
   // --- BANNERS ---
@@ -917,6 +1037,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateOrderStatus,
         updateOrderPaymentStatus,
         deleteOrder,
+        fetchSupabaseOrders,
 
         saveBanner,
         deleteBanner,

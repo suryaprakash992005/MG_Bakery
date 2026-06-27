@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Trash2, ShoppingBag, Send, ArrowLeft, Landmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
+import { useAuth } from '../context/AuthContext';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -17,6 +18,7 @@ export const CartDrawer: React.FC = () => {
   } = useCart();
 
   const { addOrder, settings } = useBakeryDatabase();
+  const { profile } = useAuth();
 
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
 
@@ -25,14 +27,25 @@ export const CartDrawer: React.FC = () => {
   const [custPhone, setCustPhone] = useState('');
   const [custAddress, setCustAddress] = useState('');
 
+  // Sync profile details if logged in
+  useEffect(() => {
+    if (profile) {
+      setCustName(profile.name || '');
+      setCustPhone(profile.phone || '');
+    } else {
+      setCustName('');
+      setCustPhone('');
+    }
+  }, [profile]);
+
   // Reset checkout mode when drawer closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isCartOpen) {
       setIsCheckoutMode(false);
     }
   }, [isCartOpen]);
 
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cartItems.length === 0 || !custName || !custPhone) return;
 
@@ -46,7 +59,7 @@ export const CartDrawer: React.FC = () => {
       .join(', ');
 
     // 1. Create order record in dashboard database
-    const createdOrder = addOrder({
+    const createdOrder = await addOrder({
       customerName: custName,
       phone: custPhone,
       deliveryAddress: custAddress || 'Store Pickup',
