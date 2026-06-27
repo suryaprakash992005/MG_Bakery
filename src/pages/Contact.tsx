@@ -41,7 +41,7 @@ Message: ${formData.message}`;
   const contactCards = [
     { title: 'Call Us Direct', desc: 'Call us for urgent orders and quick pickups.', val: settings?.whatsappNumber || '+91 93455 86112', icon: Phone, href: `tel:${cleanNumber}` },
     { title: 'WhatsApp Ordering', desc: 'Message us to order cakes, pastries, or snacks.', val: settings?.whatsappNumber || '+91 93455 86112', icon: MessageSquare, href: `https://wa.me/${cleanNumber}` },
-    { title: 'Bakery Store Location', desc: settings?.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, TN - 637015', val: 'Get Directions', icon: MapPin, href: settings?.googleMapsLink || 'https://maps.app.goo.gl/9SK6E3HLb6HzEQFz5?g_st=ac' },
+    { title: 'Bakery Store Location', desc: settings?.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, TN - 637015', val: 'Get Directions', icon: MapPin, href: settings?.googleMapsLink || 'https://www.google.com/maps/place/M.G.Bakery+%26+Chat+Corner/@11.0619375,78.1353626,822m/data=!3m2!1e3!4b1!4m6!3m5!1s0x3baa325f5d753c31:0x56b31f2893f85974!8m2!3d11.0619375!4d78.1379375!16s%2Fg%2F11f13psx14?hl=en&entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D' },
     { title: 'Daily Hours', desc: 'We are open 7 days a week including holidays.', val: `${settings?.openingTime || '9:00 AM'} - ${settings?.closingTime || '10:00 PM'}`, icon: Clock }
   ];
 
@@ -82,7 +82,7 @@ Message: ${formData.message}`;
             <span>Order on WhatsApp</span>
           </a>
           <a
-            href={settings?.googleMapsLink || "https://maps.app.goo.gl/9SK6E3HLb6HzEQFz5?g_st=ac"}
+            href={settings?.googleMapsLink || "https://www.google.com/maps/place/M.G.Bakery+%26+Chat+Corner/@11.0619375,78.1353626,822m/data=!3m2!1e3!4b1!4m6!3m5!1s0x3baa325f5d753c31:0x56b31f2893f85974!8m2!3d11.0619375!4d78.1379375!16s%2Fg%2F11f13psx14?hl=en&entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 bg-brand-cream-100 text-brand-brown-950 hover:bg-brand-cream-200 border border-brand-cream-200 px-6 py-4 rounded-2xl font-semibold shadow-md active:scale-95 transition-transform cursor-pointer"
@@ -130,7 +130,7 @@ Message: ${formData.message}`;
           <div className="lg:col-span-5 h-96 lg:h-[450px] rounded-3xl overflow-hidden border border-brand-cream-100/60 shadow-sm relative group bg-brand-cream-100">
             <iframe
               title="M.G. Iyengar Bakery Mohanur Map Location"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.147133729864!2d78.07172081533221!3d11.02762299215112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTHCsDAxJzM5LjQiTiA3OMKwMDQnMjYuMCJF!5e0!3m2!1sen!2sin!4v1655829281355!5m2!1sen!2sin"
+              src="https://maps.google.com/maps?q=11.0619375,78.1379375(M.G.Bakery%20%26%20Chat%20Corner)&t=&z=16&ie=UTF8&iwloc=&output=embed"
               className="w-full h-full border-none grayscale contrast-125 opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
               allowFullScreen
               loading="lazy"

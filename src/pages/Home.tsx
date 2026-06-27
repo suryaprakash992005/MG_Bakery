@@ -724,7 +724,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               <div className="h-80 sm:h-96 rounded-3xl overflow-hidden shadow-lg border border-brand-cream-100 bg-brand-cream-100 relative group">
                 <iframe
                   title="M.G. Iyengar Bakery Mohanur Map"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.147133729864!2d78.07172081533221!3d11.02762299215112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTHCsDAxJzM5LjQiTiA3OMKwMDQnMjYuMCJF!5e0!3m2!1sen!2sin!4v1655829281355!5m2!1sen!2sin"
+                  src="https://maps.google.com/maps?q=11.0619375,78.1379375(M.G.Bakery%20%26%20Chat%20Corner)&t=&z=16&ie=UTF8&iwloc=&output=embed"
                   className="w-full h-full border-none grayscale contrast-125 opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
                   allowFullScreen
                   loading="lazy"
