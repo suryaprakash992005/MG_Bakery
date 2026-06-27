@@ -100,7 +100,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="block lg:hidden relative min-h-[85vh] overflow-hidden bg-[#FAF7F2] select-none pt-16 pb-40 flex items-center"
+        className="block lg:hidden relative h-[88vh] overflow-hidden bg-[#FAF7F2] select-none pt-20"
       >
         {/* Full-bleed Slideshow Background */}
         <div className="absolute inset-0 z-0">
@@ -123,7 +123,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 className="w-full h-full object-cover"
               />
               {/* Overlay Gradient to preserve contrast */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/55 via-[#2A0E0A]/35 to-[#2A0E0A]/75 z-10" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/50 via-[#2A0E0A]/35 to-[#2A0E0A]/70 z-10" />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -137,32 +137,32 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         </div>
 
         {/* Content Wrapper */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full z-20 relative flex items-center justify-center text-center">
-          <div className="max-w-2xl text-white space-y-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 relative flex items-center justify-center h-full text-center">
+          <div className="max-w-3xl text-white space-y-6">
             <motion.div 
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-1 bg-[#C9A227]/25 border border-[#C9A227]/40 px-3 py-1 rounded-full text-[9px] font-semibold text-[#FAF7F2] tracking-widest uppercase"
+              className="inline-flex items-center gap-1.5 bg-[#C9A227]/25 border border-[#C9A227]/40 px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
               <span>The Artisan Bakery of Mohanur</span>
             </motion.div>
             
             {/* Title with stagger */}
-            <h1 className="font-playfair text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
+            <h1 className="font-playfair text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
               {bannerToDisplay?.title || 'Freshly Baked Happiness'}
             </h1>
             
-            <p className="text-xs text-white/90 font-light leading-relaxed max-w-md mx-auto">
+            <p className="text-sm text-white/95 font-light leading-relaxed max-w-xl mx-auto">
               {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.'}
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col items-center gap-3 justify-center pt-3 w-full max-w-xs mx-auto">
+            <div className="flex flex-col items-center gap-4 justify-center pt-6">
               <button
                 onClick={() => setCurrentPage('menu')}
-                className="w-full px-6 py-2.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/20 cursor-pointer animate-pulse"
+                className="w-full px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/20 cursor-pointer animate-pulse"
               >
                 Explore Menu
               </button>
@@ -170,7 +170,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order a fresh cake or inquire about today's specials.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full px-6 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold tracking-wide hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-white/35 backdrop-blur-xs cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold tracking-wide hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-white/35 backdrop-blur-xs cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <span>Order on WhatsApp</span>
               </a>
