@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Star, Filter } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import CurvedLoop from '../components/CurvedLoop';
 import FlowingSelect from '../components/FlowingSelect';
-import { ParticleCard, GlobalSpotlight } from '../components/MagicBento';
 
 const FLAVOR_OPTIONS = [
   { value: 'All', label: 'All Flavors', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=150&q=80' },
@@ -32,7 +31,6 @@ const WEIGHT_OPTIONS = [
 export const Cakes: React.FC = () => {
   const [selectedFlavor, setSelectedFlavor] = useState<string>('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All');
-  const productsGridRef = useRef<HTMLDivElement>(null);
   const [selectedWeight, setSelectedWeight] = useState<string>('All');
 
   const { products } = useBakeryDatabase();
@@ -173,32 +171,11 @@ export const Cakes: React.FC = () => {
 
         {/* Product Grid */}
         {filteredCakes.length > 0 ? (
-          <>
-            <GlobalSpotlight
-              gridRef={productsGridRef}
-              glowColor="201, 162, 39"
-              spotlightRadius={280}
-            />
-            <div 
-              ref={productsGridRef}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 bento-section"
-            >
-              {filteredCakes.map((product) => (
-                <ParticleCard
-                  key={product.id}
-                  disableAnimations={false}
-                  particleCount={8}
-                  glowColor="201, 162, 39"
-                  enableTilt={true}
-                  clickEffect={true}
-                  enableMagnetism={false}
-                  className="magic-bento-product-card magic-bento-product-card--border-glow rounded-[2.5rem]"
-                >
-                  <ProductCard product={product} />
-                </ParticleCard>
-              ))}
-            </div>
-          </>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {filteredCakes.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border border-brand-cream-100/50 max-w-xl mx-auto">
             <p className="text-brand-brown-800/60 font-light text-base">

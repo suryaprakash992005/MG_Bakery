@@ -1,18 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { X, ZoomIn, Sparkles } from 'lucide-react';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import { GalleryItem } from '../types';
 import PillFilters from '../components/PillFilters';
 import { motion, AnimatePresence } from 'framer-motion';
 import BorderGlow from '../components/BorderGlow';
-import { ParticleCard, GlobalSpotlight } from '../components/MagicBento';
-import { BubbleMenu } from '../components/BubbleMenu';
 
 export const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeImage, setActiveImage] = useState<GalleryItem | null>(null);
-  const galleryGridRef = useRef<HTMLDivElement>(null);
-  const desktopGalleryGridRef = useRef<HTMLDivElement>(null);
 
   const { gallery } = useBakeryDatabase();
 
@@ -32,65 +28,8 @@ export const Gallery: React.FC = () => {
     })
     .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
-  const bubbleMenuItems = [
-    {
-      label: 'All Photos',
-      href: '#',
-      rotation: -6,
-      hoverStyles: { bgColor: '#2A0E0A', textColor: '#FAF7F2' },
-      onClick: () => setSelectedCategory('all')
-    },
-    {
-      label: 'Cakes',
-      href: '#',
-      rotation: 6,
-      hoverStyles: { bgColor: '#C9A227', textColor: '#2A0E0A' },
-      onClick: () => setSelectedCategory('cakes')
-    },
-    {
-      label: 'Pastries',
-      href: '#',
-      rotation: -6,
-      hoverStyles: { bgColor: '#2A0E0A', textColor: '#FAF7F2' },
-      onClick: () => setSelectedCategory('pastries')
-    },
-    {
-      label: 'Interior',
-      href: '#',
-      rotation: 6,
-      hoverStyles: { bgColor: '#C9A227', textColor: '#2A0E0A' },
-      onClick: () => setSelectedCategory('interior')
-    },
-    {
-      label: 'Products',
-      href: '#',
-      rotation: -6,
-      hoverStyles: { bgColor: '#2A0E0A', textColor: '#FAF7F2' },
-      onClick: () => setSelectedCategory('products')
-    },
-    {
-      label: 'Celebrations',
-      href: '#',
-      rotation: 6,
-      hoverStyles: { bgColor: '#C9A227', textColor: '#2A0E0A' },
-      onClick: () => setSelectedCategory('celebrations')
-    }
-  ];
-
   return (
-    <div className="pt-28 pb-20 min-h-screen bg-brand-cream-50/10 relative">
-      {/* Dynamic Bubble Navigation Menu */}
-      <BubbleMenu
-        logo={<span className="font-playfair font-black text-[#2A0E0A] text-[10px] tracking-wider">GALLERY</span>}
-        items={bubbleMenuItems}
-        menuBg="#FAF7F2"
-        menuContentColor="#2A0E0A"
-        useFixedPosition={true}
-        animationEase="back.out(1.5)"
-        animationDuration={0.4}
-        staggerDelay={0.08}
-        style={{ top: '85px', right: '0px', left: 'auto', width: 'auto', paddingRight: '20px' }}
-      />
+    <div className="pt-28 pb-20 min-h-screen bg-brand-cream-50/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Title */}
@@ -119,15 +58,10 @@ export const Gallery: React.FC = () => {
           pillTextColor="#5B3535"
         />
 
-        <GlobalSpotlight
-          gridRef={galleryGridRef}
-          glowColor="201, 162, 39"
-          spotlightRadius={220}
-        />
+        {/* ----------------- MOBILE GALLERY VIEW (PREMIUM REDESIGN) ----------------- */}
         <motion.div 
-          ref={galleryGridRef}
           layout
-          className="block lg:hidden columns-2 gap-4 space-y-4 bento-section"
+          className="block lg:hidden columns-2 gap-4 space-y-4"
         >
           <AnimatePresence mode="popLayout">
             {filteredGallery.map((item, idx) => (
@@ -139,106 +73,79 @@ export const Gallery: React.FC = () => {
                 viewport={{ once: true, margin: '-50px' }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.6, delay: Math.min(idx * 0.05, 0.3) }}
-                className="break-inside-avoid select-none"
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveImage(item)}
+                className="break-inside-avoid cursor-pointer bg-white rounded-3xl overflow-hidden border border-brand-cream-100/40 shadow-sm hover:shadow-md transition-all duration-300 relative group select-none"
               >
-                <ParticleCard
-                  disableAnimations={false}
-                  particleCount={6}
-                  glowColor="201, 162, 39"
-                  enableTilt={true}
-                  clickEffect={true}
-                  enableMagnetism={false}
-                  onClick={() => setActiveImage(item)}
-                  className="magic-bento-product-card magic-bento-product-card--border-glow rounded-3xl overflow-hidden border border-brand-cream-100/40 shadow-sm cursor-pointer relative group w-full"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                  />
-                  
-                  {/* Cover Overlay on Hover */}
-                  <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none z-10">
-                    <div className="flex justify-end">
-                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                        <ZoomIn className="w-5 h-5" />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
-                        {item.category}
-                      </span>
-                      <span className="text-sm font-bold text-white font-playfair block mt-1">
-                        {item.title}
-                      </span>
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                />
+                
+                {/* Cover Overlay on Hover */}
+                <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
+                  <div className="flex justify-end">
+                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                      <ZoomIn className="w-5 h-5" />
                     </div>
                   </div>
-                </ParticleCard>
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
+                      {item.category}
+                    </span>
+                    <span className="text-sm font-bold text-white font-playfair block mt-1">
+                      {item.title}
+                    </span>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </motion.div>
 
-        <GlobalSpotlight
-          gridRef={desktopGalleryGridRef}
-          glowColor="201, 162, 39"
-          spotlightRadius={280}
-        />
-        <div 
-          ref={desktopGalleryGridRef}
-          className="hidden lg:block columns-3 gap-6 space-y-6 bento-section"
-        >
+        {/* ----------------- DESKTOP GALLERY VIEW (PREVIOUS STYLE) ----------------- */}
+        <div className="hidden lg:block columns-3 gap-6 space-y-6">
           {filteredGallery.map((item) => (
-            <ParticleCard
+            <BorderGlow
               key={item.id}
-              disableAnimations={false}
-              particleCount={6}
-              glowColor="201, 162, 39"
-              enableTilt={true}
-              clickEffect={true}
-              enableMagnetism={false}
-              className="magic-bento-product-card magic-bento-product-card--border-glow rounded-3xl"
-              onClick={() => setActiveImage(item)}
+              className="break-inside-avoid cursor-pointer bg-brand-cream-100"
+              backgroundColor="#FAF8F5"
+              glowColor="46 64 52"
+              borderRadius={24}
+              glowRadius={25}
+              glowIntensity={0.8}
+              coneSpread={20}
+              colors={['#C9A227', '#2A0E0A', '#A46E6E']}
+              fillOpacity={0.15}
             >
-              <BorderGlow
-                className="break-inside-avoid bg-brand-cream-100 w-full h-full"
-                backgroundColor="#FAF8F5"
-                glowColor="46 64 52"
-                borderRadius={24}
-                glowRadius={25}
-                glowIntensity={0.8}
-                coneSpread={20}
-                colors={['#C9A227', '#2A0E0A', '#A46E6E']}
-                fillOpacity={0.15}
-              >
-                <div className="relative group w-full h-full">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-700"
-                  />
-                  
-                  {/* Cover Overlay on Hover */}
-                  <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none z-10">
-                    <div className="flex justify-end">
-                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                        <ZoomIn className="w-5 h-5" />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
-                        {item.category}
-                      </span>
-                      <span className="text-sm font-bold text-white font-playfair block mt-1">
-                        {item.title}
-                      </span>
+              <div onClick={() => setActiveImage(item)} className="relative group w-full h-full">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-700"
+                />
+                
+                {/* Cover Overlay on Hover */}
+                <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
+                  <div className="flex justify-end">
+                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                      <ZoomIn className="w-5 h-5" />
                     </div>
                   </div>
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
+                      {item.category}
+                    </span>
+                    <span className="text-sm font-bold text-white font-playfair block mt-1">
+                      {item.title}
+                    </span>
+                  </div>
                 </div>
-              </BorderGlow>
-            </ParticleCard>
+              </div>
+            </BorderGlow>
           ))}
         </div>
 

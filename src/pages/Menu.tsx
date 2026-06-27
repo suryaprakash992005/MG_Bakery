@@ -5,7 +5,6 @@ import { useBakeryDatabase } from '../context/DatabaseContext';
 import ShinyText from '../components/ShinyText';
 import PillFilters from '../components/PillFilters';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ParticleCard, GlobalSpotlight } from '../components/MagicBento';
 
 export const Menu: React.FC = () => {
   const { products, categories } = useBakeryDatabase();
@@ -169,43 +168,26 @@ export const Menu: React.FC = () => {
 
         {/* Products Grid */}
         {filteredProducts.length > 0 ? (
-          <>
-            <GlobalSpotlight
-              gridRef={productsGridRef}
-              glowColor="201, 162, 39"
-              spotlightRadius={280}
-            />
-            <motion.div 
-              ref={productsGridRef}
-              layout
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 bento-section"
-            >
-              <AnimatePresence mode="popLayout">
-                {filteredProducts.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <ParticleCard
-                      disableAnimations={false}
-                      particleCount={8}
-                      glowColor="201, 162, 39"
-                      enableTilt={true}
-                      clickEffect={true}
-                      enableMagnetism={false}
-                      className="magic-bento-product-card magic-bento-product-card--border-glow rounded-[2.5rem] h-full"
-                    >
-                      <ProductCard product={product} />
-                    </ParticleCard>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          </>
+          <motion.div 
+            ref={productsGridRef}
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredProducts.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border border-brand-cream-100/50 max-w-xl mx-auto">
             <p className="text-brand-brown-800/60 font-light text-base">
