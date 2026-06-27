@@ -104,14 +104,14 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       >
         {/* Full-bleed Slideshow Background */}
         <div className="absolute inset-0 z-0">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={bannerToDisplay ? bannerToDisplay.id : 'default'}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.2 }}
-              className="relative w-full h-full"
+              className="absolute inset-0 w-full h-full"
             >
               {/* Ken Burns Zoom Effect */}
               <motion.img
@@ -275,12 +275,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 animated={true}
               >
                 <div className="relative w-full h-full overflow-hidden">
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence>
                     <motion.img
                       key={bannerToDisplay ? bannerToDisplay.id : 'default'}
                       src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
                       alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                      className="w-full h-full object-cover absolute inset-0 animate-fade-in"
+                      className="w-full h-full object-cover absolute inset-0"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
