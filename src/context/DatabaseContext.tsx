@@ -73,6 +73,8 @@ export interface UnifiedBanner {
   displayPriority: number;
   isActive: boolean;
   isPromotion?: boolean;
+  featured_product_name?: string;
+  cta_text?: string;
 }
 
 export interface UnifiedSettings {
@@ -263,7 +265,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           title: row.title || '',
           subtitle: row.subtitle || '',
           displayPriority: Number(row.priority || 1),
-          isActive: Boolean(row.is_active)
+          isActive: Boolean(row.is_active),
+          featured_product_name: row.featured_product_name || '',
+          cta_text: row.cta_text || ''
         }));
         setBanners(mapped);
       }
@@ -750,7 +754,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       subtitle: b.subtitle || '',
       image_url: b.image,
       is_active: b.isActive,
-      priority: b.displayPriority
+      priority: b.displayPriority,
+      featured_product_name: b.featured_product_name || '',
+      cta_text: b.cta_text || ''
     };
 
     try {

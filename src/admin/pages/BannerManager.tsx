@@ -29,6 +29,8 @@ export const BannerManager: React.FC = () => {
   const [image, setImage] = useState('');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
+  const [featuredProductName, setFeaturedProductName] = useState('');
+  const [ctaText, setCtaText] = useState('');
   const [displayPriority, setDisplayPriority] = useState(1);
   const [isActive, setIsActive] = useState(true);
 
@@ -41,6 +43,8 @@ export const BannerManager: React.FC = () => {
     setImage('');
     setTitle('');
     setSubtitle('');
+    setFeaturedProductName('');
+    setCtaText('');
     setDisplayPriority(banners.length + 1);
     setIsActive(true);
     setShowAddForm(true);
@@ -51,6 +55,8 @@ export const BannerManager: React.FC = () => {
     setImage(b.image);
     setTitle(b.title || '');
     setSubtitle(b.subtitle || '');
+    setFeaturedProductName(b.featured_product_name || '');
+    setCtaText(b.cta_text || '');
     setDisplayPriority(b.displayPriority);
     setIsActive(b.isActive);
     setIsEditOpen(true);
@@ -67,13 +73,17 @@ export const BannerManager: React.FC = () => {
       subtitle: subtitle || undefined,
       displayPriority: Number(displayPriority) || banners.length + 1,
       isActive,
-      isPromotion: false
+      isPromotion: false,
+      featured_product_name: featuredProductName || undefined,
+      cta_text: ctaText || undefined
     });
 
     // Reset
     setImage('');
     setTitle('');
     setSubtitle('');
+    setFeaturedProductName('');
+    setCtaText('');
     setShowAddForm(false);
     setIsEditOpen(false);
     setCurrentBanner(null);
@@ -150,6 +160,20 @@ export const BannerManager: React.FC = () => {
                 placeholder="Slide Subtitle Text"
                 className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
               />
+              <input
+                type="text"
+                value={featuredProductName}
+                onChange={(e) => setFeaturedProductName(e.target.value)}
+                placeholder="Featured Product Name (e.g. Royal Floral Celebration Cake)"
+                className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+              />
+              <input
+                type="text"
+                value={ctaText}
+                onChange={(e) => setCtaText(e.target.value)}
+                placeholder="CTA Button Text (e.g. Order Now)"
+                className="w-full bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+              />
               <div className="grid grid-cols-2 gap-3">
                 <input
                   type="number"
@@ -216,6 +240,14 @@ export const BannerManager: React.FC = () => {
                 <p className="text-[10px] text-[#2C1A17]/60 mt-1 leading-normal line-clamp-2 h-8">
                   {b.subtitle || 'No subtitle caption supplied.'}
                 </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-[9px] text-[#2C1A17]/70 font-semibold truncate">
+                    <span className="text-[#2C1A17]/45 font-bold uppercase">Product:</span> {b.featured_product_name || 'Fresh Bakery Special'}
+                  </p>
+                  <p className="text-[9px] text-[#2C1A17]/70 font-semibold truncate">
+                    <span className="text-[#2C1A17]/45 font-bold uppercase">CTA Text:</span> {b.cta_text || 'Featured Cake'}
+                  </p>
+                </div>
               </div>
 
               {/* Action buttons */}
@@ -285,6 +317,26 @@ export const BannerManager: React.FC = () => {
                   type="text"
                   value={subtitle}
                   onChange={(e) => setSubtitle(e.target.value)}
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#2C1A17]/60 uppercase tracking-wider block">Featured Product Name</label>
+                <input
+                  type="text"
+                  value={featuredProductName}
+                  onChange={(e) => setFeaturedProductName(e.target.value)}
+                  placeholder="e.g. Royal Floral Celebration Cake"
+                  className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-[#2C1A17]/60 uppercase tracking-wider block">CTA Button Text</label>
+                <input
+                  type="text"
+                  value={ctaText}
+                  onChange={(e) => setCtaText(e.target.value)}
+                  placeholder="e.g. Order Now"
                   className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none transition-all"
                 />
               </div>

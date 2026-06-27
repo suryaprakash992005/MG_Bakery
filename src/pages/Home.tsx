@@ -47,7 +47,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     return () => clearInterval(interval);
   }, [activeBanners.length, settings.isSliderEnabled]);
 
-  const dailySpecialProduct = activeProducts.find(p => p.dailySpecial);
   const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
 
   const categories = [
@@ -165,10 +164,10 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                   <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
                     <div>
                       <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
-                        Today's Special
+                        {bannerToDisplay?.cta_text || 'Featured Cake'}
                       </span>
                       <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
-                        {dailySpecialProduct ? dailySpecialProduct.name : 'Rasmalai Saffron Cake'}
+                        {bannerToDisplay?.featured_product_name || 'Fresh Bakery Special'}
                       </span>
                     </div>
                     <button 
