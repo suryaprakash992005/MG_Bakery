@@ -30,7 +30,7 @@ export const CartDrawer: React.FC = () => {
   // Sync profile details if logged in
   useEffect(() => {
     if (profile) {
-      setCustName(profile.name || '');
+      setCustName(profile.full_name || '');
       setCustPhone(profile.phone || '');
     } else {
       setCustName('');

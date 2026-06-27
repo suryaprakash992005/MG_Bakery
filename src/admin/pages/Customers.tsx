@@ -25,40 +25,28 @@ export const Customers: React.FC = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      // 1. Fetch all customer profiles from Supabase
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
+      // 1. Fetch all customer profiles from Supabase customers table
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
         .select('*')
-        .eq('role', 'customer')
-        .order('name', { ascending: true });
+        .order('full_name', { ascending: true });
 
-      if (profilesError) throw profilesError;
+      if (customersError) throw customersError;
 
-      if (profilesData) {
-        // 2. Map and aggregate order metrics from local or Supabase orders state
-        const aggregated: CustomerStats[] = profilesData.map((profile: any) => {
-          // Best lookup: match exact user UUID if orders have user_id, otherwise match email or phone!
-          const exactUserOrders = orders.filter(o => {
-            // Find in database orders mapping
-            return (o as any).user_id === profile.id || o.phone === profile.phone || o.customerName === profile.name;
-          });
-
-          const totalSpent = exactUserOrders.reduce((sum, o) => sum + Number(o.amount), 0);
-
-          return {
-            id: profile.id,
-            name: profile.name,
-            email: profile.email,
-            phone: profile.phone || 'N/A',
-            created_at: profile.created_at,
-            totalOrders: exactUserOrders.length,
-            totalSpent
-          };
-        });
+      if (customersData) {
+        const aggregated: CustomerStats[] = customersData.map((cust: any) => ({
+          id: cust.id,
+          name: cust.full_name,
+          email: cust.email,
+          phone: cust.phone || 'N/A',
+          created_at: cust.created_at,
+          totalOrders: cust.total_orders,
+          totalSpent: Number(cust.total_spent)
+        }));
         setCustomers(aggregated);
       }
     } catch (err) {
-      console.error('Error fetching customer profiles:', err);
+      console.error('Error fetching customers:', err);
     } finally {
       setLoading(false);
     }
@@ -71,7 +59,7 @@ export const Customers: React.FC = () => {
   // Find selected customer object and their specific orders
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
   const selectedCustomerOrders = selectedCustomer 
-    ? orders.filter(o => (o as any).user_id === selectedCustomer.id || o.phone === selectedCustomer.phone || o.customerName === selectedCustomer.name)
+    ? orders.filter(o => o.customerId === selectedCustomer.id)
     : [];
 
   return (

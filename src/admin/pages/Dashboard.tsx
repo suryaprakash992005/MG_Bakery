@@ -15,9 +15,8 @@ export const Dashboard: React.FC = () => {
     const fetchCustomersCount = async () => {
       try {
         const { count, error } = await supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .eq('role', 'customer');
+          .from('customers')
+          .select('id', { count: 'exact', head: true });
         if (!error && count !== null) {
           setTotalCustomersCount(count);
         }

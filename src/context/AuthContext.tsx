@@ -2,18 +2,20 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabase';
 
-export interface UserProfile {
+export interface CustomerProfile {
   id: string;
-  name: string;
+  user_id: string;
+  full_name: string;
   email: string;
   phone?: string;
-  role: 'customer' | 'admin';
+  total_orders: number;
+  total_spent: number;
   created_at: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  profile: UserProfile | null;
+  profile: CustomerProfile | null;
   isAdmin: boolean;
   loading: boolean;
   signUp: (email: string, password: string, name: string, phone: string) => Promise<{ error: any; data: any }>;
@@ -26,25 +28,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('customers')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single();
 
       if (error) {
-        console.error('Error fetching profile from Supabase:', error);
-        // If profile not found, let's fallback using user metadata
+        console.error('Error fetching customer profile from Supabase:', error);
         return null;
       }
-      return data as UserProfile;
+      return data as CustomerProfile;
     } catch (err) {
-      console.error('Failed to fetch profile:', err);
+      console.error('Failed to fetch customer profile:', err);
       return null;
     }
   };
@@ -93,22 +94,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // 2. Create custom profile row if user was created successfully
+      // 2. Create custom profile row in customers table if user was created successfully
       if (data?.user) {
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from('customers')
           .insert([
             {
-              id: data.user.id,
-              name,
+              user_id: data.user.id,
+              full_name: name,
               email,
               phone,
-              role: 'customer' // default new user role is customer
+              total_orders: 0,
+              total_spent: 0.00
             }
           ]);
 
         if (profileError) {
-          console.error('Error creating profile entry:', profileError);
+          console.error('Error creating customer entry:', profileError);
         }
       }
 
@@ -158,7 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAdmin = profile?.role === 'admin';
+  // Admin indicator based on email
+  const isAdmin = profile?.email === 'admin@mgiyengar.com';
 
   return (
     <AuthContext.Provider

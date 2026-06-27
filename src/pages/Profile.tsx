@@ -3,30 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Phone, ShoppingBag, LogOut, ChevronDown, ChevronUp, Clock, 
-  MapPin, ShieldCheck, CheckCircle2, AlertCircle, ShoppingCart 
+  MapPin, ShieldCheck, ShoppingCart 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../utils/supabase';
 
-interface OrderItem {
-  id: string;
-  name: string;
-  selected_weight: string;
-  price: number;
-  quantity: number;
-  image_url?: string;
-}
-
 interface Order {
   id: string;
   created_at: string;
-  ordered_product: string;
-  amount: number;
-  payment_method: string;
-  payment_status: string;
-  order_status: string;
-  delivery_address?: string;
-  items?: OrderItem[];
+  product_name: string;
+  quantity: number;
+  price: number;
+  status: string;
 }
 
 export const Profile: React.FC = () => {
@@ -44,59 +32,35 @@ export const Profile: React.FC = () => {
   }, [user, loading, navigate]);
 
   const fetchUserOrders = async () => {
-    if (!user) return;
+    if (!profile) return;
     setFetchingOrders(true);
     try {
-      // 1. Fetch orders for this authenticated customer
-      const { data: ordersData, error: ordersError } = await supabase
+      // Fetch orders for this customer from the public.orders table
+      const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('customer_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (ordersError) throw ordersError;
-
-      if (ordersData) {
-        // 2. Fetch order items for these orders
-        const orderIds = ordersData.map(o => o.id);
-        
-        if (orderIds.length > 0) {
-          const { data: itemsData, error: itemsError } = await supabase
-            .from('order_items')
-            .select('*')
-            .in('order_id', orderIds);
-
-          if (itemsError) throw itemsError;
-
-          // Merge items into their parent orders
-          const merged: Order[] = ordersData.map(order => ({
-            ...order,
-            items: (itemsData || []).filter(item => item.order_id === order.id)
-          }));
-          setOrders(merged);
-        } else {
-          setOrders([]);
-        }
-      }
+      if (error) throw error;
+      setOrders(data || []);
     } catch (err) {
-      console.error('Error fetching user orders:', err);
+      console.error('Error fetching customer orders:', err);
     } finally {
       setFetchingOrders(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (profile) {
       fetchUserOrders();
     }
-  }, [user]);
+  }, [profile]);
 
   const handleLogout = async () => {
     await signOut();
     navigate('/');
   };
-
-  const totalSpent = orders.reduce((sum, o) => sum + Number(o.amount), 0);
 
   if (loading || !user) {
     return (
@@ -125,7 +89,7 @@ export const Profile: React.FC = () => {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="font-playfair text-xl sm:text-2xl font-bold text-[#2A0E0A]">
-                  {profile?.name || 'Customer Profile'}
+                  {profile?.full_name || 'Customer Profile'}
                 </h1>
                 {isAdmin && (
                   <span className="text-[9px] font-bold tracking-widest bg-brand-brown-950 text-brand-gold-850 px-2 py-0.5 rounded-full uppercase border border-brand-gold-850/30 flex items-center gap-1.5 shadow-sm">
@@ -150,7 +114,7 @@ export const Profile: React.FC = () => {
           <div className="flex flex-wrap gap-3 w-full md:w-auto">
             {isAdmin && (
               <button
-                onClick={() => navigate('/admin/products')}
+                onClick={() => navigate('/admin/dashboard')}
                 className="flex-grow md:flex-grow-0 px-5 py-2.5 bg-brand-brown-950 text-brand-gold-850 font-semibold text-xs rounded-xl hover:bg-brand-brown-900 border border-brand-brown-900 transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
               >
                 Go to Admin Portal
@@ -179,7 +143,7 @@ export const Profile: React.FC = () => {
             </div>
             <div>
               <span className="text-[10px] uppercase tracking-wider text-[#2A0E0A]/40 font-bold">Total Orders</span>
-              <p className="text-xl font-bold text-[#2A0E0A] mt-0.5">{orders.length}</p>
+              <p className="text-xl font-bold text-[#2A0E0A] mt-0.5">{profile?.total_orders || 0}</p>
             </div>
           </motion.div>
 
@@ -194,7 +158,7 @@ export const Profile: React.FC = () => {
             </div>
             <div>
               <span className="text-[10px] uppercase tracking-wider text-[#2A0E0A]/40 font-bold">Total Spent</span>
-              <p className="text-xl font-bold text-[#2A0E0A] mt-0.5">₹{totalSpent.toLocaleString('en-IN')}</p>
+              <p className="text-xl font-bold text-[#2A0E0A] mt-0.5">₹{(Number(profile?.total_spent) || 0).toLocaleString('en-IN')}</p>
             </div>
           </motion.div>
 
@@ -290,21 +254,21 @@ export const Profile: React.FC = () => {
                       {/* Product Summary Preview */}
                       <div className="flex-grow max-w-md hidden md:block">
                         <p className="text-xs text-[#2A0E0A]/70 truncate font-light">
-                          {order.ordered_product}
+                          {order.product_name}
                         </p>
                       </div>
 
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-xs font-bold text-[#2A0E0A]">₹{Number(order.amount).toLocaleString('en-IN')}</p>
+                          <p className="text-xs font-bold text-[#2A0E0A]">₹{(Number(order.price) * Number(order.quantity)).toLocaleString('en-IN')}</p>
                           <span className={`inline-block text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mt-1 ${
-                            order.order_status === 'Delivered'
+                            order.status === 'Delivered'
                               ? 'bg-emerald-50 text-emerald-700'
-                              : order.order_status === 'Cancelled'
+                              : order.status === 'Cancelled'
                               ? 'bg-rose-50 text-rose-700'
                               : 'bg-brand-cream-100 text-brand-gold-800'
                           }`}>
-                            {order.order_status}
+                            {order.status}
                           </span>
                         </div>
 
@@ -330,71 +294,47 @@ export const Profile: React.FC = () => {
                         >
                           <div className="p-5 space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pb-4 border-b border-[#2A0E0A]/5">
-                              {order.delivery_address && (
-                                <div className="space-y-1">
-                                  <span className="font-bold text-[#2A0E0A]/50 uppercase tracking-wider text-[9px] block">
-                                    Delivery Address
-                                  </span>
-                                  <p className="text-[#2A0E0A] flex items-start gap-1">
-                                    <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-brand-gold-700" />
-                                    {order.delivery_address}
-                                  </p>
-                                </div>
-                              )}
+                              <div className="space-y-1">
+                                <span className="font-bold text-[#2A0E0A]/50 uppercase tracking-wider text-[9px] block">
+                                  Delivery Address
+                                </span>
+                                <p className="text-[#2A0E0A] flex items-start gap-1">
+                                  <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-brand-gold-700" />
+                                  Store Pickup
+                                </p>
+                              </div>
                               <div className="space-y-1">
                                 <span className="font-bold text-[#2A0E0A]/50 uppercase tracking-wider text-[9px] block">
                                   Payment Info
                                 </span>
                                 <div className="flex items-center gap-2 text-[#2A0E0A] flex-wrap">
                                   <span className="bg-brand-cream-50 text-brand-brown-850 px-2 py-0.5 rounded-md font-semibold text-[10px]">
-                                    {order.payment_method}
-                                  </span>
-                                  <span className={`inline-flex items-center gap-1 font-semibold text-[10px] ${
-                                    order.payment_status === 'Paid' ? 'text-emerald-700' : 'text-brand-gold-800'
-                                  }`}>
-                                    {order.payment_status === 'Paid' ? (
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                    ) : (
-                                      <AlertCircle className="w-3.5 h-3.5" />
-                                    )}
-                                    {order.payment_status}
+                                    UPI / Offline Checkout
                                   </span>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Item Rows */}
+                            {/* Item Row */}
                             <div className="space-y-3">
                               <span className="font-bold text-[#2A0E0A]/50 uppercase tracking-wider text-[9px] block mb-1">
                                 Ordered Products
                               </span>
-                              {order.items?.map((item) => (
-                                <div 
-                                  key={item.id}
-                                  className="flex items-center justify-between gap-4 py-2 border-b border-dashed border-[#2A0E0A]/5 last:border-b-0 last:pb-0"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    {item.image_url && (
-                                      <img 
-                                        src={item.image_url} 
-                                        alt={item.name}
-                                        className="w-10 h-10 object-cover rounded-lg bg-brand-cream-50"
-                                      />
-                                    )}
-                                    <div>
-                                      <p className="text-xs font-bold text-[#2A0E0A]">{item.name}</p>
-                                      <span className="inline-block text-[9px] font-semibold text-brand-brown-850/60 mt-0.5">
-                                        Weight/Size: {item.selected_weight}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  <div className="text-right text-xs">
-                                    <p className="font-semibold text-[#2A0E0A]">₹{item.price} × {item.quantity}</p>
-                                    <p className="font-bold text-[#2A0E0A] mt-0.5">₹{item.price * item.quantity}</p>
+                              <div className="flex items-center justify-between gap-4 py-2">
+                                <div className="flex items-center gap-3">
+                                  <div>
+                                    <p className="text-xs font-bold text-[#2A0E0A]">{order.product_name}</p>
+                                    <span className="inline-block text-[9px] font-semibold text-brand-brown-850/60 mt-0.5">
+                                      Qty: {order.quantity}
+                                    </span>
                                   </div>
                                 </div>
-                              ))}
+
+                                <div className="text-right text-xs">
+                                  <p className="font-semibold text-[#2A0E0A]">₹{order.price} × {order.quantity}</p>
+                                  <p className="font-bold text-[#2A0E0A] mt-0.5">₹{order.price * order.quantity}</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </motion.div>
