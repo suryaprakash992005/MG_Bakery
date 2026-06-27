@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, Sparkles } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import ShinyText from '../components/ShinyText';
 import PillFilters from '../components/PillFilters';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Menu: React.FC = () => {
   const { products, categories } = useBakeryDatabase();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const productsGridRef = useRef<HTMLDivElement>(null);
 
   // Sort categories by displayPriority
   const sortedCategories = [...categories]
@@ -41,8 +46,39 @@ export const Menu: React.FC = () => {
     })
     .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
+  // Auto-scroll product section into view smoothly on mobile when typing
+  useEffect(() => {
+    if (searchQuery.trim() !== '') {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile && productsGridRef.current) {
+        const rect = productsGridRef.current.getBoundingClientRect();
+        const absoluteTop = rect.top + window.scrollY;
+        // Scroll slightly above the products grid to account for sticky search bar
+        window.scrollTo({
+          top: absoluteTop - 140,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [searchQuery]);
+
+  // If only one product matches search result, automatically close keyboard (blur)
+  useEffect(() => {
+    if (searchQuery.trim() !== '' && filteredProducts.length === 1) {
+      const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.blur();
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredProducts.length, searchQuery]);
+
   return (
-    <div className="pt-28 pb-20 min-h-screen bg-brand-cream-50/10">
+    <div 
+      style={{ paddingBottom: isFocused ? '60vh' : '5rem' }} 
+      className="pt-28 min-h-screen bg-brand-cream-50/10 transition-all duration-300"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Title */}
@@ -73,16 +109,29 @@ export const Menu: React.FC = () => {
 
         {/* Search and Filters Layout */}
         <div className="space-y-8 mb-12">
-          {/* Search bar */}
-          <div className="max-w-lg mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-brown-800/40" />
-            <input
-              type="text"
-              placeholder="Search cakes, puffs, cookies, coffee..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 rounded-full bg-white border border-brand-cream-200/80 text-brand-brown-950 placeholder-brand-brown-800/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold-500/35 focus:border-brand-gold-500 transition-all shadow-sm"
-            />
+          {/* Search bar wrapper with sticky positioning on mobile */}
+          <div className="sticky top-[76px] md:relative md:top-auto z-20 max-w-lg mx-auto bg-brand-cream-50/90 backdrop-blur-md py-3 px-4 -mx-4 sm:mx-0 sm:px-1 rounded-2xl transition-all shadow-sm focus-within:shadow-md border border-transparent">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-brown-800/40" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search cakes, puffs, cookies, coffee..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  setIsFocused(true);
+                  // Smoothly scroll the input into center view if on mobile
+                  setTimeout(() => {
+                    if (window.innerWidth < 768) {
+                      searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }, 100);
+                }}
+                onBlur={() => setIsFocused(false)}
+                className="w-full pl-12 pr-6 py-4 rounded-full bg-white border border-brand-cream-200/80 text-brand-brown-950 placeholder-brand-brown-800/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold-500/35 focus:border-brand-gold-500 transition-all"
+              />
+            </div>
           </div>
 
           {/* Category Filter Pills */}
@@ -117,11 +166,26 @@ export const Menu: React.FC = () => {
 
         {/* Products Grid */}
         {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <motion.div 
+            ref={productsGridRef}
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredProducts.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border border-brand-cream-100/50 max-w-xl mx-auto">
             <p className="text-brand-brown-800/60 font-light text-base">
