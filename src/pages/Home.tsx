@@ -158,7 +158,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.'}
             </p>
 
-            {/* CTAs */}
             <div className="flex flex-col items-center gap-4 justify-center pt-6">
               <button
                 onClick={() => setCurrentPage('menu')}
@@ -166,14 +165,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               >
                 Explore Menu
               </button>
-              <a
-                href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order a fresh cake or inquire about today's specials.`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold tracking-wide hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-white/35 backdrop-blur-xs cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <span>Order on WhatsApp</span>
-              </a>
             </div>
           </div>
         </div>
@@ -247,14 +238,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                   <span>Explore Menu</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-                <a
-                  href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order a fresh cake or inquire about today's specials.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary"
+                <button
+                  onClick={() => setCurrentPage('menu')}
+                  className="btn-secondary cursor-pointer"
                 >
                   <span>Order on WhatsApp</span>
-                </a>
+                </button>
               </div>
             </motion.div>
 
