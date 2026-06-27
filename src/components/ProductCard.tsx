@@ -58,11 +58,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setTimeout(() => setShake(false), 500);
   };
 
-  const handleAddFromModal = () => {
+  const handleAddFromModal = (e: React.MouseEvent) => {
     if (product.status === 'Out of Stock') {
       triggerShake();
       return;
     }
+
+    // Capture modal image and trigger fly transition to cart
+    const container = (e.currentTarget as HTMLElement).closest('.max-w-lg') || document.body;
+    const imgElement = container?.querySelector('img') as HTMLImageElement;
+    if (imgElement) {
+      const startRect = imgElement.getBoundingClientRect();
+      import('../utils/animationHelper').then(({ triggerFlyToCart }) => {
+        triggerFlyToCart(startRect, imgElement.src);
+      });
+    }
+
     addToCart(product, isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard', 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -451,7 +462,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   </a>
 
                   <button
-                    onClick={handleAddFromModal}
+                    onClick={(e) => handleAddFromModal(e)}
                     className={`relative overflow-hidden font-bold transition-all duration-300 transform active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer h-12 px-6 rounded-full text-sm ${
                       added
                         ? 'bg-[#C9A227] text-[#2A0E0A] shadow-[#C9A227]/20'

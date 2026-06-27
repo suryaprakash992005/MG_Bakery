@@ -64,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
 
   const socialItems = [
     { label: 'WhatsApp', link: `https://wa.me/${cleanNumber}` },
-    { label: 'Location Directions', link: settings?.googleMapsLink || 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015' },
+    { label: 'Location Directions', link: settings?.googleMapsLink || 'https://maps.app.goo.gl/9SK6E3HLb6HzEQFz5?g_st=ac' },
     ...(settings?.instagramUrl ? [{ label: 'Instagram', link: settings.instagramUrl }] : [])
   ];
 

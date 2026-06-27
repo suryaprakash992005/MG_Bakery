@@ -24,6 +24,7 @@ export const CartIcon: React.FC<CartIconProps> = ({ className = '', isMobile = f
 
   return (
     <button
+      id="cart-icon-target"
       onClick={() => setIsCartOpen(true)}
       className={`relative p-2.5 rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center cursor-pointer pointer-events-auto ${
         isShaking ? 'animate-shake' : ''
@@ -36,7 +37,7 @@ export const CartIcon: React.FC<CartIconProps> = ({ className = '', isMobile = f
     >
       <ShoppingBag className={`${isMobile ? 'w-4.5 h-4.5' : 'w-5 h-5'}`} />
       
-      <AnimatePresence>
+      <AnimatePresence mode="popLayout">
         {totalItemsCount > 0 && (
           <motion.span
             initial={{ scale: 0, opacity: 0 }}
@@ -49,7 +50,16 @@ export const CartIcon: React.FC<CartIconProps> = ({ className = '', isMobile = f
                 : 'bg-brand-brown-950 text-brand-cream-50 border-brand-cream-50'
             }`}
           >
-            {totalItemsCount}
+            <motion.span
+              key={totalItemsCount}
+              initial={{ y: -6, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 6, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="inline-block"
+            >
+              {totalItemsCount}
+            </motion.span>
           </motion.span>
         )}
       </AnimatePresence>

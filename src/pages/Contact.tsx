@@ -41,7 +41,7 @@ Message: ${formData.message}`;
   const contactCards = [
     { title: 'Call Us Direct', desc: 'Call us for urgent orders and quick pickups.', val: settings?.whatsappNumber || '+91 93455 86112', icon: Phone, href: `tel:${cleanNumber}` },
     { title: 'WhatsApp Ordering', desc: 'Message us to order cakes, pastries, or snacks.', val: settings?.whatsappNumber || '+91 93455 86112', icon: MessageSquare, href: `https://wa.me/${cleanNumber}` },
-    { title: 'Bakery Store Location', desc: settings?.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, TN - 637015', val: 'Get Directions', icon: MapPin, href: settings?.googleMapsLink || 'https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015' },
+    { title: 'Bakery Store Location', desc: settings?.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, TN - 637015', val: 'Get Directions', icon: MapPin, href: settings?.googleMapsLink || 'https://maps.app.goo.gl/9SK6E3HLb6HzEQFz5?g_st=ac' },
     { title: 'Daily Hours', desc: 'We are open 7 days a week including holidays.', val: `${settings?.openingTime || '9:00 AM'} - ${settings?.closingTime || '10:00 PM'}`, icon: Clock }
   ];
 
@@ -82,7 +82,7 @@ Message: ${formData.message}`;
             <span>Order on WhatsApp</span>
           </a>
           <a
-            href={settings?.googleMapsLink || "https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015"}
+            href={settings?.googleMapsLink || "https://maps.app.goo.gl/9SK6E3HLb6HzEQFz5?g_st=ac"}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 bg-brand-cream-100 text-brand-brown-950 hover:bg-brand-cream-200 border border-brand-cream-200 px-6 py-4 rounded-2xl font-semibold shadow-md active:scale-95 transition-transform cursor-pointer"

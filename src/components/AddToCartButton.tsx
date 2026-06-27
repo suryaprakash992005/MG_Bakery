@@ -23,6 +23,18 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     e.stopPropagation();
     e.preventDefault();
     if (isOutOfStock) return;
+
+    // Resolve product image boundaries to trigger fly-to-cart effect
+    const button = e.currentTarget as HTMLElement;
+    const cardContainer = button.closest('.group') || button.closest('.flex-col') || button.closest('div');
+    const imgElement = cardContainer?.querySelector('img') as HTMLImageElement;
+    if (imgElement) {
+      const startRect = imgElement.getBoundingClientRect();
+      import('../utils/animationHelper').then(({ triggerFlyToCart }) => {
+        triggerFlyToCart(startRect, imgElement.src);
+      });
+    }
+
     addToCart(product, selectedWeight, 1);
     setAdded(true);
     setTimeout(() => {

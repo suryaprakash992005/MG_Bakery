@@ -149,3 +149,14 @@ button:focus, button:focus-visible {
   min-height: 100dvh;
   min-height: calc(var(--vh, 1vh) * 100);
 }
+
+@keyframes cartBump {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.2) rotate(-10deg); }
+  50% { transform: scale(1.2) rotate(10deg); }
+  75% { transform: scale(1.1) rotate(-5deg); }
+}
+
+.cart-bump-active {
+  animation: cartBump 0.5s ease-in-out !important;
+}

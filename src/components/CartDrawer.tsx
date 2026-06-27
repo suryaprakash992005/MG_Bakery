@@ -18,22 +18,12 @@ export const CartDrawer: React.FC = () => {
 
   const { addOrder, settings } = useBakeryDatabase();
 
-  const [isMobile, setIsMobile] = useState(false);
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
 
   // Form states
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [custAddress, setCustAddress] = useState('');
-
-  React.useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Reset checkout mode when drawer closes
   React.useEffect(() => {
@@ -119,10 +109,11 @@ We look forward to serving you!`;
   };
 
   const drawerVariants = {
-    closed: isMobile ? { y: '100%', x: 0 } : { x: '100%', y: 0 },
-    open: isMobile
-      ? { y: 0, x: 0, transition: { type: 'tween' as const, duration: 0.4, ease: 'easeOut' as any } }
-      : { x: 0, y: 0, transition: { type: 'tween' as const, duration: 0.4, ease: 'easeOut' as any } },
+    closed: { x: '100%' },
+    open: {
+      x: 0,
+      transition: { type: 'spring' as const, damping: 30, stiffness: 280 }
+    },
   };
 
   const overlayVariants = {
@@ -150,7 +141,7 @@ We look forward to serving you!`;
             animate="open"
             exit="closed"
             variants={drawerVariants}
-            className="fixed bottom-0 left-0 right-0 top-auto h-[80dvh] max-h-[80dvh] w-full rounded-t-[2.5rem] bg-brand-cream-50 shadow-2xl z-[101] flex flex-col border-t border-brand-cream-100 lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto lg:h-full lg:max-h-full lg:max-w-md lg:rounded-none lg:border-l lg:border-t-0"
+            className="fixed top-0 right-0 bottom-0 left-auto h-full w-[85vw] max-w-md bg-brand-cream-50 shadow-2xl z-[101] flex flex-col border-l border-brand-cream-100 rounded-l-[2rem] lg:rounded-none"
           >
             {/* Mobile Sheet Handle */}
             <div className="w-12 h-1.5 bg-brand-brown-800/10 rounded-full mx-auto mt-3 lg:hidden shrink-0" />
@@ -202,67 +193,80 @@ We look forward to serving you!`;
                       </div>
                     </div>
                   ) : (
-                    cartItems.map((item) => (
-                      <div
-                        key={`${item.id}-${item.selectedWeight}`}
-                        className="flex gap-4 p-4 bg-white rounded-2xl border border-brand-cream-100/40 shadow-sm relative group overflow-hidden"
-                      >
-                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-brand-cream-100 shrink-0">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        <div className="flex-grow flex flex-col justify-between py-0.5">
-                          <div>
-                            <h4 className="text-xs font-bold text-brand-brown-950 leading-tight">
-                              {item.name}
-                            </h4>
-                            <span className="inline-block text-[10px] font-semibold bg-brand-cream-100 text-brand-brown-850 px-2 py-0.5 rounded-full mt-1.5">
-                              {item.selectedWeight === 'single' || item.selectedWeight === 'Standard'
-                                ? 'Standard'
-                                : item.selectedWeight}
-                            </span>
+                    <AnimatePresence initial={false}>
+                      {cartItems.map((item) => (
+                        <motion.div
+                          key={`${item.id}-${item.selectedWeight}`}
+                          initial={{ opacity: 1, height: 'auto', scale: 1 }}
+                          exit={{ 
+                            opacity: 0, 
+                            height: 0, 
+                            paddingTop: 0, 
+                            paddingBottom: 0, 
+                            marginTop: 0, 
+                            marginBottom: 0, 
+                            scale: 0.9, 
+                            transition: { duration: 0.25, ease: 'easeInOut' } 
+                          }}
+                          className="flex gap-4 p-4 bg-white rounded-2xl border border-brand-cream-100/40 shadow-sm relative group overflow-hidden"
+                        >
+                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-brand-cream-100 shrink-0">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
 
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center border border-brand-cream-100 rounded-full bg-brand-cream-50/50 p-1">
-                              <button
-                                onClick={() => updateQuantity(item.id, item.selectedWeight, -1)}
-                                className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="w-8 text-center text-xs font-bold text-brand-brown-950">
-                                {item.quantity}
+                          <div className="flex-grow flex flex-col justify-between py-0.5">
+                            <div>
+                              <h4 className="text-xs font-bold text-brand-brown-950 leading-tight">
+                                {item.name}
+                              </h4>
+                              <span className="inline-block text-[10px] font-semibold bg-brand-cream-100 text-brand-brown-850 px-2 py-0.5 rounded-full mt-1.5">
+                                {item.selectedWeight === 'single' || item.selectedWeight === 'Standard'
+                                  ? 'Standard'
+                                  : item.selectedWeight}
                               </span>
-                              <button
-                                onClick={() => updateQuantity(item.id, item.selectedWeight, 1)}
-                                className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
                             </div>
 
-                            <span className="text-xs font-bold text-brand-brown-950">
-                              ₹{item.price * item.quantity}
-                            </span>
-                          </div>
-                        </div>
+                            <div className="flex items-center justify-between mt-3">
+                              <div className="flex items-center border border-brand-cream-100 rounded-full bg-brand-cream-50/50 p-1">
+                                <button
+                                  onClick={() => updateQuantity(item.id, item.selectedWeight, -1)}
+                                  className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
+                                  aria-label="Decrease quantity"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="w-8 text-center text-xs font-bold text-brand-brown-950">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(item.id, item.selectedWeight, 1)}
+                                  className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
+                                  aria-label="Increase quantity"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
 
-                        <button
-                          onClick={() => removeFromCart(item.id, item.selectedWeight)}
-                          className="absolute top-3 right-3 text-brand-brown-800/40 hover:text-brand-orange-500 transition-colors p-1 rounded-md hover:bg-brand-cream-50 cursor-pointer"
-                          aria-label={`Remove ${item.name} from cart`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))
+                              <span className="text-xs font-bold text-brand-brown-950">
+                                ₹{item.price * item.quantity}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => removeFromCart(item.id, item.selectedWeight)}
+                            className="absolute top-3 right-3 text-brand-brown-800/40 hover:text-brand-orange-500 transition-colors p-1 rounded-md hover:bg-brand-cream-50 cursor-pointer"
+                            aria-label={`Remove ${item.name} from cart`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   )}
                 </div>
 

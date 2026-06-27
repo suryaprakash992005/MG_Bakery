@@ -114,7 +114,7 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentPage }) => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-brand-gold-500 shrink-0 mt-0.5" />
                 <a 
-                  href={settings?.googleMapsLink || "https://www.google.com/maps/search/?api=1&query=M.G.+Bakery+%26+Chat+Corner%2C+Mohanur%2C+Namakkal%2C+Tamil+Nadu+637015"}
+                  href={settings?.googleMapsLink || "https://maps.app.goo.gl/9SK6E3HLb6HzEQFz5?g_st=ac"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-brand-gold-500 transition-colors duration-300"

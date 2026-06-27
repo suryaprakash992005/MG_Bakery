@@ -25,6 +25,7 @@ export const FloatingCartButton: React.FC = () => {
               ease: 'easeInOut',
             },
           }}
+          id="cart-icon-target-float"
           onClick={() => setIsCartOpen(true)}
           className="fixed bottom-6 right-6 z-40 lg:hidden bg-brand-brown-950 text-brand-gold-850 hover:bg-brand-brown-900 p-4 rounded-full shadow-xl shadow-brand-brown-950/20 border border-brand-brown-900/50 flex items-center justify-center cursor-pointer pointer-events-auto"
           aria-label="View Shopping Cart"
@@ -37,7 +38,16 @@ export const FloatingCartButton: React.FC = () => {
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 min-w-5.5 h-5.5 bg-brand-gold-850 text-brand-brown-950 border border-brand-brown-950 text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm"
           >
-            {totalItemsCount}
+            <motion.span
+              key={totalItemsCount}
+              initial={{ y: -6, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 6, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="inline-block"
+            >
+              {totalItemsCount}
+            </motion.span>
           </motion.span>
         </motion.button>
       )}
