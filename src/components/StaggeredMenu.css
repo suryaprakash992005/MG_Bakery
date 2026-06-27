@@ -18,7 +18,8 @@
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
+  height: calc(var(--vh, 1vh) * 100);
   z-index: 40;
   overflow: hidden;
 }

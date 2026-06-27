@@ -94,13 +94,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   ];
 
   return (
-    <div className="pt-0">
+    <div className="pt-0 snap-y-container">
       {/* 1. Hero Section - Mobile View (Inspired by Magnolia Bakery full bleed) */}
       <section 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="block lg:hidden relative h-[88vh] overflow-hidden bg-[#FAF7F2] select-none pt-20"
+        className="block lg:hidden relative h-dvh-locked snap-start-section overflow-hidden bg-[#FAF7F2] select-none pt-20"
       >
         {/* Full-bleed Slideshow Background */}
         <div className="absolute inset-0 z-0">
@@ -205,7 +205,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 1. Hero Section - Desktop View (Previous split columns with BorderGlow restored) */}
-      <section className="hidden lg:flex relative min-h-[90vh] items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-12 pt-28 select-none">
+      <section className="hidden lg:flex relative min-h-dvh-locked snap-start-section items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-12 pt-28 select-none">
         {/* Floating background graphics */}
         <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
         <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
@@ -317,7 +317,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 2. Featured Categories Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
@@ -355,7 +355,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 3. Best Sellers Section */}
-      <section className="py-20 bg-brand-cream-50/30">
+      <section className="py-20 bg-brand-cream-50/30 snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-end justify-between mb-16 gap-6">
             <div className="max-w-xl">
@@ -384,7 +384,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 4. Why Choose Us Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
@@ -431,7 +431,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
       {/* 5. Customer Reviews Carousel */}
       {/* Mobile Quote Carousel View */}
-      <section className="block lg:hidden py-24 bg-[#2A0E0A] text-white overflow-hidden relative">
+      <section className="block lg:hidden py-24 bg-[#2A0E0A] text-white overflow-hidden relative snap-start-section">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#FAF7F2]/10 via-transparent to-transparent opacity-50 pointer-events-none" />
         
         <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
@@ -497,7 +497,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* Desktop Grid Reviews View */}
-      <section className="hidden lg:block py-20 bg-gradient-to-b from-white to-brand-cream-50/50">
+      <section className="hidden lg:block py-20 bg-gradient-to-b from-white to-brand-cream-50/50 snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
@@ -556,7 +556,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 6. Gallery Preview Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-end justify-between mb-16 gap-6">
             <div className="max-w-xl">
@@ -671,7 +671,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 7. Location Section */}
-      <section className="py-20 bg-brand-cream-50/50">
+      <section className="py-20 bg-brand-cream-50/50 snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="glass-card rounded-[2.5rem] p-8 sm:p-12 lg:p-16 relative overflow-hidden shadow-xl border border-white">
             <div className="absolute top-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-brand-gold-100/30 blur-2xl pointer-events-none" />

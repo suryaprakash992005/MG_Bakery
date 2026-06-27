@@ -46,19 +46,26 @@ export const Menu: React.FC = () => {
     })
     .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
+  const scrollToProducts = () => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && productsGridRef.current) {
+      setTimeout(() => {
+        const rect = productsGridRef.current?.getBoundingClientRect();
+        if (rect) {
+          const absoluteTop = rect.top + window.scrollY;
+          window.scrollTo({
+            top: absoluteTop - 130,
+            behavior: 'smooth'
+          });
+        }
+      }, 150);
+    }
+  };
+
   // Auto-scroll product section into view smoothly on mobile when typing
   useEffect(() => {
     if (searchQuery.trim() !== '') {
-      const isMobile = window.innerWidth < 768;
-      if (isMobile && productsGridRef.current) {
-        const rect = productsGridRef.current.getBoundingClientRect();
-        const absoluteTop = rect.top + window.scrollY;
-        // Scroll slightly above the products grid to account for sticky search bar
-        window.scrollTo({
-          top: absoluteTop - 140,
-          behavior: 'smooth'
-        });
-      }
+      scrollToProducts();
     }
   }, [searchQuery]);
 
@@ -76,8 +83,8 @@ export const Menu: React.FC = () => {
 
   return (
     <div 
-      style={{ paddingBottom: isFocused ? '60vh' : '5rem' }} 
-      className="pt-28 min-h-screen bg-brand-cream-50/10 transition-all duration-300"
+      style={{ paddingBottom: isFocused ? '60dvh' : '5rem' }} 
+      className="pt-28 min-h-dvh-locked bg-brand-cream-50/10 transition-all duration-300"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
@@ -121,12 +128,7 @@ export const Menu: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => {
                   setIsFocused(true);
-                  // Smoothly scroll the input into center view if on mobile
-                  setTimeout(() => {
-                    if (window.innerWidth < 768) {
-                      searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                  }, 100);
+                  scrollToProducts();
                 }}
                 onBlur={() => setIsFocused(false)}
                 className="w-full pl-12 pr-6 py-4 rounded-full bg-white border border-brand-cream-200/80 text-brand-brown-950 placeholder-brand-brown-800/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold-500/35 focus:border-brand-gold-500 transition-all"

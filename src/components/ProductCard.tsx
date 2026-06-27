@@ -322,7 +322,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              className="relative w-full max-w-lg bg-[#FAF7F2] rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden border border-brand-cream-100 flex flex-col z-10 max-h-[92vh] sm:max-h-[85vh] font-poppins"
+              className="relative w-full max-w-lg bg-[#FAF7F2] rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden border border-brand-cream-100 flex flex-col z-10 max-h-[92dvh] sm:max-h-[85dvh] font-poppins"
             >
               {/* Image Showcase Container */}
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-brand-cream-100/50">

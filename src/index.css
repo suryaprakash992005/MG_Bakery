@@ -70,8 +70,13 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
   body {
     @apply bg-brand-cream-50 text-brand-brown-950 font-poppins antialiased overflow-x-hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -126,4 +131,21 @@
 /* Remove defaults that clash with styling */
 button:focus, button:focus-visible {
   outline: none;
+}
+
+/* Scroll Snap & Viewport Utilities */
+.snap-y-container {
+  scroll-snap-type: y proximity;
+}
+.snap-start-section {
+  scroll-snap-align: start;
+  scroll-margin-top: 5.5rem;
+}
+.h-dvh-locked {
+  height: 100dvh;
+  height: calc(var(--vh, 1vh) * 100);
+}
+.min-h-dvh-locked {
+  min-height: 100dvh;
+  min-height: calc(var(--vh, 1vh) * 100);
 }
