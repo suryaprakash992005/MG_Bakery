@@ -10,11 +10,24 @@ interface CartIconProps {
 
 export const CartIcon: React.FC<CartIconProps> = ({ className = '', isMobile = false }) => {
   const { totalItemsCount, setIsCartOpen } = useCart();
+  const [isShaking, setIsShaking] = React.useState(false);
+  const prevCount = React.useRef(totalItemsCount);
+
+  React.useEffect(() => {
+    if (totalItemsCount > prevCount.current) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 500);
+      return () => clearTimeout(timer);
+    }
+    prevCount.current = totalItemsCount;
+  }, [totalItemsCount]);
 
   return (
     <button
       onClick={() => setIsCartOpen(true)}
       className={`relative p-2.5 rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center cursor-pointer pointer-events-auto ${
+        isShaking ? 'animate-shake' : ''
+      } ${
         isMobile
           ? 'bg-brand-brown-950 text-brand-gold-850 hover:bg-brand-brown-900 border border-brand-brown-900 shadow-md'
           : 'bg-brand-cream-50 hover:bg-brand-cream-100/50 text-brand-brown-950 hover:text-brand-gold-850 border border-brand-cream-100 shadow-sm'

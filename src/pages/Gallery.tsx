@@ -3,7 +3,7 @@ import { X, ZoomIn, Sparkles } from 'lucide-react';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import { GalleryItem } from '../types';
 import PillFilters from '../components/PillFilters';
-import BorderGlow from '../components/BorderGlow';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -51,44 +51,48 @@ export const Gallery: React.FC = () => {
           activeId={selectedCategory}
           onChange={setSelectedCategory}
           className="mb-12"
-          baseColor="#2C1717"
+          baseColor="#2A0E0A"
           pillColor="#ffffff"
-          hoveredPillTextColor="#FAF8F5"
+          hoveredPillTextColor="#FAF7F2"
           pillTextColor="#5B3535"
         />
 
-        {/* Gallery Masonry Layout */}
-        <div className="columns-2 lg:columns-3 gap-3 sm:gap-6 space-y-3 sm:space-y-6">
-          {filteredGallery.map((item) => (
-            <BorderGlow
-              key={item.id}
-              className="break-inside-avoid cursor-pointer bg-brand-cream-100"
-              backgroundColor="#FAF8F5"
-              glowColor="46 64 52"
-              borderRadius={24}
-              glowRadius={25}
-              glowIntensity={0.8}
-              coneSpread={20}
-              colors={['#D4AF37', '#2C1717', '#A46E6E']}
-              fillOpacity={0.15}
-            >
-              <div onClick={() => setActiveImage(item)} className="relative group w-full h-full">
+        {/* Gallery Masonry Layout with Viewport Scroll Entrance */}
+        <motion.div 
+          layout
+          className="columns-2 lg:columns-3 gap-4 sm:gap-6 space-y-4 sm:space-y-6"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredGallery.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                layout
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.6, delay: Math.min(idx * 0.05, 0.3) }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveImage(item)}
+                className="break-inside-avoid cursor-pointer bg-white rounded-3xl overflow-hidden border border-brand-cream-100/40 shadow-sm hover:shadow-md transition-all duration-300 relative group select-none"
+              >
                 <img
                   src={item.image}
                   alt={item.title}
                   loading="lazy"
-                  className="w-full h-full object-cover transform group-hover:scale-[1.03] transition-transform duration-700"
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
                 
                 {/* Cover Overlay on Hover */}
-                <div className="absolute inset-0 bg-brand-brown-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
+                <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
                   <div className="flex justify-end">
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
                       <ZoomIn className="w-5 h-5" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-[9px] uppercase tracking-widest text-brand-gold-500 font-bold block">
+                    <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
                       {item.category}
                     </span>
                     <span className="text-sm font-bold text-white font-playfair block mt-1">
@@ -96,47 +100,53 @@ export const Gallery: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </div>
-            </BorderGlow>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
-        {/* Lightbox / Modal */}
-        {activeImage && (
-          <div 
-            onClick={() => setActiveImage(null)} 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-950/90 backdrop-blur-md cursor-zoom-out"
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setActiveImage(null)}
-              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-              aria-label="Close image viewer"
-            >
-              <X className="w-6 h-6" />
-            </button>
+        {/* Lightbox / Modal with zoom animations */}
+        <AnimatePresence>
+          {activeImage && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#2A0E0A]/95 backdrop-blur-sm cursor-zoom-out">
+              {/* Backing Close trigger */}
+              <div onClick={() => setActiveImage(null)} className="absolute inset-0" />
 
-            {/* Modal Image Wrapper */}
-            <div 
-              className="max-w-4xl max-h-[85vh] w-full flex flex-col items-center gap-4 focus:outline-none"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={activeImage.image}
-                alt={activeImage.title}
-                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-white/10"
-              />
-              <div className="text-center">
-                <span className="text-[10px] uppercase tracking-widest text-brand-gold-500 font-bold">
-                  {activeImage.category}
-                </span>
-                <h3 className="font-playfair text-lg text-white font-semibold mt-1">
-                  {activeImage.title}
-                </h3>
-              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setActiveImage(null)}
+                className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close image viewer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Modal Image Wrapper */}
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', damping: 25 }}
+                className="max-w-4xl max-h-[85vh] w-full flex flex-col items-center gap-4 focus:outline-none z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={activeImage.image}
+                  alt={activeImage.title}
+                  className="max-w-full max-h-[72vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+                />
+                <div className="text-center">
+                  <span className="text-[10px] uppercase tracking-widest text-[#C9A227] font-bold">
+                    {activeImage.category}
+                  </span>
+                  <h3 className="font-playfair text-lg text-white font-semibold mt-1">
+                    {activeImage.title}
+                  </h3>
+                </div>
+              </motion.div>
             </div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

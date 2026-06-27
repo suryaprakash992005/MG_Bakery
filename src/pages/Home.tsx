@@ -38,14 +38,39 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     .sort((a, b) => a.displayPriority - b.displayPriority);
 
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
     if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
     const interval = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % activeBanners.length);
-    }, 5000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [activeBanners.length, settings.isSliderEnabled]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      setCurrentSlide(prev => (prev + 1) % activeBanners.length);
+    } else if (isRightSwipe) {
+      setCurrentSlide(prev => (prev - 1 + activeBanners.length) % activeBanners.length);
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
 
   const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
 
@@ -69,118 +94,120 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   ];
 
   return (
-    <div className="pt-20">
-      {/* 1. Hero Section */}
-      <section className="relative min-h-[70vh] lg:min-h-[90vh] flex items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-8 lg:py-12">
-        {/* Floating background graphics */}
-        <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
-        <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Hero Left Content */}
+    <div className="pt-0">
+      {/* 1. Hero Section - Full screen bleed inspired by Magnolia Bakery */}
+      <section 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="relative h-[90vh] lg:h-[95vh] flex items-center justify-center overflow-hidden bg-[#FAF7F2] select-none"
+      >
+        {/* Full-bleed Slideshow Background */}
+        <div className="absolute inset-0 z-0">
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              key={bannerToDisplay ? bannerToDisplay.id : 'default'}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2 }}
+              className="relative w-full h-full"
+            >
+              {/* Ken Burns Zoom Effect */}
+              <motion.img
+                src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80'}
+                alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
+                initial={{ scale: 1.0 }}
+                animate={{ scale: 1.08 }}
+                transition={{ duration: 6, ease: 'easeOut' }}
+                className="w-full h-full object-cover"
+              />
+              {/* Overlay Gradient to preserve contrast */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/50 via-[#2A0E0A]/35 to-[#2A0E0A]/70 z-10" />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Floating Particles Effect (Subtle Magnolia luxury aesthetics) */}
+        <div className="absolute inset-0 z-10 pointer-events-none opacity-40">
+          <div className="absolute top-[20%] left-[10%] w-2 h-2 rounded-full bg-[#C9A227]/40 blur-xs animate-float" style={{ animationDelay: '0s', animationDuration: '8s' }} />
+          <div className="absolute top-[40%] right-[15%] w-3 h-3 rounded-full bg-white/30 blur-xs animate-float" style={{ animationDelay: '2s', animationDuration: '10s' }} />
+          <div className="absolute bottom-[30%] left-[20%] w-2 h-2 rounded-full bg-[#C9A227]/30 blur-xs animate-float" style={{ animationDelay: '4s', animationDuration: '7s' }} />
+          <div className="absolute bottom-[15%] right-[25%] w-3 h-3 rounded-full bg-white/20 blur-xs animate-float" style={{ animationDelay: '1s', animationDuration: '12s' }} />
+        </div>
+
+        {/* Content Wrapper */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 relative flex items-center justify-center h-full text-center">
+          <div className="max-w-3xl text-white space-y-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6 max-w-xl text-center lg:text-left"
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="inline-flex items-center gap-1.5 bg-[#C9A227]/25 border border-[#C9A227]/40 px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase"
             >
-              <div className="inline-flex items-center gap-2 bg-brand-cream-100/80 border border-brand-cream-200 px-4 py-1.5 rounded-full text-xs font-semibold text-brand-gold-700 tracking-wider uppercase">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>The Artisan Bakery of Mohanur</span>
-              </div>
-              <h1 className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950 leading-tight">
-                Freshly Baked Happiness for Every Celebration
-              </h1>
-              <p className="text-sm sm:text-base text-brand-brown-800/80 font-light leading-relaxed">
-                Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start pt-4">
-                <button
-                  onClick={() => setCurrentPage('menu')}
-                  className="btn-primary w-full sm:w-auto"
-                >
-                  <span>Explore Menu</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <a
-                  href={`https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(`Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order a fresh cake or inquire about today's specials.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary w-full sm:w-auto"
-                >
-                  <span>Order on WhatsApp</span>
-                </a>
-              </div>
+              <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
+              <span>The Artisan Bakery of Mohanur</span>
             </motion.div>
+            
+            {/* Title with stagger */}
+            <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight">
+              {bannerToDisplay?.title || 'Freshly Baked Happiness'}
+            </h1>
+            
+            <p className="text-sm sm:text-base text-white/95 font-light leading-relaxed max-w-xl mx-auto">
+              {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.'}
+            </p>
 
-            {/* Hero Right Media */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1 }}
-              className="relative flex justify-center lg:justify-end w-full"
-            >
-              <BorderGlow
-                className="w-full max-w-[480px] aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white animate-float"
-                backgroundColor="#ffffff"
-                borderRadius={40}
-                glowColor="46 64 52"
-                glowRadius={40}
-                glowIntensity={1.0}
-                colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                fillOpacity={0.1}
-                animated={true}
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center pt-6">
+              <button
+                onClick={() => setCurrentPage('menu')}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/20 cursor-pointer animate-pulse"
               >
-                <div className="relative w-full h-full overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={bannerToDisplay ? bannerToDisplay.id : 'default'}
-                      src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
-                      alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                      className="w-full h-full object-cover absolute inset-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8 }}
-                    />
-                  </AnimatePresence>
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
-                  
-                  {/* Banner overlay text if slide has title */}
-                  {bannerToDisplay && (bannerToDisplay.title || bannerToDisplay.subtitle) && (
-                    <div className="absolute top-6 left-6 right-6 z-10 bg-black/30 backdrop-blur-xs rounded-xl p-3 border border-white/5 pointer-events-none">
-                      {bannerToDisplay.title && (
-                        <h4 className="text-xs font-bold text-brand-gold-500 uppercase tracking-wider font-playfair">{bannerToDisplay.title}</h4>
-                      )}
-                      {bannerToDisplay.subtitle && (
-                        <p className="text-[10px] text-white/80 font-light mt-0.5 leading-snug">{bannerToDisplay.subtitle}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Floating Micro-Card */}
-                  <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
-                        {bannerToDisplay?.cta_text || 'Featured Cake'}
-                      </span>
-                      <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
-                        {bannerToDisplay?.featured_product_name || 'Fresh Bakery Special'}
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => setCurrentPage('cakes')}
-                      className="w-10 h-10 rounded-full bg-brand-brown-950 text-brand-gold-850 flex items-center justify-center hover:scale-105 transition-transform"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </BorderGlow>
-            </motion.div>
+                Explore Menu
+              </button>
+              <button
+                onClick={() => setCurrentPage('cakes')}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold tracking-wide hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-white/35 backdrop-blur-xs cursor-pointer"
+              >
+                Order Cakes
+              </button>
+            </div>
           </div>
+        </div>
+
+        {/* Carousel indicators dots */}
+        {activeBanners.length > 1 && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+            {activeBanners.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                  currentSlide === idx ? 'bg-[#C9A227] w-6' : 'bg-white/40'
+                }`}
+                aria-label={`Slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Floating Micro-Card Bottom Right */}
+        <div className="absolute bottom-16 sm:bottom-6 right-4 left-4 sm:left-auto bg-[#2A0E0A]/90 backdrop-blur-md p-4 rounded-2xl flex items-center justify-between z-20 border border-white/10 max-w-sm sm:w-80 shadow-2xl transition-all">
+          <div className="min-w-0 pr-4">
+            <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
+              {bannerToDisplay?.cta_text || 'Featured Specialty'}
+            </span>
+            <span className="text-sm font-bold text-white font-playfair block mt-0.5 truncate">
+              {bannerToDisplay?.featured_product_name || 'Fresh Bakery Selection'}
+            </span>
+          </div>
+          <button 
+            onClick={() => setCurrentPage('cakes')}
+            className="w-9 h-9 rounded-full bg-[#C9A227] text-[#2A0E0A] flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </section>
 
@@ -298,59 +325,66 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 5. Customer Reviews Carousel */}
-      <section className="py-20 bg-gradient-to-b from-white to-brand-cream-50/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
+      <section className="py-24 bg-[#2A0E0A] text-white overflow-hidden relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#FAF7F2]/10 via-transparent to-transparent opacity-50 pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <div className="max-w-2xl mx-auto mb-16">
+            <span className="text-[10px] uppercase tracking-widest text-[#C9A227] font-bold block mb-3">
+              TESTIMONIALS
+            </span>
+            <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-white">
               Sweet Words from Customers
             </h2>
-            <p className="text-sm text-brand-brown-800/60 font-light mt-4">
-              Real reviews from real people in Mohanur and surrounding regions.
-            </p>
+            <div className="w-16 h-[2px] bg-[#C9A227] mx-auto mt-4" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {REVIEWS.map((review) => (
-              <BorderGlow
-                key={review.id}
-                backgroundColor="#ffffff"
-                borderRadius={24}
-                glowColor="46 64 52"
-                glowRadius={25}
-                glowIntensity={0.6}
-                coneSpread={20}
-                colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                fillOpacity={0.08}
-                className="h-full"
-              >
-                <div className="p-6 flex flex-col h-full justify-between">
-                  <div>
-                    <div className="flex items-center gap-1 text-brand-gold-500 mb-4">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <Star key={idx} className="w-4 h-4 fill-brand-gold-500 text-brand-gold-500" />
-                      ))}
+          <div className="relative min-h-[250px] flex items-center justify-center">
+            <div className="w-full">
+              <div className="max-w-2xl mx-auto space-y-6">
+                {/* Google Star Rating */}
+                <div className="flex items-center justify-center gap-1.5 text-[#C9A227]">
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <div key={idx}>
+                      <Star className="w-5 h-5 fill-[#C9A227] text-[#C9A227]" />
                     </div>
-                    <p className="text-xs sm:text-sm text-brand-brown-800/80 font-light italic leading-relaxed">
-                      "{review.comment}"
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 mt-6 pt-4 border-t border-brand-cream-50">
-                    <img
-                      src={review.avatar}
-                      alt={review.name}
-                      className="w-10 h-10 rounded-full object-cover border border-brand-cream-100"
-                    />
-                    <div>
-                      <h4 className="text-xs font-bold text-brand-brown-950 leading-tight">
-                        {review.name}
-                      </h4>
-                      <span className="text-[10px] text-brand-brown-800/50 font-medium">
-                        {review.role}
-                      </span>
-                    </div>
+                  ))}
+                </div>
+
+                <blockquote className="font-playfair text-lg sm:text-xl md:text-2xl font-light italic leading-relaxed text-white/95">
+                  "{REVIEWS[currentSlide % REVIEWS.length].comment}"
+                </blockquote>
+
+                <div className="flex items-center justify-center gap-3 pt-4">
+                  <img
+                    src={REVIEWS[currentSlide % REVIEWS.length].avatar}
+                    alt={REVIEWS[currentSlide % REVIEWS.length].name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-[#C9A227] shadow-md"
+                  />
+                  <div className="text-left">
+                    <h4 className="text-sm font-bold text-white leading-tight">
+                      {REVIEWS[currentSlide % REVIEWS.length].name}
+                    </h4>
+                    <span className="text-xs text-[#C9A227] font-medium">
+                      {REVIEWS[currentSlide % REVIEWS.length].role}
+                    </span>
                   </div>
                 </div>
-              </BorderGlow>
+              </div>
+            </div>
+          </div>
+
+          {/* Dots Controls */}
+          <div className="flex items-center justify-center gap-2 mt-8">
+            {REVIEWS.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  (currentSlide % REVIEWS.length) === idx ? 'bg-[#C9A227] w-6' : 'bg-white/30'
+                }`}
+                aria-label={`Go to review ${idx + 1}`}
+              />
             ))}
           </div>
         </div>

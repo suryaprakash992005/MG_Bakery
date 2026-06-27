@@ -13,6 +13,19 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) => {
   const { settings } = useBakeryDatabase();
+  const [scrolled, setScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
     { id: 'home', label: 'Home' },
@@ -57,9 +70,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
 
   return (
     <>
-      <nav className="hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 lg:px-8 py-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="glass-nav rounded-full px-6 py-3 flex items-center justify-between shadow-lg shadow-brand-brown-950/10">
+      <nav className={`hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-4 sm:px-6 lg:px-8 ${scrolled ? 'py-2' : 'py-5'}`}>
+        <div className="max-w-7xl mx-auto font-poppins">
+          <div className={`rounded-full px-6 py-3 flex items-center justify-between transition-all duration-500 ${scrolled ? 'glass-nav bg-[#FAF7F2]/90 border-brand-cream-200/50 shadow-md py-2.5' : 'glass-nav bg-[#FAF7F2]/75 border-brand-cream-100/30 shadow-lg py-3.5'}`}>
             {/* Logo */}
             <button 
               onClick={() => handleNavClick('home')}
@@ -73,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
                   {part1}
                 </span>
                 {part2 && (
-                  <span className="block text-[10px] sm:text-xs font-medium text-brand-gold-700 tracking-widest uppercase">
+                  <span className="block text-[10px] sm:text-xs font-medium text-brand-gold-850 tracking-widest uppercase">
                     {part2}
                   </span>
                 )}
@@ -89,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
                     className={`relative px-4 py-2 text-sm font-medium transition-colors duration-300 rounded-full cursor-pointer ${
-                      isActive ? 'text-brand-brown-950' : 'text-brand-brown-800/75 hover:text-brand-brown-950 hover:bg-brand-cream-100/30'
+                      isActive ? 'text-brand-brown-950 font-semibold' : 'text-brand-brown-800/75 hover:text-brand-brown-950 hover:bg-brand-cream-100/30'
                     }`}
                   >
                     {item.label}
@@ -112,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
                 href={`https://wa.me/${cleanNumber}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to explore your menu and place an order.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full shadow-md shadow-brand-brown-950/20 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-1.5"
+                className="bg-brand-brown-950 hover:bg-brand-brown-900 text-brand-cream-50 text-xs sm:text-sm font-semibold px-5 py-2.5 rounded-full shadow-md shadow-brand-brown-950/20 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-1.5"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-brand-gold-850" />
                 <span>Order on WhatsApp</span>
@@ -131,8 +144,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
         displayItemNumbering={true}
         isFixed={true}
         changeMenuColorOnOpen={true}
-        colors={['#E7DCBA', '#A38848', '#5B3535']}
-        accentColor="#D4AF37"
+        colors={['#F3EDE2', '#BEA66B', '#2A0E0A']}
+        accentColor="#C9A227"
       />
     </>
   );

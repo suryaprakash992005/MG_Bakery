@@ -14,9 +14,9 @@
   --color-brand-brown-700: #6E4040;
   --color-brand-brown-800: #5B3535;
   --color-brand-brown-900: #4D2E2E;
-  --color-brand-brown-950: #2C1717;
+  --color-brand-brown-950: #2A0E0A;
 
-  --color-brand-cream-50: #FAF8F5;
+  --color-brand-cream-50: #FAF7F2;
   --color-brand-cream-100: #F3EDE2;
   --color-brand-cream-200: #E7DCBA;
   --color-brand-cream-300: #D5C493;
@@ -31,7 +31,7 @@
   --color-brand-gold-500: #B89B1C;
   --color-brand-gold-600: #9C8114;
   --color-brand-gold-700: #7E6610;
-  --color-brand-gold-850: #D4AF37;
+  --color-brand-gold-850: #C9A227;
 
   --color-brand-orange-50: #FFF9F5;
   --color-brand-orange-100: #FFEEDF;
@@ -44,6 +44,7 @@
   --animate-fade-in: fadeIn 0.5s ease-out forwards;
   --animate-slide-up: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-shake: shake 0.5s ease-in-out;
 
   @keyframes fadeInUp {
     0% { opacity: 0; transform: translateY(20px); }
@@ -60,6 +61,11 @@
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-15px); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    20%, 60% { transform: scale(1.1) rotate(-8deg); }
+    40%, 80% { transform: scale(1.1) rotate(8deg); }
   }
 }
 
