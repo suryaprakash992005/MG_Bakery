@@ -263,7 +263,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .order('created_at', { ascending: false });
 
       if (ordersError) {
-        // Phase 7: Add console error logging for debugging
+        console.log("ORDER FETCH ERROR:", ordersError);
         console.error("Order fetch failed:", ordersError);
         return;
       }
@@ -279,7 +279,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             phone: custPhone,
             deliveryAddress: 'Store Pickup',
             orderedProduct: order.product_name,
-            amount: Number(order.amount),
+            amount: Number(order.price) * Number(order.quantity),
             paymentMethod: 'UPI / Offline',
             paymentStatus: order.status === 'Delivered' ? 'Paid' : 'Pending',
             orderStatus: order.status as any,
@@ -289,8 +289,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 id: `item-${order.id}`,
                 name: order.product_name,
                 selectedWeight: 'Standard',
-                price: Number(order.amount),
-                quantity: 1
+                price: Number(order.price),
+                quantity: Number(order.quantity)
               }
             ]
           };
@@ -792,27 +792,66 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
 
-      // 2. Insert single order summary row to match EXACT orders columns (id uuid, customer_id, product_name, amount, status, created_at)
-      const { data: insertedData, error: orderError } = await supabase
-        .from('orders')
-        .insert([
-          {
-            customer_id: customerId,
-            product_name: o.orderedProduct,
-            amount: o.amount,
-            status: o.orderStatus || 'Pending',
-            created_at: createdDate
-          }
-        ])
-        .select('id')
-        .maybeSingle();
+      // 2. Insert order items to match EXACT orders columns (id uuid, customer_id, product_name, quantity, price, status, created_at)
+      let generatedOrderId = `ORD-${Date.now().toString().slice(-6)}`;
+      
+      if (o.items && o.items.length > 0) {
+        const insertPromises = o.items.map((item) => {
+          return supabase
+            .from('orders')
+            .insert([
+              {
+                customer_id: customerId,
+                product_name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                status: o.orderStatus || 'Pending',
+                created_at: createdDate
+              }
+            ])
+            .select('id')
+            .maybeSingle();
+        });
+        
+        const results = await Promise.all(insertPromises);
+        const firstErr = results.find(r => r.error);
+        if (firstErr) {
+          console.log("ORDER INSERT ERROR:", firstErr.error);
+          console.error("Order insert failed:", firstErr.error);
+          throw firstErr.error;
+        }
+        
+        const firstInserted = results.find(r => r.data?.id);
+        if (firstInserted?.data?.id) {
+          generatedOrderId = firstInserted.data.id;
+        }
+      } else {
+        // Fallback single row insert
+        const { data: insertedData, error: orderError } = await supabase
+          .from('orders')
+          .insert([
+            {
+              customer_id: customerId,
+              product_name: o.orderedProduct,
+              quantity: 1,
+              price: o.amount,
+              status: o.orderStatus || 'Pending',
+              created_at: createdDate
+            }
+          ])
+          .select('id')
+          .maybeSingle();
 
-      if (orderError) {
-        console.error("Order insert failed:", orderError);
-        throw orderError;
+        if (orderError) {
+          console.log("ORDER INSERT ERROR:", orderError);
+          console.error("Order insert failed:", orderError);
+          throw orderError;
+        }
+        if (insertedData?.id) {
+          generatedOrderId = insertedData.id;
+        }
       }
 
-      const generatedOrderId = insertedData?.id || `ORD-${Date.now().toString().slice(-6)}`;
       addHistoryLog(`New Order Received: ${generatedOrderId}`, `Customer: ${o.customerName} | Amount: ₹${o.amount}`);
       await fetchSupabaseOrders();
 
