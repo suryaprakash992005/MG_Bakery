@@ -51,12 +51,12 @@ const LanyardCard: React.FC<LanyardCardProps> = ({ isDragging, setIsDragging }) 
   useFrame((state) => {
     if (!points.current.length) return;
     
-    const { pointer, viewport } = state;
+    const { mouse, viewport } = state;
     
     // 1. Drag interaction - pull the last node of the rope to target pointer coordinate
     if (isDragging) {
-      const targetX = (pointer.x * viewport.width) / 1.7;
-      const targetY = (pointer.y * viewport.height) / 1.7;
+      const targetX = (mouse.x * viewport.width) / 1.7;
+      const targetY = (mouse.y * viewport.height) / 1.7;
       const targetZ = 0;
       
       const lastPoint = points.current[points.current.length - 1];
@@ -149,7 +149,7 @@ const LanyardCard: React.FC<LanyardCardProps> = ({ isDragging, setIsDragging }) 
       // Dynamic Twist Rotation (on Y axis)
       let targetRotY = 0;
       if (isDragging) {
-        targetRotY = pointer.x * 0.9;
+        targetRotY = mouse.x * 0.9;
       } else {
         // Natural spinning drag decay oscillation
         const time = state.clock.getElapsedTime();
@@ -166,8 +166,13 @@ const LanyardCard: React.FC<LanyardCardProps> = ({ isDragging, setIsDragging }) 
     <group>
       {/* Golden hanging thread line */}
       {/* @ts-ignore */}
-      <line ref={ropeRef}>
-        <bufferGeometry />
+      <line ref={ropeRef} raycast={() => null}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[new Float32Array(Array(14 * 3).fill(0)), 3]}
+          />
+        </bufferGeometry>
         <lineBasicMaterial color="#D4AF37" linewidth={2.5} />
       </line>
 
