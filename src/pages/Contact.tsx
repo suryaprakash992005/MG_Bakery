@@ -63,8 +63,8 @@ Message: ${formData.message}`;
           </p>
         </div>
 
-        {/* Mobile Quick Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 lg:hidden">
+        {/* Quick Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
           <a
             href={`tel:${cleanNumber}`}
             className="flex items-center justify-center gap-3 bg-brand-brown-950 text-brand-cream-50 hover:bg-brand-brown-900 px-6 py-4 rounded-2xl font-semibold shadow-md active:scale-95 transition-transform cursor-pointer"
