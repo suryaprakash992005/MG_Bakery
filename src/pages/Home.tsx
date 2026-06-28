@@ -436,8 +436,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 5. Customer Reviews Carousel */}
-      {/* Mobile Quote Carousel View */}
-      <section className="block lg:hidden py-24 bg-[#2A0E0A] text-white overflow-hidden relative snap-start-section">
+      <section className="block py-24 bg-[#2A0E0A] text-white overflow-hidden relative snap-start-section">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#FAF7F2]/10 via-transparent to-transparent opacity-50 pointer-events-none" />
         
         <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
@@ -502,64 +501,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         </div>
       </section>
 
-      {/* Desktop Grid Reviews View */}
-      <section className="hidden lg:block py-20 bg-gradient-to-b from-white to-brand-cream-50/50 snap-start-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
-              Sweet Words from Customers
-            </h2>
-            <p className="text-sm text-brand-brown-800/60 font-light mt-4">
-              Real reviews from real people in Mohanur and surrounding regions.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-4 gap-6">
-            {REVIEWS.map((review) => (
-              <BorderGlow
-                key={review.id}
-                backgroundColor="#ffffff"
-                borderRadius={24}
-                glowColor="46 64 52"
-                glowRadius={25}
-                glowIntensity={0.6}
-                coneSpread={20}
-                colors={['#C9A227', '#2A0E0A', '#A46E6E']}
-                fillOpacity={0.08}
-                className="h-full"
-              >
-                <div className="p-6 flex flex-col h-full justify-between">
-                  <div>
-                    <div className="flex items-center gap-1 text-brand-gold-500 mb-4">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <Star key={idx} className="w-4 h-4 fill-[#C9A227] text-[#C9A227]" />
-                      ))}
-                    </div>
-                    <p className="text-xs sm:text-sm text-brand-brown-800/80 font-light italic leading-relaxed">
-                      "{review.comment}"
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 mt-6 pt-4 border-t border-brand-cream-50">
-                    <img
-                      src={review.avatar}
-                      alt={review.name}
-                      className="w-10 h-10 rounded-full object-cover border border-brand-cream-100"
-                    />
-                    <div>
-                      <h4 className="text-xs font-bold text-brand-brown-950 leading-tight">
-                        {review.name}
-                      </h4>
-                      <span className="text-[10px] text-brand-brown-800/50 font-medium">
-                        {review.role}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </BorderGlow>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* 6. Gallery Preview Section */}
       <section className="py-20 bg-white snap-start-section">
