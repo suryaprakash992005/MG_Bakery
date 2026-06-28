@@ -25,9 +25,9 @@ export const Customers: React.FC = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      // 1. Fetch all customer profiles from Supabase customers table
+      // 1. Fetch all customer profiles from Supabase profiles table
       const { data: customersData, error: customersError } = await supabase
-        .from('customers')
+        .from('profiles')
         .select('*')
         .order('full_name', { ascending: true });
 

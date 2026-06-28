@@ -3,8 +3,7 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '../utils/supabase';
 
 export interface CustomerProfile {
-  id: string;
-  user_id: string;
+  id: string; // auth.users.id
   full_name: string;
   email: string;
   phone?: string;
@@ -33,11 +32,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Step 3 & Step 5: read profiles table, match id directly, use maybeSingle()
       const { data, error } = await supabase
-        .from('customers')
+        .from('profiles')
         .select('*')
-        .eq('user_id', userId)
-        .single();
+        .eq('id', userId)
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching customer profile from Supabase:', error);
@@ -94,13 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // 2. Create custom profile row in customers table if user was created successfully
+      // 2. Create custom profile row in profiles table (Step 2, Step 4: id = data.user.id)
       if (data?.user) {
         const { error: profileError } = await supabase
-          .from('customers')
+          .from('profiles')
           .insert([
             {
-              user_id: data.user.id,
+              id: data.user.id,
               full_name: name,
               email,
               phone,
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ]);
 
         if (profileError) {
-          console.error('Error creating customer entry:', profileError);
+          console.error('Error creating profile entry:', profileError);
         }
       }
 

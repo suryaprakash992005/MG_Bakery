@@ -252,7 +252,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*, customers(full_name, phone)')
+        .select('*, profiles(full_name, phone)')
         .order('created_at', { ascending: false });
 
       if (ordersError) {
@@ -262,8 +262,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (ordersData) {
         const mapped: UnifiedOrder[] = ordersData.map((order: any) => {
-          const custName = order.customers?.full_name || 'Guest Customer';
-          const custPhone = order.customers?.phone || 'N/A';
+          const custName = order.profiles?.full_name || 'Guest Customer';
+          const custPhone = order.profiles?.phone || 'N/A';
           return {
             id: order.id,
             customerId: order.customer_id,
@@ -750,53 +750,27 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let customerId: string | null = null;
 
       if (user) {
-        const { data: custRow } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-        if (custRow) {
-          customerId = custRow.id;
+        customerId = user.id;
+      } else {
+        // Fallback: look up profile by phone number
+        if (o.phone) {
+          const { data: profileRow } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('phone', o.phone)
+            .limit(1);
+          if (profileRow && profileRow.length > 0) {
+            customerId = profileRow[0].id;
+          }
         }
-      }
-
-      // If not logged in, try to match by phone number
-      if (!customerId && o.phone) {
-        const { data: custRow } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('phone', o.phone)
-          .limit(1);
-        if (custRow && custRow.length > 0) {
-          customerId = custRow[0].id;
-        }
-      }
-
-      // If still not found, create a guest customer profile row to link this order
-      if (!customerId) {
-        const { data: guestRow, error: guestError } = await supabase
-          .from('customers')
-          .insert([
-            {
-              user_id: user?.id || '00000000-0000-0000-0000-000000000000',
-              full_name: o.customerName || 'Guest Customer',
-              email: `${Date.now()}@guest.com`,
-              phone: o.phone || 'N/A',
-              total_orders: 0,
-              total_spent: 0.00
-            }
-          ])
-          .select('id')
-          .single();
-
-        if (!guestError && guestRow) {
-          customerId = guestRow.id;
-        } else {
-          console.error('Error creating guest customer profile:', guestError);
-          // Try to get any default customer id
-          const { data: firstCust } = await supabase.from('customers').select('id').limit(1);
-          if (firstCust && firstCust.length > 0) {
-            customerId = firstCust[0].id;
+        // If still no matching profile, query the first profile available in the DB as fallback
+        if (!customerId) {
+          const { data: firstProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .limit(1);
+          if (firstProfile && firstProfile.length > 0) {
+            customerId = firstProfile[0].id;
           }
         }
       }
