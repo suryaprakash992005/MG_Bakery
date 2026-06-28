@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronRight, Star } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -13,17 +13,6 @@ interface HomeProps {
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const { products, gallery, banners, settings } = useBakeryDatabase();
-  const categoriesScrollRef = useRef<HTMLDivElement>(null);
-
-  const scrollCategories = (direction: 'left' | 'right') => {
-    if (categoriesScrollRef.current) {
-      const scrollAmount = 320;
-      categoriesScrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -339,29 +328,21 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </p>
           </div>
 
-          <div className="relative group/category-slider">
-            {/* Scroll navigation arrows (Desktop only) */}
-            <button 
-              onClick={() => scrollCategories('left')}
-              className="absolute left-[-1.5rem] top-[40%] -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-brand-cream-200 text-brand-brown-950 flex items-center justify-center shadow-lg active:scale-95 transition-all opacity-0 group-hover/category-slider:opacity-100 hidden md:flex cursor-pointer hover:bg-brand-cream-50 hover:text-brand-gold-750"
-              aria-label="Scroll Categories Left"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+          <div className="w-full overflow-hidden relative py-4">
+            {/* Fade gradients at edges for smooth transition */}
+            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
 
-            <div 
-              ref={categoriesScrollRef}
-              className="flex overflow-x-auto pb-8 gap-6 no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0 justify-start"
-            >
-              {categories.map((cat, idx) => (
+            <div className="flex animate-marquee-loop hover:[animation-play-state:paused] gap-6">
+              {/* Loop categories multiple times to guarantee seamless scrolling width */}
+              {[...categories, ...categories, ...categories].map((cat, idx) => (
                 <motion.button
                   key={idx}
-                  whileHover={{ y: -5 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
                   onClick={() => {
-                    // Direct to menu page and automatically filter (state is managed inside Menu.tsx, we can link to menu page)
                     setCurrentPage('menu');
                   }}
-                  className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md"
+                  className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md cursor-pointer"
                 >
                   <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
                     <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
@@ -375,14 +356,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 </motion.button>
               ))}
             </div>
-
-            <button 
-              onClick={() => scrollCategories('right')}
-              className="absolute right-[-1.5rem] top-[40%] -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-brand-cream-200 text-brand-brown-950 flex items-center justify-center shadow-lg active:scale-95 transition-all opacity-0 group-hover/category-slider:opacity-100 hidden md:flex cursor-pointer hover:bg-brand-cream-50 hover:text-brand-gold-755"
-              aria-label="Scroll Categories Right"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </section>

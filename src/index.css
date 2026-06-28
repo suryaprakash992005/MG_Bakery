@@ -170,3 +170,18 @@ button:focus, button:focus-visible {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-1400px);
+  }
+}
+
+.animate-marquee-loop {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
