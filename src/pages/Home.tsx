@@ -6,6 +6,7 @@ import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from '../components/BorderGlow';
 import { useBakeryDatabase } from '../context/DatabaseContext';
+import LightRays from '../components/LightRays';
 
 interface HomeProps {
   setCurrentPage: (page: string) => void;
@@ -128,6 +129,21 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
           </AnimatePresence>
         </div>
 
+        {/* WebGL Light Rays Animation (React Bits) */}
+        <div className="absolute inset-0 z-5 pointer-events-none">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#C9A227"
+            raysSpeed={1.0}
+            lightSpread={0.8}
+            rayLength={1.5}
+            followMouse={true}
+            mouseInfluence={0.05}
+            noiseAmount={0.03}
+            distortion={0.02}
+          />
+        </div>
+
         {/* Floating Particles Effect (Subtle Magnolia luxury aesthetics) */}
         <div className="absolute inset-0 z-10 pointer-events-none opacity-40">
           <div className="absolute top-[20%] left-[10%] w-2 h-2 rounded-full bg-[#C9A227]/40 blur-xs animate-float" style={{ animationDelay: '0s', animationDuration: '8s' }} />
@@ -206,6 +222,21 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
       {/* 1. Hero Section - Desktop View (Previous split columns with BorderGlow restored) */}
       <section className="hidden lg:flex relative min-h-dvh-locked snap-start-section items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-12 pt-28 select-none">
+        {/* WebGL Light Rays Animation (React Bits) */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#C9A227"
+            raysSpeed={0.8}
+            lightSpread={0.9}
+            rayLength={1.8}
+            followMouse={true}
+            mouseInfluence={0.05}
+            noiseAmount={0.02}
+            distortion={0.02}
+          />
+        </div>
+
         {/* Floating background graphics */}
         <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
         <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
