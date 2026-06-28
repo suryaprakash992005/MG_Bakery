@@ -5,14 +5,6 @@ import { useBakeryDatabase } from '../context/DatabaseContext';
 import CurvedLoop from '../components/CurvedLoop';
 import FlowingSelect from '../components/FlowingSelect';
 
-const FLAVOR_OPTIONS = [
-  { value: 'All', label: 'All Flavors', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=150&q=80' },
-  { value: 'Chocolate & Truffle', label: 'Chocolate & Truffle', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=150&q=80' },
-  { value: 'Fruit & Berry', label: 'Fruit & Berry', image: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?auto=format&fit=crop&w=150&q=80' },
-  { value: 'Traditional & Fusion', label: 'Traditional & Fusion', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=150&q=80' },
-  { value: 'Specialty', label: 'Specialty', image: 'https://images.unsplash.com/photo-1616541823729-00fe0aacd32c?auto=format&fit=crop&w=150&q=80' }
-];
-
 const PRICE_OPTIONS = [
   { value: 'All', label: 'All Prices', image: 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?auto=format&fit=crop&w=150&q=80' },
   { value: 'under-400', label: 'Under ₹400', image: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&w=150&q=80' },
@@ -29,7 +21,6 @@ const WEIGHT_OPTIONS = [
 
 
 export const Cakes: React.FC = () => {
-  const [selectedFlavor, setSelectedFlavor] = useState<string>('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All');
   const [selectedWeight, setSelectedWeight] = useState<string>('All');
 
@@ -51,11 +42,7 @@ export const Cakes: React.FC = () => {
     .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999));
 
   const filteredCakes = cakeProducts.filter((cake) => {
-    // 1. Flavor Filter
-    const matchesFlavor =
-      selectedFlavor === 'All' || cake.tags?.includes(selectedFlavor);
-
-    // 2. Price Filter (based on 1/2 kg price if available, otherwise first tier)
+    // 1. Price Filter (based on 1/2 kg price if available, otherwise first tier)
     const getRepresentativePrice = (): number => {
       if (typeof cake.price === 'number') return cake.price;
       const priceObj = cake.price as any;
@@ -71,7 +58,7 @@ export const Cakes: React.FC = () => {
       matchesPrice = priceVal > 800;
     }
 
-    // 3. Weight Filter (checks if specific price tier exists)
+    // 2. Weight Filter (checks if specific price tier exists)
     let matchesWeight = true;
     if (typeof cake.price === 'object') {
       const priceObj = cake.price as any;
@@ -87,7 +74,7 @@ export const Cakes: React.FC = () => {
       matchesWeight = false;
     }
 
-    return matchesFlavor && matchesPrice && matchesWeight;
+    return matchesPrice && matchesWeight;
   });
 
   return (
@@ -119,14 +106,7 @@ export const Cakes: React.FC = () => {
             <h2 className="font-playfair text-lg font-bold">Filter Collections</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Flavor Category */}
-            <FlowingSelect
-              label="Flavor Profile"
-              value={selectedFlavor}
-              onChange={setSelectedFlavor}
-              options={FLAVOR_OPTIONS}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {/* Price Categories (Representative ½ Kg) */}
             <FlowingSelect
@@ -146,11 +126,10 @@ export const Cakes: React.FC = () => {
           </div>
 
           {/* Reset Filters Option */}
-          {(selectedFlavor !== 'All' || selectedPriceRange !== 'All' || selectedWeight !== 'All') && (
+          {(selectedPriceRange !== 'All' || selectedWeight !== 'All') && (
             <div className="mt-6 pt-4 border-t border-brand-cream-50 flex justify-end">
               <button
                 onClick={() => {
-                  setSelectedFlavor('All');
                   setSelectedPriceRange('All');
                   setSelectedWeight('All');
                 }}
@@ -183,7 +162,6 @@ export const Cakes: React.FC = () => {
             </p>
             <button
               onClick={() => {
-                setSelectedFlavor('All');
                 setSelectedPriceRange('All');
                 setSelectedWeight('All');
               }}
