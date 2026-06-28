@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronRight, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -13,6 +13,17 @@ interface HomeProps {
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const { products, gallery, banners, settings } = useBakeryDatabase();
+  const categoriesScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoriesScrollRef.current) {
+      const scrollAmount = 320;
+      categoriesScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -75,13 +86,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
 
   const categories = [
-    { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Pastries', desc: 'Indulgent sweet slices', image: 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1535141192574-5d4897c13636?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Pastries', desc: 'Indulgent sweet slices', image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80' },
     { name: 'Cookies', desc: 'Crunchy traditional biscuits', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Puffs', desc: 'Hot, flaky oven snacks', image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Puffs', desc: 'Hot, flaky oven snacks', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=300&q=80' },
     { name: 'Breads', desc: 'Fresh soft daily loaves', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Snacks', desc: 'Traditional savory mixtures', image: 'https://images.unsplash.com/photo-1613721418184-2438c82524a4?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Beverages', desc: 'Filter coffee & rose milk', image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Snacks', desc: 'Traditional savory mixtures', image: 'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Beverages', desc: 'Filter coffee & rose milk', image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=300&q=80' },
   ];
 
   const whyChooseUs = [
@@ -328,28 +339,50 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </p>
           </div>
 
-          <div className="flex overflow-x-auto pb-8 gap-6 scrollbar-thin scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0 justify-start lg:justify-center">
-            {categories.map((cat, idx) => (
-              <motion.button
-                key={idx}
-                whileHover={{ y: -5 }}
-                onClick={() => {
-                  // Direct to menu page and automatically filter (state is managed inside Menu.tsx, we can link to menu page)
-                  setCurrentPage('menu');
-                }}
-                className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md"
-              >
-                <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
-                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                </div>
-                <h3 className="font-playfair text-base font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="text-[10px] text-brand-brown-800/50 mt-1 font-light leading-snug">
-                  {cat.desc}
-                </p>
-              </motion.button>
-            ))}
+          <div className="relative group/category-slider">
+            {/* Scroll navigation arrows (Desktop only) */}
+            <button 
+              onClick={() => scrollCategories('left')}
+              className="absolute left-[-1.5rem] top-[40%] -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-brand-cream-200 text-brand-brown-950 flex items-center justify-center shadow-lg active:scale-95 transition-all opacity-0 group-hover/category-slider:opacity-100 hidden md:flex cursor-pointer hover:bg-brand-cream-50 hover:text-brand-gold-750"
+              aria-label="Scroll Categories Left"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div 
+              ref={categoriesScrollRef}
+              className="flex overflow-x-auto pb-8 gap-6 no-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0 justify-start"
+            >
+              {categories.map((cat, idx) => (
+                <motion.button
+                  key={idx}
+                  whileHover={{ y: -5 }}
+                  onClick={() => {
+                    // Direct to menu page and automatically filter (state is managed inside Menu.tsx, we can link to menu page)
+                    setCurrentPage('menu');
+                  }}
+                  className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md"
+                >
+                  <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
+                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                  </div>
+                  <h3 className="font-playfair text-base font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors">
+                    {cat.name}
+                  </h3>
+                  <p className="text-[10px] text-brand-brown-800/50 mt-1 font-light leading-snug">
+                    {cat.desc}
+                  </p>
+                </motion.button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => scrollCategories('right')}
+              className="absolute right-[-1.5rem] top-[40%] -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white border border-brand-cream-200 text-brand-brown-950 flex items-center justify-center shadow-lg active:scale-95 transition-all opacity-0 group-hover/category-slider:opacity-100 hidden md:flex cursor-pointer hover:bg-brand-cream-50 hover:text-brand-gold-755"
+              aria-label="Scroll Categories Right"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </section>
