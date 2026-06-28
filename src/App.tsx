@@ -10,6 +10,7 @@ import { CustomCake } from './pages/CustomCake';
 import { Gallery } from './pages/Gallery';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
+import { SpecialOffer } from './pages/SpecialOffer';
 import { AdminApp } from './admin/AdminApp';
 import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
@@ -94,6 +95,7 @@ const AppContent: React.FC = () => {
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/special-offer" element={<SpecialOffer />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>
