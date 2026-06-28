@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coffee, ShieldCheck, Award, Heart, CheckCircle2, Leaf } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
+import ScrollStack, { ScrollStackItem } from '../components/ScrollStack';
 
 // Count-up helper component for viewport trigger
 const CountUp: React.FC<{ end: number; duration?: number; suffix?: string }> = ({ end, duration = 1.5, suffix = '' }) => {
@@ -136,35 +137,53 @@ export const About: React.FC = () => {
           </div>
         </div>
 
-        {/* Section 3: History Timeline */}
-        <div className="py-20 border-t border-brand-cream-100/50 mb-24">
+        {/* Section 3: History Timeline (with ScrollStack Card effect) */}
+        <div className="py-20 border-t border-brand-cream-100/50 mb-24 max-w-4xl mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-[10px] uppercase tracking-widest text-[#C9A227] font-bold block mb-2">Our Journey</span>
-            <h2 className="font-playfair text-3xl font-bold text-brand-brown-950">A Timeline of Baking Excellence</h2>
+            <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-brand-brown-950">A Timeline of Baking Excellence</h2>
           </div>
           
-          <div className="relative border-l-2 border-brand-cream-200 ml-4 space-y-12 max-w-3xl mx-auto">
+          <ScrollStack 
+            useWindowScroll={true} 
+            itemDistance={120} 
+            itemScale={0.04} 
+            itemStackDistance={35}
+            stackPosition="25%"
+            baseScale={0.88}
+          >
             {[
               { year: '1996', title: 'The Oven Lights Up', desc: 'First traditional Iyengar bakery established in Mohanur, Namakkal, baking crispy salt biscuits and wood-fired breads.' },
               { year: '2005', title: 'Generations of Loyalty', desc: 'Introduced signature local treats like Honey Cake and Hot Puffs, becoming a household name in Mohanur.' },
               { year: '2018', title: 'Modern Celebration Cakes', desc: 'Launched the Luxury Celebration Cake Boutique, blending custom fondant aesthetics with high-quality recipes.' },
               { year: '2026', title: 'Going Digital & Beyond', desc: 'Connecting directly with customers through professional WhatsApp shopping and online database menus.' }
             ].map((milestone, idx) => (
-              <motion.div 
-                key={idx}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: idx * 0.15 }}
-                className="relative pl-8"
-              >
-                <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-[#C9A227] border-4 border-[#FAF7F2] shadow-sm animate-pulse" />
-                <span className="font-playfair text-xl font-black text-[#C9A227]">{milestone.year}</span>
-                <h4 className="text-base font-bold text-brand-brown-950 mt-1">{milestone.title}</h4>
-                <p className="text-xs text-brand-brown-800/60 font-light mt-1.5 leading-relaxed">{milestone.desc}</p>
-              </motion.div>
+              <ScrollStackItem key={idx}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 h-full relative">
+                  {/* Left: Year Badge */}
+                  <div className="flex items-center gap-3 border-b sm:border-b-0 sm:border-r border-brand-cream-100 pb-3 sm:pb-0 sm:pr-8 shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-cream-50 flex items-center justify-center font-playfair font-black text-xl text-[#C9A227]">
+                      {milestone.year.substring(2)}
+                    </div>
+                    <span className="font-playfair text-3xl font-black text-[#C9A227] tracking-tight">{milestone.year}</span>
+                  </div>
+                  {/* Right: Text content */}
+                  <div className="space-y-1.5 flex-1 text-left">
+                    <h4 className="text-base sm:text-lg font-bold text-brand-brown-950 leading-tight">
+                      {milestone.title}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-brand-brown-800/60 font-light leading-relaxed">
+                      {milestone.desc}
+                    </p>
+                  </div>
+                  {/* Luxury accent background */}
+                  <div className="absolute right-0 bottom-0 opacity-[0.03] pointer-events-none text-[#C9A227] font-bold text-7xl select-none font-playfair">
+                    {milestone.year}
+                  </div>
+                </div>
+              </ScrollStackItem>
             ))}
-          </div>
+          </ScrollStack>
         </div>
 
         {/* Section 4: Story of Ingredients */}
