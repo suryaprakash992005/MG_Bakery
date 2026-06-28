@@ -75,12 +75,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
 
   const categories = [
-    { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1535141192574-5d4897c13636?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
     { name: 'Pastries', desc: 'Indulgent sweet slices', image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80' },
     { name: 'Cookies', desc: 'Crunchy traditional biscuits', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=300&q=80' },
     { name: 'Puffs', desc: 'Hot, flaky oven snacks', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=300&q=80' },
     { name: 'Breads', desc: 'Fresh soft daily loaves', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Snacks', desc: 'Traditional savory mixtures', image: 'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Snacks', desc: 'Traditional savory mixtures', image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=300&q=80' },
     { name: 'Beverages', desc: 'Filter coffee & rose milk', image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=300&q=80' },
   ];
 
