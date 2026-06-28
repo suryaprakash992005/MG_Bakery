@@ -17,11 +17,13 @@ export const Dashboard: React.FC = () => {
         const { count, error } = await supabase
           .from('profiles')
           .select('id', { count: 'exact', head: true });
-        if (!error && count !== null) {
+        if (error) {
+          console.error("Profile fetch failed:", error);
+        } else if (count !== null) {
           setTotalCustomersCount(count);
         }
       } catch (err) {
-        console.error('Error fetching customers count:', err);
+        console.error("Profile fetch failed:", err);
       }
     };
     fetchCustomersCount();

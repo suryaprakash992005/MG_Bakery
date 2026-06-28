@@ -31,7 +31,10 @@ export const Customers: React.FC = () => {
         .select('*')
         .order('full_name', { ascending: true });
 
-      if (customersError) throw customersError;
+      if (customersError) {
+        console.error("Profile fetch failed:", customersError);
+        throw customersError;
+      }
 
       if (customersData) {
         const aggregated: CustomerStats[] = customersData.map((cust: any) => ({
@@ -46,7 +49,7 @@ export const Customers: React.FC = () => {
         setCustomers(aggregated);
       }
     } catch (err) {
-      console.error('Error fetching customers:', err);
+      console.error("Profile fetch failed:", err);
     } finally {
       setLoading(false);
     }

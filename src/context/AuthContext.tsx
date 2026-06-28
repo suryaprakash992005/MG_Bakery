@@ -96,21 +96,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 2. Create custom profile row in profiles table (Step 2, Step 4: id = data.user.id)
       if (data?.user) {
+        console.log("USER CREATED:", data.user);
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from("profiles")
           .insert([
             {
               id: data.user.id,
               full_name: name,
-              email,
-              phone,
+              email: email,
+              phone: phone,
               total_orders: 0,
-              total_spent: 0.00
+              total_spent: 0
             }
           ]);
 
+        console.log("PROFILE INSERT ERROR:", profileError);
         if (profileError) {
-          console.error('Error creating profile entry:', profileError);
+          console.error("Profile insert failed:", profileError);
         }
       }
 

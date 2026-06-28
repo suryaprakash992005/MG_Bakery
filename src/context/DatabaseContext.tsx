@@ -250,13 +250,21 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchSupabaseOrders = async () => {
     try {
+      // Phase 6: Check auth session to resolve 401 console issues for anonymous storefront guests
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setOrders([]);
+        return;
+      }
+
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*, profiles(full_name, phone)')
         .order('created_at', { ascending: false });
 
       if (ordersError) {
-        console.error('Error fetching orders from Supabase:', ordersError);
+        // Phase 7: Add console error logging for debugging
+        console.error("Order fetch failed:", ordersError);
         return;
       }
 
@@ -271,7 +279,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             phone: custPhone,
             deliveryAddress: 'Store Pickup',
             orderedProduct: order.product_name,
-            amount: Number(order.price) * Number(order.quantity),
+            amount: Number(order.amount),
             paymentMethod: 'UPI / Offline',
             paymentStatus: order.status === 'Delivered' ? 'Paid' : 'Pending',
             orderStatus: order.status as any,
@@ -281,8 +289,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 id: `item-${order.id}`,
                 name: order.product_name,
                 selectedWeight: 'Standard',
-                price: Number(order.price),
-                quantity: order.quantity
+                price: Number(order.amount),
+                quantity: 1
               }
             ]
           };
@@ -415,9 +423,14 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(ordersChannel);
-    };
+    // Listen for auth session updates to fetch/clear orders dynamically
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchSupabaseOrders();
+      } else if (event === 'SIGNED_OUT') {
+        setOrders([]);
+      }
+    });
 
     // 5. Load Banners from Supabase
     fetchBanners();
@@ -455,6 +468,11 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setOffers(initial);
       localStorage.setItem('admin_offers', JSON.stringify(initial));
     }
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Save utility
@@ -741,7 +759,6 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // --- ORDERS ---
   // --- ORDERS ---
   const addOrder = async (o: Omit<UnifiedOrder, 'id' | 'createdDate'>): Promise<UnifiedOrder> => {
-    const orderId = `ORD-${Date.now().toString().slice(-6)}`;
     const createdDate = new Date().toISOString();
 
     try {
@@ -775,47 +792,33 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
 
-      // 2. Insert into orders table (split into individual rows per cart item to match requested schema)
-      if (o.items && o.items.length > 0) {
-        const insertPromises = o.items.map((item, idx) => {
-          const itemOrderId = idx === 0 ? orderId : `${orderId}-${idx + 1}`;
-          return supabase
-            .from('orders')
-            .insert([
-              {
-                id: itemOrderId,
-                customer_id: customerId,
-                product_name: `${item.name} (${item.selectedWeight})`,
-                quantity: item.quantity,
-                price: item.price,
-                status: o.orderStatus || 'Pending',
-                created_at: createdDate
-              }
-            ]);
-        });
-        await Promise.all(insertPromises);
-      } else {
-        await supabase
-          .from('orders')
-          .insert([
-            {
-              id: orderId,
-              customer_id: customerId,
-              product_name: o.orderedProduct,
-              quantity: 1,
-              price: o.amount,
-              status: o.orderStatus || 'Pending',
-              created_at: createdDate
-            }
-          ]);
+      // 2. Insert single order summary row to match EXACT orders columns (id uuid, customer_id, product_name, amount, status, created_at)
+      const { data: insertedData, error: orderError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            customer_id: customerId,
+            product_name: o.orderedProduct,
+            amount: o.amount,
+            status: o.orderStatus || 'Pending',
+            created_at: createdDate
+          }
+        ])
+        .select('id')
+        .maybeSingle();
+
+      if (orderError) {
+        console.error("Order insert failed:", orderError);
+        throw orderError;
       }
 
-      addHistoryLog(`New Order Received: ${orderId}`, `Customer: ${o.customerName} | Amount: ₹${o.amount}`);
+      const generatedOrderId = insertedData?.id || `ORD-${Date.now().toString().slice(-6)}`;
+      addHistoryLog(`New Order Received: ${generatedOrderId}`, `Customer: ${o.customerName} | Amount: ₹${o.amount}`);
       await fetchSupabaseOrders();
 
       return {
         ...o,
-        id: orderId,
+        id: generatedOrderId,
         createdDate
       };
     } catch (err) {

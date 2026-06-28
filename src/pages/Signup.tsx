@@ -17,10 +17,10 @@ export const Signup: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isSubmitting) {
       navigate('/profile');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isSubmitting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

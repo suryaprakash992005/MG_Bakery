@@ -35,17 +35,19 @@ export const Profile: React.FC = () => {
     if (!profile) return;
     setFetchingOrders(true);
     try {
-      // Fetch orders for this customer from the public.orders table
       const { data, error } = await supabase
         .from('orders')
         .select('*')
         .eq('customer_id', profile.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Order fetch failed:", error);
+        throw error;
+      }
       setOrders(data || []);
     } catch (err) {
-      console.error('Error fetching customer orders:', err);
+      console.error("Order fetch failed:", err);
     } finally {
       setFetchingOrders(false);
     }
