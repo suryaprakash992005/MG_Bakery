@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CATEGORIES as DEFAULT_CATEGORIES } from '../data';
-import { INITIAL_SETTINGS } from '../admin/utils/mockData';
+import { INITIAL_ORDERS, INITIAL_SETTINGS } from '../admin/utils/mockData';
 import { supabase } from '../utils/supabase';
 
 export interface UnifiedProduct {
@@ -45,7 +45,6 @@ export interface UnifiedCategory {
 
 export interface UnifiedOrder {
   id: string;
-  customerId?: string;
   customerName: string;
   phone: string;
   deliveryAddress?: string;
@@ -142,11 +141,10 @@ interface DatabaseContextType {
   reorderCategories: (categories: UnifiedCategory[]) => void;
 
   // Order Operations
-  addOrder: (order: Omit<UnifiedOrder, 'id' | 'createdDate'>) => Promise<UnifiedOrder>;
+  addOrder: (order: Omit<UnifiedOrder, 'id' | 'createdDate'>) => UnifiedOrder;
   updateOrderStatus: (id: string, status: UnifiedOrder['orderStatus']) => void;
   updateOrderPaymentStatus: (id: string, status: UnifiedOrder['paymentStatus']) => void;
   deleteOrder: (id: string) => void;
-  fetchSupabaseOrders: () => Promise<void>;
 
   // Banner Operations
   saveBanner: (banner: UnifiedBanner) => void | Promise<void>;
@@ -245,62 +243,6 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (err) {
       console.error('Error fetching gallery:', err);
-    }
-  };
-
-  const fetchSupabaseOrders = async () => {
-    try {
-      // Phase 6: Check auth session to resolve 401 console issues for anonymous storefront guests
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setOrders([]);
-        return;
-      }
-
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*, profiles(full_name, phone)')
-        .order('created_at', { ascending: false });
-
-      if (ordersError) {
-        console.log("ORDER FETCH ERROR:", ordersError);
-        console.error("Order fetch failed:", ordersError);
-        return;
-      }
-
-      if (ordersData) {
-        const mapped: UnifiedOrder[] = ordersData.map((order: any) => {
-          const custName = order.profiles?.full_name || 'Guest Customer';
-          const custPhone = order.profiles?.phone || 'N/A';
-          return {
-            id: order.id,
-            customerId: order.customer_id,
-            customerName: custName,
-            phone: custPhone,
-            deliveryAddress: 'Store Pickup',
-            orderedProduct: order.product_name,
-            amount: Number(order.price) * Number(order.quantity),
-            paymentMethod: 'UPI / Offline',
-            paymentStatus: order.status === 'Delivered' ? 'Paid' : 'Pending',
-            orderStatus: order.status as any,
-            createdDate: order.created_at,
-            items: [
-              {
-                id: `item-${order.id}`,
-                name: order.product_name,
-                selectedWeight: 'Standard',
-                price: Number(order.price),
-                quantity: Number(order.quantity)
-              }
-            ]
-          };
-        });
-        setOrders(mapped);
-      } else {
-        setOrders([]);
-      }
-    } catch (err) {
-      console.error('Error loading Supabase orders:', err);
     }
   };
 
@@ -414,23 +356,35 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       localStorage.setItem('admin_categories', JSON.stringify(initial));
     }
 
-    // 4. Load Orders from Supabase & Subscribe to Realtime Updates
-    fetchSupabaseOrders();
-    const ordersChannel = supabase
-      .channel('orders-realtime-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        fetchSupabaseOrders();
-      })
-      .subscribe();
-
-    // Listen for auth session updates to fetch/clear orders dynamically
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        fetchSupabaseOrders();
-      } else if (event === 'SIGNED_OUT') {
-        setOrders([]);
-      }
-    });
+    // 4. Load Orders
+    const localOrders = localStorage.getItem('admin_orders');
+    if (localOrders) {
+      setOrders(JSON.parse(localOrders));
+    } else {
+      const initial: UnifiedOrder[] = INITIAL_ORDERS.map((o) => ({
+        id: o.id,
+        customerName: o.customerName,
+        phone: o.phone,
+        deliveryAddress: o.deliveryAddress,
+        orderedProduct: o.orderedProduct,
+        amount: o.amount,
+        paymentMethod: o.paymentMethod,
+        paymentStatus: o.paymentStatus as any,
+        orderStatus: o.orderStatus as any,
+        createdDate: o.createdDate,
+        items: [
+          {
+            id: `item-${Date.now()}`,
+            name: o.orderedProduct,
+            selectedWeight: 'Standard',
+            price: o.amount / o.quantity,
+            quantity: o.quantity
+          }
+        ]
+      }));
+      setOrders(initial);
+      localStorage.setItem('admin_orders', JSON.stringify(initial));
+    }
 
     // 5. Load Banners from Supabase
     fetchBanners();
@@ -440,12 +394,12 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // 7. Load History
     const localHistory = localStorage.getItem('admin_history');
-    if (localHistory) setHistory(JSON.parse(localHistory!));
+    if (localHistory) setHistory(JSON.parse(localHistory));
 
     // 8. Load Offers
     const localOffers = localStorage.getItem('admin_offers');
     if (localOffers) {
-      setOffers(JSON.parse(localOffers!));
+      setOffers(JSON.parse(localOffers));
     } else {
       const initial: UnifiedOffer[] = [
         {
@@ -468,11 +422,6 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setOffers(initial);
       localStorage.setItem('admin_offers', JSON.stringify(initial));
     }
-
-    return () => {
-      supabase.removeChannel(ordersChannel);
-      subscription.unsubscribe();
-    };
   }, []);
 
   // Save utility
@@ -757,156 +706,44 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- ORDERS ---
-  // --- ORDERS ---
-  const addOrder = async (o: Omit<UnifiedOrder, 'id' | 'createdDate'>): Promise<UnifiedOrder> => {
-    const createdDate = new Date().toISOString();
-
-    try {
-      // 1. Get current logged-in user profile UUID (if any)
-      const { data: { user } } = await supabase.auth.getUser();
-      let customerId: string | null = null;
-
-      if (user) {
-        customerId = user.id;
-      } else {
-        // Fallback: look up profile by phone number
-        if (o.phone) {
-          const { data: profileRow } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('phone', o.phone)
-            .limit(1);
-          if (profileRow && profileRow.length > 0) {
-            customerId = profileRow[0].id;
-          }
-        }
-        // If still no matching profile, query the first profile available in the DB as fallback
-        if (!customerId) {
-          const { data: firstProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .limit(1);
-          if (firstProfile && firstProfile.length > 0) {
-            customerId = firstProfile[0].id;
-          }
-        }
-      }
-
-      // 2. Insert order items to match EXACT orders columns (id uuid, customer_id, product_name, quantity, price, status, created_at)
-      let generatedOrderId = `ORD-${Date.now().toString().slice(-6)}`;
-      
-      if (o.items && o.items.length > 0) {
-        const insertPromises = o.items.map((item) => {
-          return supabase
-            .from('orders')
-            .insert([
-              {
-                customer_id: customerId,
-                product_name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-                status: o.orderStatus || 'Pending',
-                created_at: createdDate
-              }
-            ])
-            .select('id')
-            .maybeSingle();
-        });
-        
-        const results = await Promise.all(insertPromises);
-        const firstErr = results.find(r => r.error);
-        if (firstErr) {
-          console.log("ORDER INSERT ERROR:", firstErr.error);
-          console.error("Order insert failed:", firstErr.error);
-          throw firstErr.error;
-        }
-        
-        const firstInserted = results.find(r => r.data?.id);
-        if (firstInserted?.data?.id) {
-          generatedOrderId = firstInserted.data.id;
-        }
-      } else {
-        // Fallback single row insert
-        const { data: insertedData, error: orderError } = await supabase
-          .from('orders')
-          .insert([
-            {
-              customer_id: customerId,
-              product_name: o.orderedProduct,
-              quantity: 1,
-              price: o.amount,
-              status: o.orderStatus || 'Pending',
-              created_at: createdDate
-            }
-          ])
-          .select('id')
-          .maybeSingle();
-
-        if (orderError) {
-          console.log("ORDER INSERT ERROR:", orderError);
-          console.error("Order insert failed:", orderError);
-          throw orderError;
-        }
-        if (insertedData?.id) {
-          generatedOrderId = insertedData.id;
-        }
-      }
-
-      addHistoryLog(`New Order Received: ${generatedOrderId}`, `Customer: ${o.customerName} | Amount: ₹${o.amount}`);
-      await fetchSupabaseOrders();
-
-      return {
-        ...o,
-        id: generatedOrderId,
-        createdDate
-      };
-    } catch (err) {
-      console.error('Failed to submit order to Supabase:', err);
-      throw err;
-    }
+  const addOrder = (o: Omit<UnifiedOrder, 'id' | 'createdDate'>): UnifiedOrder => {
+    const newOrder: UnifiedOrder = {
+      ...o,
+      id: `ORD-${Date.now().toString().slice(-6)}`,
+      createdDate: new Date().toISOString()
+    };
+    const updated = [newOrder, ...orders];
+    setOrders(updated);
+    syncToLocal('admin_orders', updated);
+    addHistoryLog(`New Order Received: ${newOrder.id}`, `Customer: ${newOrder.customerName} | Amount: ₹${newOrder.amount}`);
+    return newOrder;
   };
 
-  const updateOrderStatus = async (id: string, status: UnifiedOrder['orderStatus']) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error updating order status in Supabase:', error);
-        return;
+  const updateOrderStatus = (id: string, status: UnifiedOrder['orderStatus']) => {
+    const updated = orders.map(item => {
+      if (item.id === id) {
+        const paymentStatus = status === 'Delivered' ? 'Paid' as const : item.paymentStatus;
+        return { ...item, orderStatus: status, paymentStatus };
       }
-
-      addHistoryLog(`Updated Order Status: ${id}`, `New Status: ${status}`);
-      await fetchSupabaseOrders();
-    } catch (err) {
-      console.error('Error updating order status:', err);
-    }
+      return item;
+    });
+    setOrders(updated);
+    syncToLocal('admin_orders', updated);
+    addHistoryLog(`Updated Order Status: ${id}`, `New Status: ${status}`);
   };
 
-  const updateOrderPaymentStatus = async (id: string, status: UnifiedOrder['paymentStatus']) => {
-    // Payment status is mapped to 'status' or logged if schema doesn't hold it
-    addHistoryLog(`Payment Status Logged: ${id}`, `Payment Status: ${status}`);
+  const updateOrderPaymentStatus = (id: string, status: UnifiedOrder['paymentStatus']) => {
+    const updated = orders.map(item => item.id === id ? { ...item, paymentStatus: status } : item);
+    setOrders(updated);
+    syncToLocal('admin_orders', updated);
+    addHistoryLog(`Updated Order Payment Status: ${id}`, `Payment Status: ${status}`);
   };
 
-  const deleteOrder = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting order from Supabase:', error);
-        return;
-      }
-
-      addHistoryLog(`Removed Order Archive: ${id}`, `ID: ${id}`);
-      await fetchSupabaseOrders();
-    } catch (err) {
-      console.error('Error deleting order:', err);
-    }
+  const deleteOrder = (id: string) => {
+    const updated = orders.filter(item => item.id !== id);
+    setOrders(updated);
+    syncToLocal('admin_orders', updated);
+    addHistoryLog(`Removed Order Archive: ${id}`, `ID: ${id}`);
   };
 
   // --- BANNERS ---
@@ -1080,7 +917,6 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateOrderStatus,
         updateOrderPaymentStatus,
         deleteOrder,
-        fetchSupabaseOrders,
 
         saveBanner,
         deleteBanner,

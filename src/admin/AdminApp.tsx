@@ -7,8 +7,6 @@ import { Products } from './pages/Products';
 import { GalleryManager } from './pages/GalleryManager';
 import { BannerManager } from './pages/BannerManager';
 import { Settings } from './pages/Settings';
-import { Dashboard } from './pages/Dashboard';
-import { Customers } from './pages/Customers';
 import { DatabaseProvider } from '../context/DatabaseContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -16,9 +14,9 @@ const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
 
   useEffect(() => {
-    // Redirect /admin or /admin/ to dashboard
+    // Redirect /admin or /admin/ to products
     if (currentPath === '/admin' || currentPath === '/admin/' || currentPath === '/admin-dashboard') {
-      navigate('/admin/dashboard');
+      navigate('/admin/products');
     }
   }, [currentPath, navigate]);
 
@@ -29,9 +27,6 @@ const AdminRouteSwitcher: React.FC = () => {
   if (currentPath.startsWith('/admin')) {
     const renderAdminPage = () => {
       switch (currentPath) {
-        case '/admin/dashboard':
-        case '/admin-dashboard':
-          return <Dashboard />;
         case '/admin/products':
         case '/admin-products':
           return <Products />;
@@ -43,14 +38,11 @@ const AdminRouteSwitcher: React.FC = () => {
         case '/admin-banner':
         case '/admin-banner-manager':
           return <BannerManager />;
-        case '/admin/customers':
-        case '/admin-customers':
-          return <Customers />;
         case '/admin/settings':
         case '/admin-settings':
           return <Settings />;
         default:
-          return <Dashboard />;
+          return <Products />;
       }
     };
 

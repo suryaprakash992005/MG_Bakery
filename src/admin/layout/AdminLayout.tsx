@@ -12,9 +12,7 @@ import {
   ChevronRight,
   Coffee,
   Globe,
-  Layers,
-  LayoutDashboard,
-  Users
+  Layers
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -39,11 +37,9 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigationItems: SidebarItem[] = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Products', path: '/admin/products', icon: Cake },
     { name: 'Gallery Manager', path: '/admin/gallery-manager', icon: ImageIcon },
     { name: 'Banner Manager', path: '/admin/banner-manager', icon: Layers },
-    { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
