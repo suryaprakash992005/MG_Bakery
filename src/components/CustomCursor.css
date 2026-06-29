@@ -1,0 +1,63 @@
+.custom-cursor-dot,
+.custom-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform, width, height, background-color, border-color, opacity;
+  transition: 
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.custom-cursor-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #C9A227;
+  margin-left: -3px;
+  margin-top: -3px;
+}
+
+.custom-cursor-ring {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid rgba(201, 162, 39, 0.4);
+  margin-left: -16px;
+  margin-top: -16px;
+}
+
+/* Hover style expansions */
+.custom-cursor-dot.cursor-hovered {
+  width: 0px;
+  height: 0px;
+  opacity: 0;
+}
+
+.custom-cursor-ring.cursor-hovered {
+  width: 50px;
+  height: 50px;
+  margin-left: -25px;
+  margin-top: -25px;
+  border-color: #C9A227;
+  background-color: rgba(201, 162, 39, 0.08);
+  box-shadow: 0 0 15px rgba(201, 162, 39, 0.15);
+}
+
+/* Hide default cursor on desktop when custom cursor is used */
+@media (min-width: 1025px) {
+  body, 
+  a, 
+  button, 
+  [role="button"],
+  input, 
+  select, 
+  textarea {
+    cursor: none !important;
+  }
+}

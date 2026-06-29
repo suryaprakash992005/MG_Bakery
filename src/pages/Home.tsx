@@ -12,8 +12,84 @@ interface HomeProps {
   setCurrentPage: (page: string) => void;
 }
 
+const AnimatedHeading: React.FC<{ text: string; className?: string }> = ({ text, className = "" }) => {
+  const words = text.split(" ");
+  return (
+    <h1 className={className}>
+      {words.map((word, wordIndex) => (
+        <span key={wordIndex} className="inline-block whitespace-nowrap mr-[0.22em]">
+          {Array.from(word).map((char, charIndex) => (
+            <motion.span
+              key={charIndex}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.35,
+                delay: (wordIndex * 4 + charIndex) * 0.025,
+                ease: [0.215, 0.610, 0.355, 1.000]
+              }}
+              className="inline-block"
+            >
+              {char}
+            </motion.span>
+          ))}
+        </span>
+      ))}
+    </h1>
+  );
+};
+
+const BakeryFloaters: React.FC = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-20">
+      <motion.svg
+        className="absolute top-[18%] left-[6%] w-12 h-12 text-[#C9A227]"
+        initial={{ y: 0, rotate: 0 }}
+        animate={{ y: [0, -20, 0], rotate: [0, 8, -8, 0] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 2a4 4 0 0 0-4 4c0 1.2.5 2.3 1.4 3C6.7 9.8 4 12.6 4 16h16c0-3.4-2.7-6.2-5.4-7 .9-.7 1.4-1.8 1.4-3a4 4 0 0 0-4-4zm0 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-6 14h12v2H6v-2z"/>
+      </motion.svg>
+      <motion.svg
+        className="absolute top-[55%] left-[8%] w-10 h-10 text-brand-brown-600"
+        initial={{ y: 0, rotate: 0 }}
+        animate={{ y: [0, 15, 0], rotate: [0, -10, 10, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M2 21h18v-2H2v2zM20 8h-2V5h2v3zm2-5h-4v2h2v3h-2v2h4V3zM4 19h12V5H4v14z"/>
+      </motion.svg>
+      <motion.svg
+        className="absolute top-[22%] right-[10%] w-14 h-14 text-[#C9A227]"
+        initial={{ y: 0, rotate: 0 }}
+        animate={{ y: [0, -25, 0], rotate: [0, 12, -12, 0] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4 18h16l-1-1c1.23-1.54 1.97-3.49 1.97-5.61 0-4.97-4.03-9-9-9zm-5 6c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm5 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
+      </motion.svg>
+    </div>
+  );
+};
+
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const { products, gallery, banners, settings } = useBakeryDatabase();
+
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = (e.clientY / window.innerHeight) * 2 - 1;
+      setMousePos({ x, y });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -166,9 +242,10 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </motion.div>
             
             {/* Title with stagger */}
-            <h1 className="font-playfair text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-              {bannerToDisplay?.title || 'Freshly Baked Happiness'}
-            </h1>
+            <AnimatedHeading 
+              text={bannerToDisplay?.title || 'Freshly Baked Happiness'} 
+              className="font-playfair text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight"
+            />
             
             <p className="text-sm text-white/95 font-light leading-relaxed max-w-xl mx-auto">
               {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.'}
@@ -238,10 +315,11 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         </div>
 
         {/* Floating background graphics */}
+        <BakeryFloaters />
         <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
         <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Hero Left Content */}
             <motion.div
@@ -254,11 +332,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>The Artisan Bakery of Mohanur</span>
               </div>
-              <h1 className="font-playfair text-5xl font-bold text-brand-brown-950 leading-tight">
-                Freshly Baked Happiness for Every Celebration
-              </h1>
+              <AnimatedHeading 
+                text={bannerToDisplay?.title || "Freshly Baked Happiness for Every Celebration"} 
+                className="font-playfair text-5xl font-bold text-brand-brown-950 leading-tight"
+              />
               <p className="text-base text-brand-brown-805/85 font-light leading-relaxed">
-                Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
+                {bannerToDisplay?.subtitle || "Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily."}
               </p>
               
               <div className="flex flex-row items-center gap-4 justify-start pt-4">
@@ -286,7 +365,11 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               className="relative flex justify-end w-full"
             >
               <BorderGlow
-                className="w-full max-w-[480px] aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white animate-float"
+                style={{
+                  transform: `perspective(1000px) rotateY(${mousePos.x * 12}deg) rotateX(${-mousePos.y * 12}deg)`,
+                  transition: 'transform 0.15s ease-out'
+                }}
+                className="w-full max-w-[480px] aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white"
                 backgroundColor="#ffffff"
                 borderRadius={40}
                 glowColor="46 64 52"

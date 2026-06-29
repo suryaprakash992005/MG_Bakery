@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coffee, ShieldCheck, Award, Heart, CheckCircle2, Leaf } from 'lucide-react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import ScrollStack, { ScrollStackItem } from '../components/ScrollStack';
 
 // Count-up helper component for viewport trigger
@@ -27,6 +27,13 @@ const CountUp: React.FC<{ end: number; duration?: number; suffix?: string }> = (
 };
 
 export const About: React.FC = () => {
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: timelineRef,
+    offset: ['start center', 'end center']
+  });
+  const scaleY = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
   const highlights = [
     { title: 'Pure Ingredients', desc: '100% select grain flours, fresh local dairy, and organic sweet fruits with no artificial additives.', icon: Leaf },
     { title: 'Strict Hygiene', desc: 'Surgical cleanliness levels across our ovens, mixing stations, and display arrays.', icon: ShieldCheck },
@@ -61,18 +68,24 @@ export const About: React.FC = () => {
               We merge the traditional art of South Indian Iyengar baking with modern pastry engineering. Whether it is our classic honey cake that takes you back to childhood, or our exotic Rasmalai fusion cake designed for grand milestones, we bake each item with absolute passion.
             </p>
             
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-brand-cream-100/50">
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-brand-cream-100/50">
               <div className="border-l-2 border-brand-gold-850 pl-4">
-                <span className="block text-3xl font-bold text-[#2A0E0A] font-playfair">
-                  <CountUp end={100} suffix="%" />
+                <span className="block text-xl sm:text-2xl lg:text-3xl font-bold text-[#2A0E0A] font-playfair">
+                  <CountUp end={5000} suffix="+" />
                 </span>
-                <span className="block text-[10px] text-brand-brown-800/50 uppercase tracking-wider font-semibold mt-1">Freshly Baked Daily</span>
+                <span className="block text-[9px] sm:text-[10px] text-brand-brown-800/50 uppercase tracking-wider font-semibold mt-1">Customers</span>
               </div>
               <div className="border-l-2 border-brand-gold-850 pl-4">
-                <span className="block text-3xl font-bold text-[#2A0E0A] font-playfair">
-                  <CountUp end={50} suffix="+" />
+                <span className="block text-xl sm:text-2xl lg:text-3xl font-bold text-[#2A0E0A] font-playfair">
+                  <CountUp end={100} suffix="+" />
                 </span>
-                <span className="block text-[10px] text-brand-brown-800/50 uppercase tracking-wider font-semibold mt-1">Delicacy Varieties</span>
+                <span className="block text-[9px] sm:text-[10px] text-brand-brown-800/50 uppercase tracking-wider font-semibold mt-1">Cake Types</span>
+              </div>
+              <div className="border-l-2 border-brand-gold-850 pl-4">
+                <span className="block text-xl sm:text-2xl lg:text-3xl font-bold text-[#2A0E0A] font-playfair">
+                  <CountUp end={20} suffix="+" />
+                </span>
+                <span className="block text-[9px] sm:text-[10px] text-brand-brown-800/50 uppercase tracking-wider font-semibold mt-1">Years Experience</span>
               </div>
             </div>
           </motion.div>
@@ -138,8 +151,16 @@ export const About: React.FC = () => {
         </div>
 
         {/* Section 3: History Timeline (with ScrollStack Card effect) */}
-        <div className="py-20 border-t border-brand-cream-100/50 mb-24 max-w-4xl mx-auto px-4">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+        <div ref={timelineRef} className="py-20 border-t border-brand-cream-100/50 mb-24 max-w-4xl mx-auto px-4 relative">
+          {/* Animated vertical timeline growth line */}
+          <div className="absolute left-[38px] sm:left-[54px] top-[160px] bottom-[60px] w-1 bg-brand-cream-200/40 rounded-full pointer-events-none z-0">
+            <motion.div
+              style={{ scaleY }}
+              className="w-full h-full bg-brand-gold-850 rounded-full origin-top"
+            />
+          </div>
+
+          <div className="text-center max-w-2xl mx-auto mb-16 relative z-10">
             <span className="text-[10px] uppercase tracking-widest text-[#C9A227] font-bold block mb-2">Our Journey</span>
             <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-brand-brown-950">A Timeline of Baking Excellence</h2>
           </div>

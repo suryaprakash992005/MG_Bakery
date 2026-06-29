@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, Filter } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import CurvedLoop from '../components/CurvedLoop';
 import FlowingSelect from '../components/FlowingSelect';
@@ -150,11 +151,25 @@ export const Cakes: React.FC = () => {
 
         {/* Product Grid */}
         {filteredCakes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredCakes.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <motion.div 
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredCakes.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border border-brand-cream-100/50 max-w-xl mx-auto">
             <p className="text-brand-brown-800/60 font-light text-base">

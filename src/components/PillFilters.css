@@ -49,7 +49,7 @@
   background: var(--base, #2C1717);
   color: var(--hover-text, #FAF8F5);
   border-color: var(--base, #2C1717);
-  box-shadow: 0 4px 12px rgba(44, 23, 23, 0.15);
+  box-shadow: 0 4px 18px rgba(201, 162, 39, 0.45);
 }
 
 .pill-filter-btn .hover-circle {

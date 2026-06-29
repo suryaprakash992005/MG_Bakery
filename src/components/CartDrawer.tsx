@@ -97,10 +97,11 @@ ${itemsText}----------------------------------------------
 Thank you for your order! Please share payment details (UPI/Online) for verification.
 We look forward to serving you!`;
 
-    // 3. Clear shopping cart and close drawer
+    // 3. Clear shopping cart, close drawer, and fire celebration confetti
     clearCart();
     setIsCheckoutMode(false);
     setIsCartOpen(false);
+    window.dispatchEvent(new CustomEvent('trigger-confetti'));
 
     // 4. Open WhatsApp
     const cleanNumber = settings.whatsappNumber.replace(/[^0-9]/g, '');

@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from './BorderGlow';
+import PriceCounter from './PriceCounter';
 
 interface ProductCardProps {
   product: Product;
@@ -32,6 +33,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [shake, setShake] = useState(false);
   const [added, setAdded] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: x * 12, y: y * -12 });
+  };
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 });
+  };
 
   const getPriceDisplay = (): number => {
     if (!isCakeWithMultiPrice) {
@@ -69,9 +82,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const imgElement = container?.querySelector('img') as HTMLImageElement;
     if (imgElement) {
       const startRect = imgElement.getBoundingClientRect();
-      import('../utils/animationHelper').then(({ triggerFlyToCart }) => {
-        triggerFlyToCart(startRect, imgElement.src);
+      const flyEvent = new CustomEvent('fly-to-cart', {
+        detail: {
+          startX: startRect.left + startRect.width / 2 - 25,
+          startY: startRect.top + startRect.height / 2 - 25,
+          image: imgElement.src
+        }
       });
+      window.dispatchEvent(flyEvent);
     }
 
     addToCart(product, isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard', 1);
@@ -90,25 +108,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* ----------------- DESKTOP CARD VIEW (PREVIOUS STYLE) ----------------- */}
       <div className="hidden lg:block h-full">
         <BorderGlow
-          className="h-full group"
+          style={{
+            transform: `perspective(1000px) rotateX(${tilt.y}deg) rotateY(${tilt.x}deg) translateZ(0)`,
+            transition: 'transform 0.15s ease-out'
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className="h-full group hover:shadow-xl transition-all duration-300"
           backgroundColor="#ffffff"
           glowColor="46 64 52"
           borderRadius={24}
           glowRadius={30}
-          glowIntensity={0.8}
+          glowIntensity={0.85}
           coneSpread={20}
-          animated={false}
+          animated={true}
           colors={['#C9A227', '#2A0E0A', '#A46E6E']}
           fillOpacity={0.1}
         >
-          <div className="flex flex-col h-full w-full justify-between">
+          <div className="flex flex-col h-full w-full justify-between relative">
             {/* Product Image Container */}
-            <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100">
+            <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100 rounded-t-[24px]">
               <img
                 src={product.image}
                 alt={product.name}
                 loading="lazy"
-                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover transform group-hover:scale-106 transition-transform duration-750"
               />
 
               {product.status === 'Out of Stock' && (
@@ -118,6 +142,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   </span>
                 </div>
               )}
+
+              {/* Heart Wishlist button (clickable) */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFavorite(!isFavorite);
+                }}
+                className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md text-[#2A0E0A] hover:bg-white flex items-center justify-center transition-colors shadow-sm cursor-pointer border border-[#FAF7F2]/30"
+                aria-label="Toggle favorite"
+              >
+                <motion.div
+                  animate={{ scale: isFavorite ? [1, 1.4, 1] : 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                >
+                  <Heart className={`w-4.5 h-4.5 ${isFavorite ? 'fill-[#C9A227] text-[#C9A227]' : 'text-brand-brown-800'}`} />
+                </motion.div>
+              </button>
 
               {/* Floating Badges */}
               <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
@@ -137,9 +178,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   ))}
                 </div>
 
-                {product.isEggless && (
+                {product.isEggless && !isCakeWithMultiPrice && (
                   <span 
-                    className="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-sm"
+                    className="bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-sm mr-10"
                     title="100% Eggless Option Available"
                   >
                     <span className="w-2 h-2 rounded-full bg-green-600 block"></span>
@@ -187,7 +228,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                       Price
                     </span>
                     <span className="text-xl font-bold text-brand-brown-950 mt-1 block">
-                      ₹{getPriceDisplay()}
+                      ₹<PriceCounter value={getPriceDisplay()} />
                     </span>
                   </div>
 
@@ -297,7 +338,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     Price
                   </span>
                   <span className="text-lg font-bold text-[#2A0E0A] mt-0.5 block">
-                    ₹{getPriceDisplay()}
+                    ₹<PriceCounter value={getPriceDisplay()} />
                   </span>
                 </div>
 
@@ -439,14 +480,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   <span className="text-[10px] text-[#2A0E0A]/40 font-semibold uppercase tracking-wider block">
                     Total Price
                   </span>
-                  <motion.span 
-                    key={getPriceDisplay()}
-                    animate={shake ? { x: [-5, 5, -5, 5, 0] } : { scale: [0.95, 1.05, 1] }}
+                  <motion.div 
+                    animate={shake ? { x: [-6, 6, -6, 6, 0] } : {}}
                     transition={{ duration: 0.3 }}
                     className="text-2xl font-black text-[#2A0E0A] mt-0.5 block"
                   >
-                    ₹{getPriceDisplay()}
-                  </motion.span>
+                    ₹<PriceCounter value={getPriceDisplay()} />
+                  </motion.div>
                 </div>
 
                 {/* WhatsApp & Cart Actions */}
