@@ -30,14 +30,9 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     const imgElement = cardContainer?.querySelector('img') as HTMLImageElement;
     if (imgElement) {
       const startRect = imgElement.getBoundingClientRect();
-      const flyEvent = new CustomEvent('fly-to-cart', {
-        detail: {
-          startX: startRect.left + startRect.width / 2 - 25,
-          startY: startRect.top + startRect.height / 2 - 25,
-          image: imgElement.src
-        }
+      import('../utils/animationHelper').then(({ triggerFlyToCart }) => {
+        triggerFlyToCart(startRect, imgElement.src);
       });
-      window.dispatchEvent(flyEvent);
     }
 
     addToCart(product, selectedWeight, 1);

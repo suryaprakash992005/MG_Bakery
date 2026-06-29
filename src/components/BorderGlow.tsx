@@ -71,9 +71,6 @@ export interface BorderGlowProps {
   animated?: boolean;
   colors?: string[];
   fillOpacity?: number;
-  style?: React.CSSProperties;
-  onMouseMove?: (e: React.MouseEvent<HTMLDivElement>) => void;
-  onMouseLeave?: () => void;
 }
 
 const BorderGlow: React.FC<BorderGlowProps> = ({
@@ -89,9 +86,6 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
   animated = false,
   colors = ['#D4AF37', '#2C1717', '#A46E6E'], // Gold, Chocolate, Rose default
   fillOpacity = 0.5,
-  style = {},
-  onMouseMove,
-  onMouseLeave
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -164,8 +158,6 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
     <div
       ref={cardRef}
       onPointerMove={handlePointerMove}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
       className={`border-glow-card ${className}`}
       style={{
         '--card-bg': backgroundColor,
@@ -176,7 +168,6 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
         '--fill-opacity': `${fillOpacity}`,
         ...glowVars,
         ...buildGradientVars(colors),
-        ...style,
       } as React.CSSProperties}
     >
       <span className="edge-light" />
