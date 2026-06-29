@@ -6,10 +6,12 @@ import PillFilters from '../components/PillFilters';
 import { motion, AnimatePresence } from 'framer-motion';
 import BorderGlow from '../components/BorderGlow';
 import Masonry from '../components/Masonry';
+import DomeGallery from '../components/DomeGallery';
 
 export const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeImage, setActiveImage] = useState<GalleryItem | null>(null);
+  const [viewMode, setViewMode] = useState<'masonry' | 'dome'>('masonry');
 
   const { gallery } = useBakeryDatabase();
 
@@ -68,58 +70,105 @@ export const Gallery: React.FC = () => {
           hoveredPillTextColor="#FAF7F2"
           pillTextColor="#5B3535"
         />
+        {/* View Mode Toggle Switch */}
+        <div className="flex justify-center mb-12 animate-fade-in">
+          <div className="bg-[#FFF8F1] p-1.5 rounded-2xl inline-flex items-center gap-1.5 border border-brand-cream-100 shadow-sm">
+            <button
+              onClick={() => setViewMode('masonry')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 cursor-pointer ${
+                viewMode === 'masonry'
+                  ? 'bg-[#2A0E0A] text-[#FAF7F2] shadow-md'
+                  : 'text-brand-brown-800 hover:text-[#2A0E0A]'
+              }`}
+            >
+              Masonry Grid
+            </button>
+            <button
+              onClick={() => setViewMode('dome')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 cursor-pointer ${
+                viewMode === 'dome'
+                  ? 'bg-[#2A0E0A] text-[#FAF7F2] shadow-md'
+                  : 'text-brand-brown-800 hover:text-[#2A0E0A]'
+              }`}
+            >
+              Immersive Dome
+            </button>
+          </div>
+        </div>
 
-        {/* Unified Responsive Masonry Gallery View */}
-        <div className="w-full relative min-h-[500px]">
-          <Masonry
-            items={masonryItems}
-            stagger={0.03}
-            duration={0.6}
-            ease="power3.out"
-            scaleOnHover={true}
-            hoverScale={0.96}
-            blurToFocus={true}
-            renderItem={(item: any) => (
-              <BorderGlow
-                className="w-full h-full cursor-pointer overflow-hidden bg-brand-cream-100"
-                backgroundColor="#FAF8F5"
-                glowColor="46 64 52"
-                borderRadius={24}
-                glowRadius={25}
-                glowIntensity={0.8}
-                coneSpread={20}
-                colors={['#C9A227', '#2A0E0A', '#A46E6E']}
-                fillOpacity={0.15}
-              >
-                <div onClick={() => setActiveImage(item)} className="relative group w-full h-full overflow-hidden rounded-[24px]">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover transform group-hover:scale-[1.04] transition-transform duration-750"
-                  />
-                  
-                  {/* Cover Overlay on Hover */}
-                  <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
-                    <div className="flex justify-end">
-                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                        <ZoomIn className="w-5 h-5" />
+        {viewMode === 'masonry' ? (
+          /* Unified Responsive Masonry Gallery View */
+          <div className="w-full relative min-h-[500px]">
+            <Masonry
+              items={masonryItems}
+              stagger={0.03}
+              duration={0.6}
+              ease="power3.out"
+              scaleOnHover={true}
+              hoverScale={0.96}
+              blurToFocus={true}
+              renderItem={(item: any) => (
+                <BorderGlow
+                  className="w-full h-full cursor-pointer overflow-hidden bg-brand-cream-100"
+                  backgroundColor="#FAF8F5"
+                  glowColor="46 64 52"
+                  borderRadius={24}
+                  glowRadius={25}
+                  glowIntensity={0.8}
+                  coneSpread={20}
+                  colors={['#C9A227', '#2A0E0A', '#A46E6E']}
+                  fillOpacity={0.15}
+                >
+                  <div onClick={() => setActiveImage(item)} className="relative group w-full h-full overflow-hidden rounded-[24px]">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover transform group-hover:scale-[1.04] transition-transform duration-750"
+                    />
+                    
+                    {/* Cover Overlay on Hover */}
+                    <div className="absolute inset-0 bg-[#2A0E0A]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
+                      <div className="flex justify-end">
+                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                          <ZoomIn className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
+                          {item.category}
+                        </span>
+                        <span className="text-sm font-bold text-white font-playfair block mt-1">
+                          {item.title}
+                        </span>
                       </div>
                     </div>
-                    <div>
-                      <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
-                        {item.category}
-                      </span>
-                      <span className="text-sm font-bold text-white font-playfair block mt-1">
-                        {item.title}
-                      </span>
-                    </div>
                   </div>
-                </div>
-              </BorderGlow>
+                </BorderGlow>
+              )}
+            />
+          </div>
+        ) : (
+          /* Immersive Dome Gallery View */
+          <div className="w-full h-[65vh] rounded-[2.5rem] overflow-hidden relative border border-brand-cream-200/40 shadow-xl bg-[#120F17] flex flex-col justify-center items-center">
+            {filteredGallery.length > 0 ? (
+              <DomeGallery 
+                images={filteredGallery.map(it => ({ src: it.image, alt: it.title }))}
+                grayscale={false}
+                overlayBlurColor="#120F17"
+                minRadius={550}
+                maxRadius={800}
+                fit={0.45}
+                imageBorderRadius="20px"
+                openedImageBorderRadius="24px"
+              />
+            ) : (
+              <div className="text-center p-8 text-[#FAF7F2]/40 font-light text-sm">
+                No gallery images found in this category.
+              </div>
             )}
-          />
-        </div>
+          </div>
+        )}
 
         {/* Lightbox / Modal with zoom animations */}
         <AnimatePresence>
