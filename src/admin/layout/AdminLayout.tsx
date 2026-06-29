@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAdminRouter } from '../hooks/useAdminRouter';
 import { supabase } from '../../utils/supabase';
 import {
@@ -212,13 +213,13 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           {/* Actions */}
           <div className="flex items-center gap-4">
             {/* View Store public button */}
-            <a 
-              href="/" 
+            <Link 
+              to="/" 
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-brand-gold-800 bg-[#FAF6F0] hover:bg-brand-gold-50 border border-brand-gold-250/50 rounded-full transition-all"
             >
               <Globe className="w-3.5 h-3.5" />
               <span>Customer Site</span>
-            </a>
+            </Link>
 
             {/* Avatar / Profile section with Online indicator */}
             <div className="flex items-center gap-2.5 pl-2 border-l border-[#2C1A17]/10">

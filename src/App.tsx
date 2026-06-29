@@ -16,6 +16,7 @@ import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
 import { DatabaseProvider } from './context/DatabaseContext';
+import ScrollToTop from './components/ScrollToTop';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -113,6 +114,7 @@ const App: React.FC = () => {
     <DatabaseProvider>
       <CartProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <AppContent />
         </BrowserRouter>
       </CartProvider>

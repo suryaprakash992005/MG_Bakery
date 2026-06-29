@@ -178,6 +178,16 @@ button:focus, button:focus-visible {
   scrollbar-width: none;  /* Firefox */
 }
 
+@keyframes shine {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shine {
+  animation: shine 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 @keyframes marquee {
   0% {
     transform: translateX(0);

@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ArrowLeft, Sparkles, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 
@@ -339,13 +340,13 @@ export const SpecialOffer: React.FC = () => {
 
       {/* Top Header controls */}
       <div className="w-full max-w-7xl mx-auto px-4 z-10 relative flex justify-between items-center">
-        <a 
-          href="/"
+        <Link 
+          to="/"
           className="inline-flex items-center gap-2 text-xs font-bold text-[#4A2C2A] hover:text-[#C9A227] transition-colors py-2 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span>Back to Home</span>
-        </a>
+        </Link>
         <div className="flex items-center gap-1 text-[10px] tracking-widest text-[#C9A227] font-black uppercase">
           <Sparkles className="w-3.5 h-3.5" />
           <span>Exclusive Advert</span>
