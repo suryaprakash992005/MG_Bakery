@@ -1,27 +1,78 @@
+.pill-filters-outer {
+  position: relative;
+  width: 100%;
+}
+
+/* Left/Right fade scroll indicators */
+.pill-filters-outer::before,
+.pill-filters-outer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.pill-filters-outer::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(250, 247, 242, 0.92) 0%, transparent 100%);
+}
+
+.pill-filters-outer::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(250, 247, 242, 0.92) 0%, transparent 100%);
+}
+
+.pill-filters-outer[data-scroll-left="true"]::before {
+  opacity: 1;
+}
+.pill-filters-outer[data-scroll-left="false"]::before {
+  opacity: 0;
+}
+.pill-filters-outer[data-scroll-right="true"]::after {
+  opacity: 1;
+}
+.pill-filters-outer[data-scroll-right="false"]::after {
+  opacity: 0;
+}
+
 .pill-filters-container {
   display: flex;
-  justify-content: center;
   align-items: center;
   width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 4px 8px 8px;
+}
+
+.pill-filters-container::-webkit-scrollbar {
+  display: none;
 }
 
 .pill-filters-list {
   list-style: none;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
   gap: 8px;
   margin: 0;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .pill-filter-btn {
-  --pill-pad-x: 20px;
+  --pill-pad-x: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 42px;
+  height: 40px;
   padding: 0 var(--pill-pad-x);
   background: var(--pill-bg, #fff);
   color: var(--pill-text, #2C1717);
@@ -29,16 +80,17 @@
   border-radius: 9999px;
   box-sizing: border-box;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   white-space: nowrap;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  border: 1px solid #F3EDE2; /* Soft beige/cream border (matching brand-cream-100) */
+  border: 1px solid #F3EDE2;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.2s ease, color 0.2s ease;
   outline: none;
+  flex-shrink: 0;
 }
 
 .pill-filter-btn:hover {
@@ -49,7 +101,7 @@
   background: var(--base, #2C1717);
   color: var(--hover-text, #FAF8F5);
   border-color: var(--base, #2C1717);
-  box-shadow: 0 4px 12px rgba(44, 23, 23, 0.15);
+  box-shadow: 0 4px 14px rgba(44, 23, 23, 0.18);
 }
 
 .pill-filter-btn .hover-circle {

@@ -25,14 +25,42 @@ export const PillFilters: React.FC<PillFiltersProps> = ({
   onChange,
   className = '',
   ease = 'power3.easeOut',
-  baseColor = '#2C1717', // Warm Chocolate Brown
-  pillColor = '#ffffff', // Inactive Pill Background
-  hoveredPillTextColor = '#FAF8F5', // Hover/Active Text Color
-  pillTextColor = '#5B3535' // Inactive Pill Text Color
+  baseColor = '#2C1717',
+  pillColor = '#ffffff',
+  hoveredPillTextColor = '#FAF8F5',
+  pillTextColor = '#5B3535'
 }) => {
   const circleRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const tlRefs = useRef<(gsap.core.Timeline | null)[]>([]);
   const activeTweenRefs = useRef<(gsap.core.Tween | null)[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+
+  // Update scroll-fade indicators
+  const updateScrollIndicators = () => {
+    const el = scrollContainerRef.current;
+    const outer = outerRef.current;
+    if (!el || !outer) return;
+    const atLeft = el.scrollLeft <= 4;
+    const atRight = el.scrollLeft >= el.scrollWidth - el.clientWidth - 4;
+    outer.setAttribute('data-scroll-left', atLeft ? 'false' : 'true');
+    outer.setAttribute('data-scroll-right', atRight ? 'false' : 'true');
+  };
+
+  // Auto-scroll active pill into view when activeId changes
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const activeBtn = container.querySelector('.pill-filter-btn.is-active') as HTMLElement;
+    if (activeBtn) {
+      const containerRect = container.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft + (btnRect.left - containerRect.left) - containerRect.width / 2 + btnRect.width / 2;
+      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+    // Small delay to update after scroll
+    setTimeout(updateScrollIndicators, 200);
+  }, [activeId]);
 
   useEffect(() => {
     const layout = () => {
@@ -82,15 +110,26 @@ export const PillFilters: React.FC<PillFiltersProps> = ({
     };
 
     layout();
+    updateScrollIndicators();
 
     const onResize = () => layout();
     window.addEventListener('resize', onResize);
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', updateScrollIndicators, { passive: true });
+    }
 
     if (document.fonts?.ready) {
       document.fonts.ready.then(layout).catch(() => {});
     }
 
-    return () => window.removeEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (container) {
+        container.removeEventListener('scroll', updateScrollIndicators);
+      }
+    };
   }, [items, ease]);
 
   const handleEnter = (i: number) => {
@@ -123,36 +162,47 @@ export const PillFilters: React.FC<PillFiltersProps> = ({
   } as React.CSSProperties;
 
   return (
-    <div className={`pill-filters-container ${className}`} style={cssVars}>
-      <ul className="pill-filters-list">
-        {items.map((item, i) => {
-          const isActive = activeId === item.id;
-          return (
-            <li key={item.id}>
-              <button
-                className={`pill-filter-btn${isActive ? ' is-active' : ''}`}
-                onClick={() => onChange(item.id)}
-                onMouseEnter={() => !isActive && handleEnter(i)}
-                onMouseLeave={() => !isActive && handleLeave(i)}
-              >
-                <span
-                  className="hover-circle"
-                  aria-hidden="true"
-                  ref={(el) => {
-                    circleRefs.current[i] = el;
-                  }}
-                />
-                <span className="label-stack">
-                  <span className="pill-label">{item.label}</span>
-                  <span className="pill-label-hover" aria-hidden="true">
-                    {item.label}
+    <div
+      ref={outerRef}
+      className={`pill-filters-outer ${className}`}
+      data-scroll-left="false"
+      data-scroll-right="true"
+    >
+      <div
+        ref={scrollContainerRef}
+        className="pill-filters-container"
+        style={cssVars}
+      >
+        <ul className="pill-filters-list">
+          {items.map((item, i) => {
+            const isActive = activeId === item.id;
+            return (
+              <li key={item.id}>
+                <button
+                  className={`pill-filter-btn${isActive ? ' is-active' : ''}`}
+                  onClick={() => onChange(item.id)}
+                  onMouseEnter={() => !isActive && handleEnter(i)}
+                  onMouseLeave={() => !isActive && handleLeave(i)}
+                >
+                  <span
+                    className="hover-circle"
+                    aria-hidden="true"
+                    ref={(el) => {
+                      circleRefs.current[i] = el;
+                    }}
+                  />
+                  <span className="label-stack">
+                    <span className="pill-label">{item.label}</span>
+                    <span className="pill-label-hover" aria-hidden="true">
+                      {item.label}
+                    </span>
                   </span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 };

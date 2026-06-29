@@ -7,6 +7,43 @@ import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from '../components/BorderGlow';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import LightRays from '../components/LightRays';
+import LogoLoop from '../components/LogoLoop';
+import type { LogoItem } from '../components/LogoLoop';
+
+// ── Module-level constants (stable references — never recreated on render) ──
+const CATEGORIES = [
+  { name: 'Cakes',             desc: 'Custom & cream celebrations',   image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Pastries',         desc: 'Indulgent sweet slices',         image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Cookies',          desc: 'Crunchy traditional biscuits',   image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Puffs',            desc: 'Hot, flaky oven snacks',         image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Breads',           desc: 'Fresh soft daily loaves',        image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Snacks',           desc: 'Traditional savory mixtures',    image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Beverages',        desc: 'Filter coffee & rose milk',      image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Fast Food',        desc: 'Quick bites & combos',           image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Buffs',            desc: 'Crispy stuffed delights',        image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Tea Coffee',       desc: 'Warm aromatic brews',            image: 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Lemon Juice',      desc: 'Tangy refreshing squeeze',       image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Ice Creams',       desc: 'Creamy frozen scoops',           image: 'https://images.unsplash.com/photo-1633933762107-eb8b6a900e4d?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Special Ice Creams', desc: 'Premium signature flavors',    image: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Fresh Juice',      desc: 'Pure fruit blends daily',        image: 'https://images.unsplash.com/photo-1570696516188-ade861b84a49?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Milk Shakes',      desc: 'Thick chilled indulgences',      image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Roll Items',       desc: 'Spiced wrap & roll snacks',      image: 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Special Milkshakes', desc: 'Loaded premium shakes',        image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Pizza',            desc: 'Hand-tossed crispy slices',      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Burger',           desc: 'Stacked gourmet patties',        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Sandwich',         desc: 'Fresh filled toasted bites',     image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Cutlet',           desc: 'Golden fried savory patties',    image: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Oil Fry',          desc: 'Deep fried crispy snacks',       image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Mocktails',        desc: 'Vibrant alcohol-free drinks',    image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=300&q=80' },
+] as const;
+
+// Pre-built logos array — stable reference, never changes
+const LOGO_LOOP_ITEMS: LogoItem[] = CATEGORIES.map(cat => ({
+  src: cat.image,
+  alt: cat.name,
+  title: cat.name,
+}));
+
 
 interface HomeProps {
   setCurrentPage: (page: string) => void;
@@ -75,15 +112,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
   const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
 
-  const categories = [
-    { name: 'Cakes', desc: 'Custom & cream celebrations', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Pastries', desc: 'Indulgent sweet slices', image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Cookies', desc: 'Crunchy traditional biscuits', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Puffs', desc: 'Hot, flaky oven snacks', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Breads', desc: 'Fresh soft daily loaves', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Snacks', desc: 'Traditional savory mixtures', image: 'https://images.unsplash.com/photo-1626132647523-66f5bf380027?auto=format&fit=crop&w=300&q=80' },
-    { name: 'Beverages', desc: 'Filter coffee & rose milk', image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=300&q=80' },
-  ];
 
   const whyChooseUs = [
     { title: 'Fresh Ingredients', desc: 'We source the finest local milk, farm butter, and premium fruits for rich flavors.', icon: Sparkles },
@@ -359,34 +387,20 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </p>
           </div>
 
-          <div className="w-full overflow-hidden relative py-4">
-            {/* Fade gradients at edges for smooth transition */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-
-            <div className="flex animate-marquee-loop hover:[animation-play-state:paused] gap-6">
-              {/* Loop categories multiple times to guarantee seamless scrolling width */}
-              {[...categories, ...categories, ...categories].map((cat, idx) => (
-                <motion.button
-                  key={idx}
-                  whileHover={{ y: -5, scale: 1.02 }}
-                  onClick={() => {
-                    setCurrentPage('menu');
-                  }}
-                  className="flex-shrink-0 w-44 bg-brand-cream-50/50 hover:bg-brand-cream-50 border border-brand-cream-100 rounded-3xl p-4 text-center transition-all duration-300 group shadow-sm hover:shadow-md cursor-pointer"
-                >
-                  <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300">
-                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                  </div>
-                  <h3 className="font-playfair text-base font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors">
-                    {cat.name}
-                  </h3>
-                  <p className="text-[10px] text-brand-brown-800/50 mt-1 font-light leading-snug">
-                    {cat.desc}
-                  </p>
-                </motion.button>
-              ))}
-            </div>
+          <div className="w-full overflow-hidden relative" style={{ height: '120px' }}>
+            <LogoLoop
+              logos={LOGO_LOOP_ITEMS}
+              speed={100}
+              direction="left"
+              logoHeight={88}
+              gap={60}
+              hoverSpeed={0}
+              scaleOnHover
+              fadeOut
+              fadeOutColor="#ffffff"
+              ariaLabel="Bakery menu categories"
+              className="bakery-cat-loop"
+            />
           </div>
         </div>
       </section>

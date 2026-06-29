@@ -60,16 +60,26 @@ export const Products: React.FC = () => {
   // Extract all categories list dynamically
   const categoriesList = ['All', ...categories.map(c => c.name)];
 
+  // Auto-switch price type based on selected category
+  React.useEffect(() => {
+    if (category === 'Cakes') {
+      setPriceType('multi');
+    } else {
+      setPriceType('flat');
+    }
+  }, [category]);
+
   const handleOpenAdd = () => {
     setName('');
     setDescription('');
-    setPriceType('flat');
-    setFlatPrice(350);
-    setFlatWeight('0.5 Kg');
+    const firstCat = categories[0]?.name || 'Cakes';
+    setCategory(firstCat);
+    setPriceType(firstCat === 'Cakes' ? 'multi' : 'flat');
+    setFlatPrice(80);
+    setFlatWeight('');
     setSlicePrice('');
     setHalfKgPrice('');
     setOneKgPrice('');
-    setCategory(categories[0]?.name || 'Cakes');
     setStatus('Available');
     setImage('https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80');
     setDisplayPriority(products.length + 1);
@@ -215,7 +225,7 @@ export const Products: React.FC = () => {
       </div>
 
       {/* Filters & Search Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#2C1A17]/10 p-4 rounded-2xl shadow-sm">
+      <div className="flex flex-col gap-4 bg-white border border-[#2C1A17]/10 p-4 rounded-2xl shadow-sm">
         
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
@@ -231,13 +241,13 @@ export const Products: React.FC = () => {
           />
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* Category Tabs — horizontally scrollable */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
           {categoriesList.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer flex-shrink-0 ${
                 selectedCategory === cat
                   ? 'bg-brand-gold-850 text-[#1E110F] border-brand-gold-500 font-bold'
                   : 'bg-[#FAF6F0] hover:bg-[#FAF6F0]/80 text-[#2C1A17] border-[#2C1A17]/10'

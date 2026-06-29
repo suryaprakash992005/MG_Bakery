@@ -7,7 +7,23 @@ export const CATEGORIES = [
   'Puffs',
   'Breads',
   'Snacks',
-  'Beverages'
+  'Beverages',
+  'Fast Food',
+  'Buffs',
+  'Tea Coffee',
+  'Lemon Juice',
+  'Ice Creams',
+  'Special Ice Creams',
+  'Fresh Juice',
+  'Milk Shakes',
+  'Roll Items',
+  'Special Milkshakes',
+  'Pizza',
+  'Burger',
+  'Sandwich',
+  'Cutlet',
+  'Oil Fry',
+  'Mocktails'
 ] as const;
 
 export const CAKE_FLAVORS = [

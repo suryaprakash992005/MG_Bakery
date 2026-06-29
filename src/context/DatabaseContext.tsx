@@ -342,10 +342,29 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // 2. Load Gallery from Supabase
     fetchGallery();
 
-    // 3. Load Categories
+    // 3. Load Categories (with migration: merge new DEFAULT_CATEGORIES into existing)
     const localCategories = localStorage.getItem('admin_categories');
     if (localCategories) {
-      setCategories(JSON.parse(localCategories));
+      const parsed: UnifiedCategory[] = JSON.parse(localCategories);
+      const existingNames = new Set(parsed.map((c) => c.name));
+
+      // Find categories in DEFAULT_CATEGORIES not yet in localStorage
+      const missing = DEFAULT_CATEGORIES.filter((cat) => !existingNames.has(cat));
+
+      if (missing.length > 0) {
+        // Append missing categories after existing ones
+        const maxPriority = parsed.reduce((max, c) => Math.max(max, c.displayPriority), 0);
+        const newEntries: UnifiedCategory[] = missing.map((cat, idx) => ({
+          id: `cat-${Date.now()}-${idx}`,
+          name: cat,
+          displayPriority: maxPriority + idx + 1
+        }));
+        const merged = [...parsed, ...newEntries];
+        setCategories(merged);
+        localStorage.setItem('admin_categories', JSON.stringify(merged));
+      } else {
+        setCategories(parsed);
+      }
     } else {
       const initial = DEFAULT_CATEGORIES.map((cat, idx) => ({
         id: `cat-${idx + 1}`,
