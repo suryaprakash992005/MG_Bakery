@@ -280,7 +280,18 @@ const DomeGallery: React.FC<DomeGalleryProps> = ({
   ]);
 
   useEffect(() => {
-    applyTransform(rotationRef.current.x, rotationRef.current.y);
+    let animId: number;
+    const tick = () => {
+      const root = rootRef.current;
+      const isEnlarging = root?.getAttribute('data-enlarging') === 'true';
+      if (!draggingRef.current && !isEnlarging && !inertiaRAF.current && !openingRef.current) {
+        rotationRef.current.y = wrapAngleSigned(rotationRef.current.y + 0.06);
+        applyTransform(rotationRef.current.x, rotationRef.current.y);
+      }
+      animId = requestAnimationFrame(tick);
+    };
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, []);
 
   const stopInertia = useCallback(() => {
