@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, MessageSquare, Send } from 'lucide-react';
 import { getGeneralInquiryUrl, WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import { useBakeryDatabase } from '../context/DatabaseContext';
-import VideoText from '../components/VideoText';
 
 export const Contact: React.FC = () => {
   const { settings } = useBakeryDatabase();
@@ -56,17 +55,9 @@ Message: ${formData.message}`;
             <Mail className="w-3.5 h-3.5 text-brand-gold-850" />
             <span>Connect with Us</span>
           </div>
-          <div className="w-full flex justify-center py-2" style={{ height: '70px' }}>
-            <VideoText
-              src="https://assets.mixkit.co/videos/preview/mixkit-slow-motion-of-gold-glitter-particles-40003-large.mp4"
-              className="w-full h-full"
-              fontSize={4.8}
-              fontFamily="var(--font-playfair, serif)"
-              fontWeight="bold"
-            >
-              Get in Touch
-            </VideoText>
-          </div>
+          <h1 className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950">
+            Get in Touch
+          </h1>
           <p className="text-sm text-brand-brown-800/60 font-light mt-4">
             Have questions about party orders, custom cakes, or daily specials? Message us on WhatsApp or call our store in Mohanur.
           </p>
