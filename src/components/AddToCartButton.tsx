@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Check } from 'lucide-react';
+import { ShoppingBag, Check, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { Product } from '../types';
+import './AddToCartButton.css';
 
 interface AddToCartButtonProps {
   product: Product;
@@ -74,9 +75,9 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     return (
       <button
         disabled
-        className={`relative overflow-hidden font-semibold bg-slate-100 text-slate-400 border border-slate-200/50 py-2.5 px-6 rounded-full text-xs cursor-not-allowed shadow-none ${className}`}
+        className={`add-to-cart-interactive out-of-stock cursor-not-allowed ${className}`}
       >
-        <span>Sold Out</span>
+        <span className="btn-content-normal">Sold Out</span>
       </button>
     );
   }
@@ -84,11 +85,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   return (
     <button
       onClick={handleAdd}
-      className={`relative overflow-hidden font-semibold transition-all duration-500 transform active:scale-[0.93] shadow-md flex items-center justify-center gap-2 cursor-pointer group ${
-        added
-          ? 'bg-[#C9A227] text-[#FAF7F2] scale-105 shadow-[#C9A227]/25'
-          : 'bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] shadow-brand-brown-950/15'
-      } peer-disabled:opacity-50 ${className}`}
+      className={`add-to-cart-interactive transition-all active:scale-95 ${added ? 'added-state' : ''} ${className}`}
     >
       {/* Sparkle Particles Burst */}
       <AnimatePresence>
@@ -114,12 +111,11 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         ))}
       </AnimatePresence>
 
-      {/* Glossy reflective shine overlay effect on hover */}
-      {!added && (
-        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />
-      )}
+      {/* Interactive Hover Expanding Dot */}
+      {!added && <div className="hover-dot" />}
 
-      <span className="flex items-center gap-1.5 justify-center z-10 relative">
+      {/* Normal State: Label + Icon */}
+      <span className="btn-content-normal">
         {added ? (
           <>
             <motion.div
@@ -139,12 +135,19 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           </>
         ) : (
           <>
-            <ShoppingBag className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-300" />
+            <ShoppingBag className="w-3.5 h-3.5" />
             <span>Add to Cart</span>
           </>
         )}
       </span>
+
+      {/* Hover State: Expanded Label + Arrow */}
+      {!added && (
+        <span className="btn-content-hover">
+          <span>Add to Cart</span>
+          <ArrowRight className="w-4 h-4" />
+        </span>
+      )}
     </button>
   );
 };
-

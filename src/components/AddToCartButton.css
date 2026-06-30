@@ -1,0 +1,109 @@
+.add-to-cart-interactive {
+  position: relative;
+  width: 100%;
+  border-radius: 9999px;
+  background-color: #2a0e0a;
+  color: #faf7f2;
+  border: 1px solid #2a0e0a;
+  padding: 10px 24px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  height: 40px;
+}
+
+/* The expanding dot */
+.add-to-cart-interactive .hover-dot {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #c9a227;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hover state: scale the dot to cover the entire button background */
+.add-to-cart-interactive:hover .hover-dot {
+  transform: translate(-50%, -50%) scale(40);
+  left: 50%;
+}
+
+/* Normal state content container */
+.add-to-cart-interactive .btn-content-normal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(6px); /* offset slightly to account for the dot on the left */
+  z-index: 2;
+  opacity: 1;
+}
+
+/* Hover state: slide out normal content */
+.add-to-cart-interactive:hover .btn-content-normal {
+  transform: translateX(40px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hover state overlay content */
+.add-to-cart-interactive .btn-content-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  color: #2a0e0a; /* text changes color to match expanding gold background */
+  transform: translateX(-40px);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Hover state: slide in hover content */
+.add-to-cart-interactive:hover .btn-content-hover {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Already added state (success styling) */
+.add-to-cart-interactive.added-state {
+  background-color: #c9a227;
+  border-color: #c9a227;
+  color: #faf7f2;
+}
+
+.add-to-cart-interactive.added-state .hover-dot {
+  display: none;
+}
+
+.add-to-cart-interactive.added-state .btn-content-normal {
+  transform: translateX(0);
+}
+
+/* Out of stock state */
+.add-to-cart-interactive.out-of-stock {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.add-to-cart-interactive.out-of-stock .hover-dot {
+  display: none;
+}
+
+.add-to-cart-interactive.out-of-stock .btn-content-normal {
+  transform: translateX(0);
+}
