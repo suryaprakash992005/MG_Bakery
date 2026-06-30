@@ -48,32 +48,17 @@ export function VideoText({
   }, [content, fontSize, fontWeight, textAnchor, dominantBaseline, fontFamily])
 
   const dataUrlMask = `url("data:image/svg+xml,${encodeURIComponent(svgMask)}")`
-  const responsiveFontSize = typeof fontSize === "number" ? `${fontSize}vw` : fontSize;
 
   return (
-    <Component className={`relative inline-block overflow-hidden ${className}`}>
-      {/* Invisible text helper to naturally size the container */}
-      <span 
-        className="invisible select-none pointer-events-none block whitespace-nowrap text-center" 
-        style={{ 
-          fontSize: responsiveFontSize, 
-          fontWeight, 
-          fontFamily,
-          lineHeight: 1.2,
-          padding: '0.1em 0'
-        }}
-      >
-        {content}
-      </span>
-
-      {/* The actual video masked text overlay */}
+    <Component className={`relative w-full overflow-hidden ${className}`}>
+      {/* Create a container that masks the video to only show within text */}
       <div
         className="absolute inset-0 flex items-center justify-center"
         style={{
           maskImage: dataUrlMask,
           WebkitMaskImage: dataUrlMask,
-          maskSize: "cover",
-          WebkitMaskSize: "cover",
+          maskSize: "contain",
+          WebkitMaskSize: "contain",
           maskRepeat: "no-repeat",
           WebkitMaskRepeat: "no-repeat",
           maskPosition: "center",
