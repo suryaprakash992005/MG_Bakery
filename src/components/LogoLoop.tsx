@@ -114,11 +114,12 @@ const useAnimationLoop = (
   seqHeight: number,
   isHovered: boolean,
   hoverSpeed: number | undefined,
-  isVertical: boolean
+  isVertical: boolean,
+  offsetRef: React.MutableRefObject<number>,
+  isDraggingRef: React.RefObject<boolean>
 ) => {
   const rafRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
-  const offsetRef = useRef(0);
   const velocityRef = useRef(0);
 
   useEffect(() => {
@@ -127,7 +128,7 @@ const useAnimationLoop = (
 
     const seqSize = isVertical ? seqHeight : seqWidth;
 
-    if (seqSize > 0) {
+    if (seqSize > 0 && !isDraggingRef.current) {
       offsetRef.current = ((offsetRef.current % seqSize) + seqSize) % seqSize;
       const transformValue = isVertical
         ? `translate3d(0, ${-offsetRef.current}px, 0)`
@@ -142,6 +143,11 @@ const useAnimationLoop = (
 
       const deltaTime = Math.max(0, timestamp - lastTimestampRef.current) / 1000;
       lastTimestampRef.current = timestamp;
+
+      if (isDraggingRef.current) {
+        rafRef.current = requestAnimationFrame(animate);
+        return;
+      }
 
       const target = isHovered && hoverSpeed !== undefined ? hoverSpeed : targetVelocity;
 
@@ -171,7 +177,7 @@ const useAnimationLoop = (
       }
       lastTimestampRef.current = null;
     };
-  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef]);
+  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef, offsetRef, isDraggingRef]);
 };
 
 // ── component ──────────────────────────────────────────────────────────────
@@ -202,6 +208,13 @@ export const LogoLoop = memo<LogoLoopProps>(
     const [seqHeight, setSeqHeight] = useState(0);
     const [copyCount, setCopyCount] = useState(ANIMATION_CONFIG.MIN_COPIES);
     const [isHovered, setIsHovered] = useState(false);
+
+    // Manual Scrolling / Dragging Refs
+    const isDraggingRef = useRef(false);
+    const offsetRef = useRef(0);
+    const dragStartRef = useRef(0);
+    const dragOffsetStartRef = useRef(0);
+    const totalDragDistanceRef = useRef(0);
 
     const effectiveHoverSpeed = useMemo(() => {
       if (hoverSpeed !== undefined) return hoverSpeed;
@@ -251,7 +264,87 @@ export const LogoLoop = memo<LogoLoopProps>(
 
     useResizeObserver(updateDimensions, [containerRef, seqRef], [logos, gap, logoHeight, isVertical]);
     useImageLoader(seqRef, updateDimensions, [logos, gap, logoHeight, isVertical]);
-    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical);
+    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical, offsetRef, isDraggingRef);
+
+    // Handle global dragging events
+    useEffect(() => {
+      const handleMove = (clientX: number) => {
+        if (!isDraggingRef.current) return;
+        const track = trackRef.current;
+        if (!track) return;
+        const seqSize = isVertical ? seqHeight : seqWidth;
+        if (seqSize <= 0) return;
+
+        const delta = clientX - dragStartRef.current;
+        totalDragDistanceRef.current = Math.abs(delta);
+
+        let nextOffset = dragOffsetStartRef.current - delta;
+        nextOffset = ((nextOffset % seqSize) + seqSize) % seqSize;
+        offsetRef.current = nextOffset;
+
+        const transformValue = isVertical
+          ? `translate3d(0, ${-nextOffset}px, 0)`
+          : `translate3d(${-nextOffset}px, 0, 0)`;
+        track.style.transform = transformValue;
+      };
+
+      const onMouseMove = (e: MouseEvent) => {
+        handleMove(isVertical ? e.clientY : e.clientX);
+      };
+
+      const onTouchMove = (e: TouchEvent) => {
+        if (e.touches.length === 0) return;
+        handleMove(isVertical ? e.touches[0].clientY : e.touches[0].clientX);
+      };
+
+      const onMouseUp = () => {
+        isDraggingRef.current = false;
+      };
+
+      const onTouchEnd = () => {
+        isDraggingRef.current = false;
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('touchmove', onTouchMove, { passive: true });
+      window.addEventListener('touchend', onTouchEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        window.removeEventListener('touchmove', onTouchMove);
+        window.removeEventListener('touchend', onTouchEnd);
+      };
+    }, [isVertical, seqHeight, seqWidth]);
+
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+      // Only drag on left-click
+      if (e.button !== 0) return;
+      const track = trackRef.current;
+      if (!track) return;
+      isDraggingRef.current = true;
+      dragStartRef.current = isVertical ? e.clientY : e.clientX;
+      dragOffsetStartRef.current = offsetRef.current;
+      totalDragDistanceRef.current = 0;
+    }, [isVertical]);
+
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+      const track = trackRef.current;
+      if (!track || e.touches.length === 0) return;
+      isDraggingRef.current = true;
+      dragStartRef.current = isVertical ? e.touches[0].clientY : e.touches[0].clientX;
+      dragOffsetStartRef.current = offsetRef.current;
+      totalDragDistanceRef.current = 0;
+    }, [isVertical]);
+
+    const handleContainerClickCapture = useCallback((e: React.MouseEvent) => {
+      // If we dragged past 10px, prevent click from firing (cancels select actions)
+      if (totalDragDistanceRef.current > 10) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, []);
 
     const cssVariables = useMemo(
       () => ({
@@ -377,12 +470,16 @@ export const LogoLoop = memo<LogoLoopProps>(
         style={containerStyle as React.CSSProperties}
         role="region"
         aria-label={ariaLabel}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onClickCapture={handleContainerClickCapture}
       >
         <div
           className="logoloop__track"
           ref={trackRef}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          style={{ cursor: 'grab' }}
         >
           {logoLists}
         </div>
