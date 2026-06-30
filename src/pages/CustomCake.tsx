@@ -4,6 +4,7 @@ import { CustomCakeInquiry } from '../types';
 import { getCustomCakeInquiryUrl } from '../utils/whatsappHelper';
 import FlowingSelect from '../components/FlowingSelect';
 import { useBakeryDatabase } from '../context/DatabaseContext';
+import SparklesText from '../components/SparklesText';
 
 
 export const CustomCake: React.FC = () => {
@@ -138,9 +139,13 @@ export const CustomCake: React.FC = () => {
             <Cake className="w-3.5 h-3.5 text-brand-gold-850" />
             <span>Artisan Cake Boutique</span>
           </div>
-          <h1 className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950">
+          <SparklesText
+            className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-brown-950"
+            colors={{ first: '#D4AF37', second: '#C9A227' }}
+            sparklesCount={8}
+          >
             Custom Cake Inquiry
-          </h1>
+          </SparklesText>
           <p className="text-sm text-brand-brown-800/60 font-light mt-4">
             Bring your celebrations to life with our customized theme cakes. Design, flavor, and elegance tailored exactly to your dreams.
           </p>
