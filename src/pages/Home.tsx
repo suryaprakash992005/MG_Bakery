@@ -23,7 +23,7 @@ const CATEGORIES = [
   { name: 'Buffs',            desc: 'Crispy stuffed delights',        image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=300&q=80' },
   { name: 'Tea Coffee',       desc: 'Warm aromatic brews',            image: 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?auto=format&fit=crop&w=300&q=80' },
   { name: 'Lemon Juice',      desc: 'Tangy refreshing squeeze',       image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&w=300&q=80' },
-  { name: 'Ice Creams',       desc: 'Creamy frozen scoops',           image: 'https://images.unsplash.com/photo-1633933762107-eb8b6a900e4d?auto=format&fit=crop&w=300&q=80' },
+  { name: 'Ice Creams',       desc: 'Creamy frozen scoops',           image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=300&q=80' },
   { name: 'Special Ice Creams', desc: 'Premium signature flavors',    image: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=300&q=80' },
   { name: 'Fresh Juice',      desc: 'Pure fruit blends daily',        image: 'https://images.unsplash.com/photo-1570696516188-ade861b84a49?auto=format&fit=crop&w=300&q=80' },
   { name: 'Milk Shakes',      desc: 'Thick chilled indulgences',      image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=300&q=80' },

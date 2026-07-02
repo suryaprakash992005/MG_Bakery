@@ -21,7 +21,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   'Buffs':              'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=200&q=80',
   'Tea Coffee':         'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?auto=format&fit=crop&w=200&q=80',
   'Lemon Juice':        'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&w=200&q=80',
-  'Ice Creams':         'https://images.unsplash.com/photo-1633933762107-eb8b6a900e4d?auto=format&fit=crop&w=200&q=80',
+  'Ice Creams':         'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=200&q=80',
   'Special Ice Creams': 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=200&q=80',
   'Fresh Juice':        'https://images.unsplash.com/photo-1570696516188-ade861b84a49?auto=format&fit=crop&w=200&q=80',
   'Milk Shakes':        'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=200&q=80',
