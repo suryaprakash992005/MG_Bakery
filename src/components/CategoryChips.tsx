@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 
@@ -29,8 +29,66 @@ const CATEGORY_IMAGES: Record<string, string> = {
   'Mocktails':          'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=200&q=80',
 };
 
+// ── Reusable circle button ────────────────────────────────────────────────────
+interface CircleButtonProps {
+  name: string;
+  isActive: boolean;
+  onClick: () => void;
+  imageSrc?: string;
+  /** If true, renders the grid icon instead of an image */
+  isAllButton?: boolean;
+}
+
+const CircleButton: React.FC<CircleButtonProps> = ({ name, isActive, onClick, imageSrc, isAllButton }) => (
+  <button
+    onClick={onClick}
+    className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group focus:outline-none"
+    aria-label={`Filter by ${name}`}
+    aria-pressed={isActive}
+  >
+    <motion.div
+      animate={{
+        borderColor: isActive ? '#C9A227' : '#ffffff',
+        boxShadow: isActive
+          ? '0 0 0 2.5px #C9A227, 0 6px 20px rgba(201,162,39,0.32)'
+          : '0 3px 12px rgba(44,23,23,0.12)',
+        scale: isActive ? 1.12 : 1,
+      }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      className="w-[68px] h-[68px] sm:w-[72px] sm:h-[72px] rounded-full overflow-hidden border-[3px] bg-brand-cream-100 flex items-center justify-center"
+    >
+      {isAllButton ? (
+        <LayoutGrid
+          size={30}
+          strokeWidth={1.5}
+          className={isActive ? 'text-brand-gold-700' : 'text-brand-brown-950'}
+        />
+      ) : (
+        <img
+          src={imageSrc}
+          alt={name}
+          loading="lazy"
+          draggable={false}
+          className="w-full h-full object-cover pointer-events-none group-hover:scale-110 transition-transform duration-500"
+        />
+      )}
+    </motion.div>
+
+    <span
+      className="text-[9px] sm:text-[10px] leading-tight text-center max-w-[76px] truncate transition-colors duration-200"
+      style={{
+        fontWeight: isActive ? 700 : 500,
+        color: isActive ? '#C9A227' : '#5B3535',
+        fontFamily: 'var(--font-playfair, serif)',
+      }}
+    >
+      {name}
+    </span>
+  </button>
+);
+
+// ── Main component ─────────────────────────────────────────────────────────────
 interface CategoryChipsProps {
-  /** Sorted category names from the database (no "All") */
   categories: string[];
   activeCategory: string;
   onChange: (cat: string) => void;
@@ -41,126 +99,94 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
   activeCategory,
   onChange,
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
 
-  // Only show "All" + categories that have an image
+  // Only categories that have an image assigned
   const visibleCategories = categories.filter((name) => CATEGORY_IMAGES[name]);
 
-  // Auto-scroll active item to centre when activeCategory changes
+  // All items including "All" at start
+  const allItems = [
+    { name: 'All', isAllButton: true, imageSrc: undefined },
+    ...visibleCategories.map((name) => ({ name, isAllButton: false, imageSrc: CATEGORY_IMAGES[name] })),
+  ];
+
+  // Marquee CSS injection — runs once
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const activeBtn = container.querySelector('[data-active="true"]') as HTMLElement | null;
-    if (!activeBtn) return;
-    const containerRect = container.getBoundingClientRect();
-    const btnRect = activeBtn.getBoundingClientRect();
-    const targetLeft =
-      container.scrollLeft +
-      (btnRect.left - containerRect.left) -
-      containerRect.width / 2 +
-      btnRect.width / 2;
-    container.scrollTo({ left: targetLeft, behavior: 'smooth' });
-  }, [activeCategory]);
+    const styleId = 'cat-chips-marquee-style';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @keyframes cat-chips-marquee {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .cat-chips-track {
+        display: flex;
+        gap: 16px;
+        width: max-content;
+        animation: cat-chips-marquee 28s linear infinite;
+        will-change: transform;
+      }
+      .cat-chips-track.paused {
+        animation-play-state: paused;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
 
   return (
     <div
-      ref={scrollRef}
-      role="tablist"
+      className="overflow-hidden py-3"
+      style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setTimeout(() => setPaused(false), 1200)}
       aria-label="Filter menu by category"
-      className="flex items-start gap-4 overflow-x-auto py-3 px-4 sm:px-6"
-      style={{
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-        WebkitOverflowScrolling: 'touch',
-        scrollSnapType: 'x mandatory',
-      }}
     >
-      {/* "All" chip — uses icon instead of photo */}
-      <button
-        role="tab"
-        aria-selected={activeCategory === 'All'}
-        data-active={activeCategory === 'All'}
-        onClick={() => onChange('All')}
-        className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group focus:outline-none"
-        style={{ scrollSnapAlign: 'start' }}
-        aria-label="Show all categories"
+      {/*
+        We render the list TWICE side-by-side.
+        The animation translates the track by -50% which
+        = width of one copy, creating a seamless infinite loop.
+      */}
+      <div
+        ref={trackRef}
+        className={`cat-chips-track${paused ? ' paused' : ''}`}
       >
-        <motion.div
-          animate={{
-            borderColor: activeCategory === 'All' ? '#C9A227' : '#ffffff',
-            boxShadow:
-              activeCategory === 'All'
-                ? '0 0 0 2px #C9A227, 0 6px 20px rgba(201,162,39,0.30)'
-                : '0 3px 12px rgba(44,23,23,0.12)',
-            scale: activeCategory === 'All' ? 1.1 : 1,
-          }}
-          transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-          className="w-[68px] h-[68px] sm:w-[72px] sm:h-[72px] rounded-full overflow-hidden border-[3px] bg-brand-cream-100 flex items-center justify-center"
-        >
-          <LayoutGrid
-            size={30}
-            strokeWidth={1.5}
-            className={activeCategory === 'All' ? 'text-brand-gold-700' : 'text-brand-brown-950'}
+        {/* Copy 1 */}
+        {allItems.map(({ name, isAllButton, imageSrc }) => (
+          <CircleButton
+            key={`a-${name}`}
+            name={name}
+            isActive={activeCategory === name}
+            imageSrc={imageSrc}
+            isAllButton={isAllButton}
+            onClick={() => {
+              setPaused(true);
+              onChange(name);
+              setTimeout(() => setPaused(false), 2000);
+            }}
           />
-        </motion.div>
-        <span
-          className="text-[9px] sm:text-[10px] leading-tight text-center max-w-[76px] truncate transition-colors duration-200"
-          style={{
-            fontWeight: activeCategory === 'All' ? 700 : 500,
-            color: activeCategory === 'All' ? '#C9A227' : '#5B3535',
-            fontFamily: 'var(--font-playfair, serif)',
-          }}
-        >
-          All
-        </span>
-      </button>
+        ))}
 
-      {/* Category photo circles */}
-      {visibleCategories.map((name) => {
-        const isActive = activeCategory === name;
-        return (
-          <button
-            key={name}
-            role="tab"
-            aria-selected={isActive}
-            data-active={isActive}
-            onClick={() => onChange(name)}
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group focus:outline-none"
-            style={{ scrollSnapAlign: 'start' }}
-            aria-label={`Filter by ${name}`}
-          >
-            <motion.div
-              animate={{
-                borderColor: isActive ? '#C9A227' : '#ffffff',
-                boxShadow: isActive
-                  ? '0 0 0 2px #C9A227, 0 6px 20px rgba(201,162,39,0.30)'
-                  : '0 3px 12px rgba(44,23,23,0.12)',
-                scale: isActive ? 1.1 : 1,
-              }}
-              transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-              className="w-[68px] h-[68px] sm:w-[72px] sm:h-[72px] rounded-full overflow-hidden border-[3px]"
-            >
-              <img
-                src={CATEGORY_IMAGES[name]}
-                alt={name}
-                loading="lazy"
-                draggable={false}
-                className="w-full h-full object-cover pointer-events-none group-hover:scale-110 transition-transform duration-500"
-              />
-            </motion.div>
-            <span
-              className="text-[9px] sm:text-[10px] leading-tight text-center max-w-[76px] truncate transition-colors duration-200"
-              style={{
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#C9A227' : '#5B3535',
-                fontFamily: 'var(--font-playfair, serif)',
-              }}
-            >
-              {name}
-            </span>
-          </button>
-        );
-      })}
+        {/* Copy 2 — identical, enables seamless loop */}
+        {allItems.map(({ name, isAllButton, imageSrc }) => (
+          <CircleButton
+            key={`b-${name}`}
+            name={name}
+            isActive={activeCategory === name}
+            imageSrc={imageSrc}
+            isAllButton={isAllButton}
+            onClick={() => {
+              setPaused(true);
+              onChange(name);
+              setTimeout(() => setPaused(false), 2000);
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };
