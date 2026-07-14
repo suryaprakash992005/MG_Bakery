@@ -108,11 +108,14 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
   const SPEED = 0.6;
 
   const visibleCategories = categories.filter((n) => CATEGORY_IMAGES[n]);
-  const allItems = visibleCategories.map((name) => ({
-    name,
-    isAllButton: false,
-    imageSrc: CATEGORY_IMAGES[name],
-  }));
+  const allItems = [
+    { name: 'All',  isAllButton: true,  imageSrc: undefined },
+    ...visibleCategories.map((name) => ({
+      name,
+      isAllButton: false,
+      imageSrc: CATEGORY_IMAGES[name],
+    })),
+  ];
 
   // ── RAF loop ──────────────────────────────────────────────────────────────
   const tick = useCallback(() => {

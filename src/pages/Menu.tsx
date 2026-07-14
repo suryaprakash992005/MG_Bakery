@@ -60,9 +60,9 @@ const isCurrentlyVisible = (p: {
 
 // ─── Menu Page ─────────────────────────────────────────────────────────────────
 export const Menu: React.FC = () => {
-  const { products, categories, menuVisibility } = useBakeryDatabase();
+  const { products, categories } = useBakeryDatabase();
 
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery,      setSearchQuery]       = useState<string>('');
   const [isFocused,        setIsFocused]         = useState<boolean>(false);
   const [scrollProgress,   setScrollProgress]    = useState<number>(0);
@@ -81,87 +81,34 @@ export const Menu: React.FC = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ── Category list (only showing categories with visible products) ─────────────
-  const sortedCategories = useMemo(() => {
-    const activeCats = new Set(
-      products
-        .filter(p => {
-          if (!isCurrentlyVisible(p)) return false;
-          const vis = menuVisibility[p.id];
-          return vis ? vis.showInMenu : true; // Default to true if unconfigured
-        })
-        .map(p => p.category)
-    );
-    return [...categories]
-      .sort((a, b) => (a.displayPriority ?? 9999) - (b.displayPriority ?? 9999))
-      .map((c) => c.name)
-      .filter(catName => activeCats.has(catName));
+  // ── Category list (sorted by displayPriority) ────────────────────────────────
+  const sortedCategories = useMemo(
+    () =>
+      [...categories]
+        .sort((a, b) => (a.displayPriority ?? 9999) - (b.displayPriority ?? 9999))
+        .map((c) => c.name),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories, products, menuVisibility]);
+    [categories.map((c) => c.name).join(',')],
+  );
 
-  // Set default category to the first active sorted category
-  useEffect(() => {
-    if (sortedCategories.length > 0) {
-      if (!selectedCategory || !sortedCategories.includes(selectedCategory)) {
-        setSelectedCategory(sortedCategories[0]);
-      }
-    }
-  }, [sortedCategories, selectedCategory]);
-
-  // ── Featured Products (visible and featured) ──────────────────────────────────
-  const featuredProducts = useMemo(() => {
-    return products
-      .filter((product) => {
-        if (!isCurrentlyVisible(product)) return false;
-        const vis = menuVisibility[product.id];
-        const show = vis ? vis.showInMenu : true;
-        const featured = vis ? vis.featuredOnMenu : false;
-        if (!show || !featured) return false;
-
-        const q = searchQuery.toLowerCase();
-        if (q) {
-          return (
+  // ── Filtered + sorted products (preserves existing filter logic exactly) ─────
+  const filteredProducts = useMemo(
+    () =>
+      products
+        .filter((product) => {
+          if (!isCurrentlyVisible(product)) return false;
+          const matchesCategory =
+            selectedCategory === 'All' || product.category === selectedCategory;
+          const q = searchQuery.toLowerCase();
+          const matchesSearch =
             product.name.toLowerCase().includes(q) ||
             product.description.toLowerCase().includes(q) ||
-            product.category.toLowerCase().includes(q)
-          );
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        const visA = menuVisibility[a.id];
-        const visB = menuVisibility[b.id];
-        const prioA = visA && visA.menuPriority !== undefined ? visA.menuPriority : (a.displayPriority ?? 999);
-        const prioB = visB && visB.menuPriority !== undefined ? visB.menuPriority : (b.displayPriority ?? 999);
-        return prioA - prioB;
-      });
-  }, [products, menuVisibility, searchQuery]);
-
-  // ── Filtered + sorted products ───────────────────────────────────────────────
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter((product) => {
-        if (!isCurrentlyVisible(product)) return false;
-        const vis = menuVisibility[product.id];
-        const show = vis ? vis.showInMenu : true;
-        if (!show) return false;
-
-        const matchesCategory = product.category === selectedCategory;
-        const q = searchQuery.toLowerCase();
-        const matchesSearch =
-          product.name.toLowerCase().includes(q) ||
-          product.description.toLowerCase().includes(q) ||
-          product.category.toLowerCase().includes(q);
-        return matchesCategory && matchesSearch;
-      })
-      .sort((a, b) => {
-        const visA = menuVisibility[a.id];
-        const visB = menuVisibility[b.id];
-        const prioA = visA && visA.menuPriority !== undefined ? visA.menuPriority : (a.displayPriority ?? 999);
-        const prioB = visB && visB.menuPriority !== undefined ? visB.menuPriority : (b.displayPriority ?? 999);
-        return prioA - prioB;
-      });
-  }, [products, selectedCategory, searchQuery, menuVisibility]);
+            product.category.toLowerCase().includes(q);
+          return matchesCategory && matchesSearch;
+        })
+        .sort((a, b) => (a.displayPriority ?? 9999) - (b.displayPriority ?? 9999)),
+    [products, selectedCategory, searchQuery],
+  );
 
   // ── Smooth scroll to product list after category/search change ───────────────
   // Height of the sticky bar: mobile nav (80px) + search (46px) + chips (96px) + a bit of gap = ~230px total
@@ -314,17 +261,17 @@ export const Menu: React.FC = () => {
           {isLoading
             ? 'Loading menu…'
             : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'item' : 'items'}${
-                selectedCategory && !searchQuery ? ` in ${selectedCategory}` : ''
+                selectedCategory !== 'All' && !searchQuery ? ` in ${selectedCategory}` : ''
               }`}
         </motion.span>
 
         <AnimatePresence>
-          {(searchQuery || (sortedCategories.length > 0 && selectedCategory !== sortedCategories[0])) && (
+          {(searchQuery || selectedCategory !== 'All') && (
             <motion.button
               initial={{ opacity: 0, x: 6 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 6 }}
-              onClick={() => { setSearchQuery(''); if (sortedCategories.length > 0) setSelectedCategory(sortedCategories[0]); }}
+              onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
               className="text-xs font-semibold text-brand-gold-700 hover:underline cursor-pointer"
             >
               Clear filters
@@ -338,29 +285,6 @@ export const Menu: React.FC = () => {
         ref={productsRef}
         className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8"
       >
-
-        {/* ── FEATURED PRODUCTS ROW ────────────────────────────────────────── */}
-        {!isLoading && featuredProducts.length > 0 && (
-          <div className="mb-10 bg-gradient-to-r from-amber-500/10 via-brand-gold-500/5 to-transparent p-4 sm:p-5 rounded-3xl border border-brand-gold-500/20 shadow-[0_4px_20px_rgba(201,162,39,0.06)]">
-            <div className="flex items-center gap-1.5 mb-4">
-              <span className="text-base">⭐</span>
-              <h2 className="font-playfair font-bold text-sm text-brand-brown-950 uppercase tracking-wider">Featured on Menu</h2>
-            </div>
-            
-            <div className="flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-thin lg:grid lg:grid-cols-3 xl:grid-cols-4 lg:overflow-x-visible lg:pb-0">
-              {featuredProducts.map((product) => (
-                <div key={`feat-${product.id}`} className="w-[280px] sm:w-[320px] flex-shrink-0 snap-start lg:w-full">
-                  <div className="lg:hidden bg-white rounded-2xl border border-brand-gold-500/20 shadow-sm">
-                    <FoodOrderCard product={product} />
-                  </div>
-                  <div className="hidden lg:block bg-white rounded-[1.5rem] border border-brand-gold-500/20 shadow-sm">
-                    <ProductCard product={product} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* ── SKELETON LOADING ──────────────────────────────────────────────── */}
         {isLoading && (
@@ -402,7 +326,7 @@ export const Menu: React.FC = () => {
               Try a different category or search term
             </p>
             <button
-              onClick={() => { setSearchQuery(''); if (sortedCategories.length > 0) setSelectedCategory(sortedCategories[0]); }}
+              onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
               className="mt-5 text-xs font-bold bg-brand-brown-950 text-brand-cream-50 px-6 py-2.5 rounded-full hover:bg-brand-brown-900 active:scale-95 transition-all"
             >
               Reset Filters
