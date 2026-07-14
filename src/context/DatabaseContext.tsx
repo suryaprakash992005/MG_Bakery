@@ -110,6 +110,12 @@ export interface UnifiedOffer {
   description: string;
 }
 
+export interface MenuVisibilityEntry {
+  showInMenu: boolean;
+  featuredOnMenu: boolean;
+  menuPriority: number;
+}
+
 interface DatabaseContextType {
   products: UnifiedProduct[];
   gallery: UnifiedGalleryItem[];
@@ -119,6 +125,7 @@ interface DatabaseContextType {
   settings: UnifiedSettings;
   history: UnifiedHistoryLog[];
   offers: UnifiedOffer[];
+  menuVisibility: Record<string, MenuVisibilityEntry>;
   
   // Product Operations
   saveProduct: (product: UnifiedProduct) => void | Promise<void>;
@@ -127,6 +134,7 @@ interface DatabaseContextType {
   permanentlyDeleteProduct: (id: string) => void | Promise<void>;
   duplicateProduct: (id: string) => void;
   reorderProducts: (products: UnifiedProduct[]) => void;
+  updateMenuVisibility: (id: string, entry: Partial<MenuVisibilityEntry>) => void;
   
   // Gallery Operations
   saveGalleryItem: (item: UnifiedGalleryItem) => void | Promise<void>;
@@ -174,6 +182,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<UnifiedSettings>(INITIAL_SETTINGS as any);
   const [history, setHistory] = useState<UnifiedHistoryLog[]>([]);
   const [offers, setOffers] = useState<UnifiedOffer[]>([]);
+  const [menuVisibility, setMenuVisibility] = useState<Record<string, MenuVisibilityEntry>>({});
 
   const fetchSupabaseProducts = async () => {
     try {
@@ -441,6 +450,11 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setOffers(initial);
       localStorage.setItem('admin_offers', JSON.stringify(initial));
     }
+    // 9. Load Menu Visibility settings
+    const localMenuVisibility = localStorage.getItem('menu_visibility');
+    if (localMenuVisibility) {
+      setMenuVisibility(JSON.parse(localMenuVisibility));
+    }
   }, []);
 
   // Save utility
@@ -463,6 +477,16 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const clearHistory = () => {
     setHistory([]);
     syncToLocal('admin_history', []);
+  };
+
+  const updateMenuVisibility = (id: string, entry: Partial<MenuVisibilityEntry>) => {
+    setMenuVisibility(prev => {
+      const existing = prev[id] || { showInMenu: true, featuredOnMenu: false, menuPriority: 999 };
+      const updatedEntry = { ...existing, ...entry };
+      const next = { ...prev, [id]: updatedEntry };
+      syncToLocal('menu_visibility', next);
+      return next;
+    });
   };
 
   // --- PRODUCTS ---
@@ -947,7 +971,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deleteOffer,
         
         addHistoryLog,
-        clearHistory
+        clearHistory,
+        menuVisibility,
+        updateMenuVisibility
       }}
     >
       {children}

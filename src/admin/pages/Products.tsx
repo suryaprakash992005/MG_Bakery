@@ -10,7 +10,10 @@ import {
   Cake, 
   Copy, 
   RotateCcw,
-  Move
+  Move,
+  Eye,
+  EyeOff,
+  Star
 } from 'lucide-react';
 
 export const Products: React.FC = () => {
@@ -22,8 +25,14 @@ export const Products: React.FC = () => {
     permanentlyDeleteProduct, 
     duplicateProduct,
     reorderProducts,
-    categories
+    categories,
+    menuVisibility,
+    updateMenuVisibility
   } = useBakeryDatabase();
+
+  const [showInMenu, setShowInMenu] = useState(true);
+  const [featuredOnMenu, setFeaturedOnMenu] = useState(false);
+  const [menuPriority, setMenuPriority] = useState(1);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -83,6 +92,12 @@ export const Products: React.FC = () => {
     setStatus('Available');
     setImage('https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80');
     setDisplayPriority(products.length + 1);
+    
+    // Default visibility: ON, not featured, next priority
+    setShowInMenu(true);
+    setFeaturedOnMenu(false);
+    setMenuPriority(products.length + 1);
+    
     setIsAddOpen(true);
   };
 
@@ -94,6 +109,12 @@ export const Products: React.FC = () => {
     setStatus(p.status);
     setImage(p.image);
     setDisplayPriority(p.displayPriority || 99);
+
+    // Load visibility settings (defaulting to ON)
+    const vis = menuVisibility[p.id] || { showInMenu: true, featuredOnMenu: false, menuPriority: p.displayPriority || 99 };
+    setShowInMenu(vis.showInMenu);
+    setFeaturedOnMenu(vis.featuredOnMenu);
+    setMenuPriority(vis.menuPriority);
 
     if (typeof p.price === 'object') {
       setPriceType('multi');
@@ -130,8 +151,10 @@ export const Products: React.FC = () => {
     e.preventDefault();
     if (!name || !category) return;
     
+    const newId = `p-${Date.now()}`;
+    
     saveProduct({
-      id: `p-${Date.now()}`,
+      id: newId,
       name,
       description,
       price: constructPriceObject(),
@@ -146,6 +169,13 @@ export const Products: React.FC = () => {
       badge: 'None',
       createdDate: new Date().toISOString().split('T')[0]
     });
+    
+    updateMenuVisibility(newId, {
+      showInMenu,
+      featuredOnMenu,
+      menuPriority: Number(menuPriority) || products.length + 1
+    });
+    
     setIsAddOpen(false);
   };
 
@@ -165,6 +195,13 @@ export const Products: React.FC = () => {
       status,
       displayPriority: Number(displayPriority)
     });
+
+    updateMenuVisibility(currentProduct.id, {
+      showInMenu,
+      featuredOnMenu,
+      menuPriority: Number(menuPriority)
+    });
+
     setIsEditOpen(false);
     setCurrentProduct(null);
   };
@@ -213,7 +250,18 @@ export const Products: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-[#2C1A17]/10 p-6 rounded-2xl shadow-sm">
         <div>
           <h2 className="font-playfair text-2xl font-bold text-[#2C1A17]">Products Management</h2>
-          <p className="text-xs text-[#2C1A17]/65 mt-1">Add, edit, change prices, set weights, and toggle availability of your cakes and snacks.</p>
+          <p className="text-xs text-[#2C1A17]/65 mt-1">Add, edit, change prices, set weights, and toggle visibility of your cakes and snacks.</p>
+          <div className="flex flex-wrap gap-2.5 mt-3 text-[10px] font-bold">
+            <span className="bg-emerald-50 text-emerald-800 border border-emerald-250 px-2 py-0.5 rounded-full">
+              Menu Visible: {products.filter(p => (menuVisibility[p.id] ? menuVisibility[p.id].showInMenu : true)).length}
+            </span>
+            <span className="bg-amber-50 text-amber-800 border border-amber-250 px-2 py-0.5 rounded-full">
+              Menu Featured: {products.filter(p => (menuVisibility[p.id] ? menuVisibility[p.id].featuredOnMenu : false)).length}
+            </span>
+            <span className="bg-slate-100 text-slate-650 border border-slate-200 px-2 py-0.5 rounded-full">
+              Menu Hidden: {products.filter(p => (menuVisibility[p.id] ? !menuVisibility[p.id].showInMenu : false)).length}
+            </span>
+          </div>
         </div>
         <button
           onClick={handleOpenAdd}
@@ -345,6 +393,50 @@ export const Products: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Visibility Quick Controls */}
+                  {(() => {
+                    const vis = menuVisibility[p.id] || { showInMenu: true, featuredOnMenu: false, menuPriority: p.displayPriority || 99 };
+                    return (
+                      <div className="mt-3 flex items-center justify-between bg-[#FAF6F0]/80 border border-[#2C1A17]/5 rounded-xl p-2 text-xs">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateMenuVisibility(p.id, { showInMenu: !vis.showInMenu });
+                            }}
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer bg-white ${
+                              vis.showInMenu 
+                                ? 'border-emerald-200 text-emerald-600 hover:bg-emerald-50' 
+                                : 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                            }`}
+                            title={vis.showInMenu ? "Visible on Customer Menu (Click to Hide)" : "Hidden from Customer Menu (Click to Show)"}
+                          >
+                            {vis.showInMenu ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateMenuVisibility(p.id, { featuredOnMenu: !vis.featuredOnMenu });
+                            }}
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer bg-white ${
+                              vis.featuredOnMenu 
+                                ? 'border-amber-200 text-amber-500 hover:bg-amber-50' 
+                                : 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                            }`}
+                            title={vis.featuredOnMenu ? "Featured (Click to Unfeature)" : "Not Featured (Click to Feature)"}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${vis.featuredOnMenu ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}`} />
+                          </button>
+                        </div>
+                        <span className="text-[10px] text-brand-brown-800/60 font-semibold bg-white border border-[#2C1A17]/5 px-2 py-0.5 rounded-md">
+                          Menu Priority: {vis.menuPriority}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Card Actions */}
@@ -603,6 +695,41 @@ export const Products: React.FC = () => {
                 </div>
               </div>
 
+              {/* Menu Visibility Controls */}
+              <div className="bg-[#FAF6F0]/60 border border-[#2C1A17]/5 rounded-2xl p-4 space-y-3">
+                <span className="text-xs font-bold text-[#2C1A17]/80 block uppercase tracking-wider">Menu Visibility Controls</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={showInMenu}
+                      onChange={(e) => setShowInMenu(e.target.checked)}
+                      className="mr-2 h-4 w-4 rounded border-[#2C1A17]/10 text-brand-gold-800 focus:ring-brand-gold-500 accent-brand-gold-850"
+                    />
+                    <span>Show in Customer Menu</span>
+                  </label>
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={featuredOnMenu}
+                      onChange={(e) => setFeaturedOnMenu(e.target.checked)}
+                      className="mr-2 h-4 w-4 rounded border-[#2C1A17]/10 text-brand-gold-800 focus:ring-brand-gold-500 accent-brand-gold-850"
+                    />
+                    <span>Featured on Menu</span>
+                  </label>
+                </div>
+                <div className="space-y-1.5 pt-3 border-t border-[#2C1A17]/5">
+                  <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase block">Menu Display Priority (1 = Highest)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={menuPriority}
+                    onChange={(e) => setMenuPriority(Number(e.target.value))}
+                    className="w-full sm:w-32 bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+
               {/* Description */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Description</label>
@@ -804,6 +931,41 @@ export const Products: React.FC = () => {
                     value={displayPriority}
                     onChange={(e) => setDisplayPriority(Number(e.target.value))}
                     className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Menu Visibility Controls */}
+              <div className="bg-[#FAF6F0]/60 border border-[#2C1A17]/5 rounded-2xl p-4 space-y-3">
+                <span className="text-xs font-bold text-[#2C1A17]/80 block uppercase tracking-wider">Menu Visibility Controls</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={showInMenu}
+                      onChange={(e) => setShowInMenu(e.target.checked)}
+                      className="mr-2 h-4 w-4 rounded border-[#2C1A17]/10 text-brand-gold-800 focus:ring-brand-gold-500 accent-brand-gold-850"
+                    />
+                    <span>Show in Customer Menu</span>
+                  </label>
+                  <label className="flex items-center text-xs font-semibold text-[#2C1A17] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={featuredOnMenu}
+                      onChange={(e) => setFeaturedOnMenu(e.target.checked)}
+                      className="mr-2 h-4 w-4 rounded border-[#2C1A17]/10 text-brand-gold-800 focus:ring-brand-gold-500 accent-brand-gold-850"
+                    />
+                    <span>Featured on Menu</span>
+                  </label>
+                </div>
+                <div className="space-y-1.5 pt-3 border-t border-[#2C1A17]/5">
+                  <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase block">Menu Display Priority (1 = Highest)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={menuPriority}
+                    onChange={(e) => setMenuPriority(Number(e.target.value))}
+                    className="w-full sm:w-32 bg-white border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2 px-3 text-xs focus:outline-none"
                   />
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronRight, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronRight, Star, LayoutGrid, Layers } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -9,6 +9,7 @@ import { useBakeryDatabase } from '../context/DatabaseContext';
 import LightRays from '../components/LightRays';
 import LogoLoop from '../components/LogoLoop';
 import type { LogoItem } from '../components/LogoLoop';
+import DomeGallery from '../components/DomeGallery';
 
 // ── Module-level constants (stable references — never recreated on render) ──
 const CATEGORIES = [
@@ -66,10 +67,44 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   }
   bestSellers = bestSellers.slice(0, 4);
 
+  // Gallery items: up to 6 for grid, all for dome
   const activeGalleryItems = gallery
     .filter(item => !item.isDeleted)
     .sort((a, b) => (a.displayPriority || 9999) - (b.displayPriority || 9999))
-    .slice(0, 3);
+    .slice(0, 6);
+
+  // Images passed to the DomeGallery — real gallery or bakery-themed fallbacks
+  const DOME_FALLBACK_IMAGES = [
+    { src: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=400&q=80', alt: 'Celebration Cake' },
+    { src: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=400&q=80', alt: 'Pastry' },
+    { src: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=400&q=80', alt: 'Cookies' },
+    { src: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80', alt: 'Fresh Bread' },
+    { src: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=400&q=80', alt: 'Ice Cream' },
+    { src: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=400&q=80', alt: 'Milkshake' },
+    { src: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80', alt: 'Burger' },
+    { src: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80', alt: 'Pizza' },
+    { src: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80', alt: 'Puffs' },
+    { src: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=400&q=80', alt: 'Beverage' },
+    { src: 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?auto=format&fit=crop&w=400&q=80', alt: 'Tea Coffee' },
+    { src: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&w=400&q=80', alt: 'Lemon Juice' },
+    { src: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=400&q=80', alt: 'Special Shake' },
+    { src: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=400&q=80', alt: 'Sandwich' },
+    { src: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=400&q=80', alt: 'Buffs' },
+    { src: 'https://images.unsplash.com/photo-1570696516188-ade861b84a49?auto=format&fit=crop&w=400&q=80', alt: 'Fresh Juice' },
+    { src: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=400&q=80', alt: 'Special Ice Cream' },
+    { src: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=400&q=80', alt: 'Anniversary Cake' },
+    { src: 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=400&q=80', alt: 'Roll Items' },
+    { src: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=400&q=80', alt: 'Snacks' },
+  ];
+
+  // Always prefer the real uploaded gallery images; only fall back when gallery is completely empty
+  const uploadedGalleryImages = gallery
+    .filter(item => !item.isDeleted)
+    .map(item => ({ src: item.image, alt: item.title }));
+
+  const domeImages = uploadedGalleryImages.length > 0
+    ? uploadedGalleryImages
+    : DOME_FALLBACK_IMAGES;
 
   const activeBanners = banners
     .filter(b => b.isActive)
@@ -78,6 +113,8 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  // Dome is the default — users can switch to Grid if they want the card layout
+  const [galleryView, setGalleryView] = useState<'grid' | 'dome'>('dome');
 
   useEffect(() => {
     if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
@@ -549,117 +586,158 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
 
       {/* 6. Gallery Preview Section */}
-      <section className="py-20 bg-white snap-start-section">
+      <section className="py-20 bg-white snap-start-section overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-end justify-between mb-16 gap-6">
+
+          {/* ── Section header ─────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-4"
+          >
             <div className="max-w-xl">
               <h2 className="luxury-heading text-3xl sm:text-4xl font-bold">
                 A Peek Inside the Oven
               </h2>
-              <p className="text-sm text-brand-brown-800/60 font-light mt-4">
+              <p className="text-sm text-brand-brown-800/60 font-light mt-3 leading-relaxed">
                 Glance at some of our fresh products, custom cake works, and delicious interior creations.
               </p>
             </div>
-            <button
-              onClick={() => setCurrentPage('gallery')}
-              className="text-sm font-semibold text-brand-brown-950 hover:text-brand-gold-700 transition-colors flex items-center gap-1 group whitespace-nowrap"
-            >
-              <span>View Full Gallery</span>
-              <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeGalleryItems.length > 0 ? (
-              activeGalleryItems.map((item) => (
-                <BorderGlow
-                  key={item.id}
-                  className="aspect-[4/3]"
-                  backgroundColor="#ffffff"
-                  borderRadius={24}
-                  glowColor="46 64 52"
-                  glowRadius={25}
-                  glowIntensity={0.8}
-                  coneSpread={20}
-                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                  fillOpacity={0.15}
+            {/* Controls: view toggle + full gallery link */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* View toggle pill */}
+              <div className="flex items-center bg-brand-cream-100 rounded-full p-1 gap-0.5">
+                <button
+                  onClick={() => setGalleryView('grid')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer ${
+                    galleryView === 'grid'
+                      ? 'bg-brand-brown-950 text-brand-cream-50 shadow-md'
+                      : 'text-brand-brown-800/60 hover:text-brand-brown-950'
+                  }`}
+                  aria-pressed={galleryView === 'grid'}
                 >
-                  <div className="relative w-full h-full group overflow-hidden rounded-[24px]">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-brand-brown-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
-                      <span className="text-[9px] uppercase tracking-widest text-brand-gold-500 font-bold block">{item.category}</span>
-                      <span className="text-xs font-bold text-white font-playfair mt-0.5">{item.title}</span>
-                    </div>
-                  </div>
-                </BorderGlow>
-              ))
-            ) : (
-              // Fallback default mock gallery images
-              <>
-                <BorderGlow
-                  className="aspect-[4/3]"
-                  backgroundColor="#ffffff"
-                  borderRadius={24}
-                  glowColor="46 64 52"
-                  glowRadius={25}
-                  glowIntensity={0.8}
-                  coneSpread={20}
-                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                  fillOpacity={0.15}
+                  <LayoutGrid className="w-3 h-3" />
+                  <span>Grid</span>
+                </button>
+                <button
+                  onClick={() => setGalleryView('dome')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer ${
+                    galleryView === 'dome'
+                      ? 'bg-brand-brown-950 text-brand-cream-50 shadow-md'
+                      : 'text-brand-brown-800/60 hover:text-brand-brown-950'
+                  }`}
+                  aria-pressed={galleryView === 'dome'}
                 >
-                  <div className="relative w-full h-full group">
-                    <img
-                      src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80"
-                      alt="Cake baking"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                  </div>
-                </BorderGlow>
-                <BorderGlow
-                  className="aspect-[4/3]"
-                  backgroundColor="#ffffff"
-                  borderRadius={24}
-                  glowColor="46 64 52"
-                  glowRadius={25}
-                  glowIntensity={0.8}
-                  coneSpread={20}
-                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                  fillOpacity={0.15}
-                >
-                  <div className="relative w-full h-full group">
-                    <img
-                      src="https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=800&q=80"
-                      alt="Puffs fresh"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                  </div>
-                </BorderGlow>
-                <BorderGlow
-                  className="aspect-[4/3]"
-                  backgroundColor="#ffffff"
-                  borderRadius={24}
-                  glowColor="46 64 52"
-                  glowRadius={25}
-                  glowIntensity={0.8}
-                  coneSpread={20}
-                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                  fillOpacity={0.15}
-                >
-                  <div className="relative w-full h-full group">
-                    <img
-                      src="https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80"
-                      alt="Special cakes"
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                    />
-                  </div>
-                </BorderGlow>
-              </>
+                  <Layers className="w-3 h-3" />
+                  <span>Dome</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setCurrentPage('gallery')}
+                className="text-sm font-semibold text-brand-brown-950 hover:text-brand-gold-700 transition-colors flex items-center gap-1 group whitespace-nowrap"
+              >
+                <span>View Full Gallery</span>
+                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </motion.div>
+
+          {/* ── View panels ────────────────────────────────────────── */}
+          <AnimatePresence mode="wait">
+
+            {/* GRID VIEW */}
+            {galleryView === 'grid' && (
+              <motion.div
+                key="gallery-grid"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6"
+              >
+                {(activeGalleryItems.length > 0 ? activeGalleryItems : [
+                  { id: 'f1', image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80', title: 'Celebration Cake', category: 'Cakes' },
+                  { id: 'f2', image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=800&q=80', title: 'Fresh Puffs', category: 'Puffs' },
+                  { id: 'f3', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80', title: 'Anniversary Cake', category: 'Cakes' },
+                  { id: 'f4', image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=800&q=80', title: 'Ice Cream', category: 'Ice Creams' },
+                  { id: 'f5', image: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=800&q=80', title: 'Milkshake', category: 'Milk Shakes' },
+                  { id: 'f6', image: 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?auto=format&fit=crop&w=800&q=80', title: 'Tea & Coffee', category: 'Tea Coffee' },
+                ] as { id: string; image: string; title: string; category: string }[]).map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 32, scale: 0.96 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: true, margin: '-50px' }}
+                    transition={{
+                      duration: 0.55,
+                      delay: index * 0.08,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    whileHover={{ y: -5, transition: { duration: 0.25, ease: 'easeOut' } }}
+                  >
+                    <BorderGlow
+                      className="aspect-[4/3]"
+                      backgroundColor="#ffffff"
+                      borderRadius={24}
+                      glowColor="46 64 52"
+                      glowRadius={25}
+                      glowIntensity={0.8}
+                      coneSpread={20}
+                      colors={['#D4AF37', '#2C1717', '#A46E6E']}
+                      fillOpacity={0.15}
+                    >
+                      <div className="relative w-full h-full group overflow-hidden rounded-[24px] shadow-md hover:shadow-xl transition-shadow duration-500">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+                        />
+                        {/* Gradient overlay — slides up on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/80 via-brand-brown-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 flex flex-col justify-end p-5">
+                          <span className="text-[9px] uppercase tracking-widest text-brand-gold-400 font-bold block translate-y-3 group-hover:translate-y-0 transition-transform duration-350">
+                            {item.category}
+                          </span>
+                          <span className="text-sm font-bold text-white font-playfair mt-1 translate-y-3 group-hover:translate-y-0 transition-transform duration-350 delay-[35ms]">
+                            {item.title}
+                          </span>
+                        </div>
+                      </div>
+                    </BorderGlow>
+                  </motion.div>
+                ))}
+              </motion.div>
             )}
-          </div>
+
+            {/* DOME VIEW */}
+            {galleryView === 'dome' && (
+              <motion.div
+                key="gallery-dome"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="rounded-[2rem] overflow-hidden shadow-2xl"
+                style={{ height: 'clamp(380px, 55vw, 520px)' }}
+              >
+                <DomeGallery
+                  images={domeImages}
+                  fit={44}
+                  fitBasis="width"
+                  imageBorderRadius="10px"
+                  dragSensitivity={22}
+                  dragDampening={0.92}
+                  maxVerticalRotationDeg={6}
+                  overlayBlurColor="rgba(30,15,10,0.55)"
+                />
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </div>
       </section>
 
