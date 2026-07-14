@@ -111,19 +111,22 @@ export const Menu: React.FC = () => {
   );
 
   // ── Smooth scroll to product list after category/search change ───────────────
+  // Height of the sticky bar: mobile nav (80px) + search (46px) + chips (96px) + a bit of gap = ~230px total
+  const STICKY_OFFSET = typeof window !== 'undefined' && window.innerWidth >= 1024 ? 230 : 245;
+
   const scrollToProducts = useCallback(() => {
-    if (window.innerWidth < 1024 && productsRef.current) {
+    if (productsRef.current) {
       setTimeout(() => {
         const rect = productsRef.current?.getBoundingClientRect();
         if (rect) {
           window.scrollTo({
-            top: rect.top + window.scrollY - 155,
+            top: rect.top + window.scrollY - STICKY_OFFSET,
             behavior: 'smooth',
           });
         }
       }, 120);
     }
-  }, []);
+  }, [STICKY_OFFSET]);
 
   const handleCategoryChange = useCallback(
     (cat: string) => {
@@ -163,7 +166,8 @@ export const Menu: React.FC = () => {
       />
 
       {/* ── Page Header ────────────────────────────────────────────────────── */}
-      <div className="pt-20 sm:pt-24 pb-6 text-center px-4">
+      {/* pt-[88px]: 80px mobile-nav + 8px gap; lg:pt-[80px]: 72px desktop-nav + 8px gap */}
+      <div className="pt-[88px] lg:pt-[80px] pb-4 text-center px-4">
         <div className="inline-flex items-center gap-1 bg-brand-cream-100 px-3 py-1 rounded-full text-xs font-semibold text-brand-gold-700 uppercase tracking-widest mb-3">
           <Sparkles className="w-3 h-3" aria-hidden />
           <span>Delicately Handcrafted</span>
@@ -191,9 +195,12 @@ export const Menu: React.FC = () => {
       </div>
 
       {/* ── Sticky Search + Category Chips Bar ─────────────────────────────── */}
-      {/* On mobile: sticks at top-0 (no full-width navbar on mobile).
-          On desktop: sticks at top-[72px] below the fixed navbar. */}
-      <div className="sticky top-0 lg:top-[72px] z-30 bg-brand-cream-50/96 backdrop-blur-md border-b border-brand-cream-200/60 shadow-[0_1px_12px_rgba(44,23,23,0.06)]">
+      {/*
+        top-[80px] on mobile  = below the StaggeredMenu pill (fixed, top:16px + height:64px)
+        top-[72px] on desktop = below the fixed desktop navbar
+        z-[39]               = below the StaggeredMenu wrapper (z-40) so header is always on top
+      */}
+      <div className="sticky top-[80px] lg:top-[72px] z-[39] bg-brand-cream-50/96 backdrop-blur-md border-b border-brand-cream-200/60 shadow-[0_1px_12px_rgba(44,23,23,0.06)]">
         {/* Search bar */}
         <div className="px-3 sm:px-5 pt-2.5 pb-1 max-w-7xl mx-auto">
           <div className="relative max-w-lg mx-auto lg:mx-0">
