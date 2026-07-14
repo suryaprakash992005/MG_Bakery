@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 
@@ -29,13 +29,12 @@ const CATEGORY_IMAGES: Record<string, string> = {
   'Mocktails':          'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=200&q=80',
 };
 
-// ── Reusable circle button ────────────────────────────────────────────────────
+// ── Single circle chip ─────────────────────────────────────────────────────────
 interface CircleButtonProps {
   name: string;
   isActive: boolean;
   onClick: () => void;
   imageSrc?: string;
-  /** If true, renders the grid icon instead of an image */
   isAllButton?: boolean;
 }
 
@@ -99,63 +98,124 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
   activeCategory,
   onChange,
 }) => {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
+  const scrollRef        = useRef<HTMLDivElement>(null);
+  const rafRef           = useRef<number | null>(null);
+  const isUserActive     = useRef(false);   // true while user is interacting
+  const resumeTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollLeft   = useRef(0);
 
-  // Only categories that have an image assigned
-  const visibleCategories = categories.filter((name) => CATEGORY_IMAGES[name]);
+  // Auto-scroll speed: pixels per animation frame (~60 fps → ~36 px/s)
+  const SPEED = 0.6;
 
-  // All items including "All" at start
+  const visibleCategories = categories.filter((n) => CATEGORY_IMAGES[n]);
   const allItems = [
-    { name: 'All', isAllButton: true, imageSrc: undefined },
-    ...visibleCategories.map((name) => ({ name, isAllButton: false, imageSrc: CATEGORY_IMAGES[name] })),
+    { name: 'All',  isAllButton: true,  imageSrc: undefined },
+    ...visibleCategories.map((name) => ({
+      name,
+      isAllButton: false,
+      imageSrc: CATEGORY_IMAGES[name],
+    })),
   ];
 
-  // Marquee CSS injection — runs once
-  useEffect(() => {
-    const styleId = 'cat-chips-marquee-style';
-    if (document.getElementById(styleId)) return;
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      @keyframes cat-chips-marquee {
-        0%   { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+  // ── RAF loop ──────────────────────────────────────────────────────────────
+  const tick = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) {
+      if (!isUserActive.current) {
+        // Advance by SPEED px each frame
+        el.scrollLeft += SPEED;
       }
-      .cat-chips-track {
-        display: flex;
-        gap: 16px;
-        width: max-content;
-        animation: cat-chips-marquee 28s linear infinite;
-        will-change: transform;
+
+      // Seamless wrap: when we pass the halfway mark (end of copy-1),
+      // snap back silently so the loop never ends.
+      const half = el.scrollWidth / 2;
+      if (el.scrollLeft >= half) {
+        el.scrollLeft -= half;
       }
-      .cat-chips-track.paused {
-        animation-play-state: paused;
+      // Also handle manual backward scroll past 0
+      if (el.scrollLeft < 0) {
+        el.scrollLeft += half;
       }
-    `;
-    document.head.appendChild(style);
+
+      lastScrollLeft.current = el.scrollLeft;
+    }
+    rafRef.current = requestAnimationFrame(tick);
   }, []);
 
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      if (resumeTimer.current !== null) clearTimeout(resumeTimer.current);
+    };
+  }, [tick]);
+
+  // ── Pause / resume helpers ────────────────────────────────────────────────
+  const pause = useCallback(() => {
+    isUserActive.current = true;
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+  }, []);
+
+  const resumeAfter = useCallback((ms = 1800) => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => {
+      isUserActive.current = false;
+    }, ms);
+  }, []);
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
-      className="overflow-hidden py-3"
-      style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
-      onTouchEnd={() => setTimeout(() => setPaused(false), 1200)}
-      aria-label="Filter menu by category"
+      className="relative overflow-hidden py-3"
+      /* Soft fade mask on both edges */
+      style={{
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 7%, black 93%, transparent)',
+        maskImage:       'linear-gradient(to right, transparent, black 7%, black 93%, transparent)',
+      }}
     >
-      {/*
-        We render the list TWICE side-by-side.
-        The animation translates the track by -50% which
-        = width of one copy, creating a seamless infinite loop.
-      */}
       <div
-        ref={trackRef}
-        className={`cat-chips-track${paused ? ' paused' : ''}`}
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-1"
+        style={{
+          scrollbarWidth:          'none',
+          msOverflowStyle:         'none',
+          WebkitOverflowScrolling: 'touch',
+          cursor:                  'grab',
+        }}
+
+        /* ── Desktop: mouse-drag support ─────────────────────────── */
+        onMouseEnter={pause}
+        onMouseLeave={() => resumeAfter(800)}
+        onMouseDown={(e) => {
+          pause();
+          const el = scrollRef.current;
+          if (!el) return;
+          const startX     = e.pageX - el.offsetLeft;
+          const startScroll = el.scrollLeft;
+          el.style.cursor  = 'grabbing';
+
+          const onMove = (mv: MouseEvent) => {
+            const dx = mv.pageX - e.pageX;
+            el.scrollLeft = startScroll - dx;
+          };
+          const onUp = () => {
+            el.style.cursor = 'grab';
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+            resumeAfter(1800);
+          };
+          // suppress unused variable warning
+          void startX;
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        }}
+
+        /* ── Mobile: touch-swipe support ─────────────────────────── */
+        onTouchStart={pause}
+        onTouchEnd={() => resumeAfter(1800)}
+        onTouchCancel={() => resumeAfter(800)}
       >
-        {/* Copy 1 */}
+        {/* Copy 1 — primary */}
         {allItems.map(({ name, isAllButton, imageSrc }) => (
           <CircleButton
             key={`a-${name}`}
@@ -164,14 +224,14 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
             imageSrc={imageSrc}
             isAllButton={isAllButton}
             onClick={() => {
-              setPaused(true);
+              pause();
               onChange(name);
-              setTimeout(() => setPaused(false), 2000);
+              resumeAfter(2000);
             }}
           />
         ))}
 
-        {/* Copy 2 — identical, enables seamless loop */}
+        {/* Copy 2 — seamless continuation */}
         {allItems.map(({ name, isAllButton, imageSrc }) => (
           <CircleButton
             key={`b-${name}`}
@@ -180,9 +240,9 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
             imageSrc={imageSrc}
             isAllButton={isAllButton}
             onClick={() => {
-              setPaused(true);
+              pause();
               onChange(name);
-              setTimeout(() => setPaused(false), 2000);
+              resumeAfter(2000);
             }}
           />
         ))}
