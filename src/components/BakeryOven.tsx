@@ -170,11 +170,4 @@ export const BakeryOven: React.FC<BakeryOvenProps> = ({
   );
 };
 
-// Preload the GLB model
-try {
-  useGLTF.preload('/assets/models/bakery_oven.glb');
-} catch (e) {
-  console.warn('Oven GLB preload skipped or unavailable');
-}
-
 export default BakeryOven;

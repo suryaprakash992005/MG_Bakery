@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { useProgress } from '@react-three/drei';
 import { Loader } from './Loader';
 import { Lights } from './Lights';
 import { CameraRig } from './CameraRig';
@@ -52,6 +53,13 @@ interface SceneProps {
   doorOpen: boolean;
 }
 
+// Custom HTML Loader wrapper that uses useProgress to hide once loading is complete
+const GlobalLoader: React.FC = () => {
+  const { active } = useProgress();
+  if (!active) return null;
+  return <Loader />;
+};
+
 export const Scene: React.FC<SceneProps> = ({
   pointer,
   zoomIn,
@@ -66,52 +74,56 @@ export const Scene: React.FC<SceneProps> = ({
 }) => {
   return (
     <div className="w-full h-full relative">
-      <Suspense fallback={<Loader />}>
-        {/* Error Boundary catches GLTF loading failures and falls back to placeholder rendering */}
-        <SceneErrorBoundary
-          fallback={(err) => {
-            console.warn('Falling back to 3D procedural meshes due to GLB error:', err.message);
-            return (
-              <Canvas shadows gl={{ antialias: true }}>
-                <CameraRig pointer={pointer} zoomIn={zoomIn} />
-                <Lights glowIntensity={glowIntensity} doorOpen={doorOpen} />
-                <SmokeParticles count={35} />
-                
-                {/* Fallback Bakery Oven */}
-                <BakeryOven
-                  doorAngle={doorAngle}
-                  trayPositionZ={trayPositionZ}
-                  glowIntensity={glowIntensity}
-                  onDoorClick={onDoorClick}
-                  hasGltfFailed={true}
-                />
-                
-                {/* Fallback Cake sitting on tray */}
-                <group position={[0, 0.42, trayPositionZ]}>
-                  <group position={[0, 0.38, 0]}>
-                    <CakeCarousel
-                      activeCake={activeCake}
-                      cakeRotationY={cakeRotationY}
-                      hasGltfFailed={true}
-                      onCakeClick={onCakeClick}
-                    />
-                  </group>
-                </group>
+      {/* Absolute overlay loader outside Canvas */}
+      <GlobalLoader />
 
-                <mesh rotation={[-1.57, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
-                  <planeGeometry args={[15, 15]} />
-                  <shadowMaterial opacity={0.4} />
-                </mesh>
-              </Canvas>
-            );
-          }}
-        >
-          {/* Main 3D Canvas attempting GLTF load */}
-          <Canvas shadows gl={{ antialias: true }}>
-            <CameraRig pointer={pointer} zoomIn={zoomIn} />
-            <Lights glowIntensity={glowIntensity} doorOpen={doorOpen} />
-            <SmokeParticles count={35} />
-            
+      {/* Error Boundary catches GLTF loading failures and falls back to placeholder rendering */}
+      <SceneErrorBoundary
+        fallback={(err) => {
+          console.warn('Falling back to 3D procedural meshes due to GLB error:', err.message);
+          return (
+            <Canvas shadows gl={{ antialias: true }}>
+              <CameraRig pointer={pointer} zoomIn={zoomIn} />
+              <Lights glowIntensity={glowIntensity} doorOpen={doorOpen} />
+              <SmokeParticles count={35} />
+              
+              {/* Fallback Bakery Oven */}
+              <BakeryOven
+                doorAngle={doorAngle}
+                trayPositionZ={trayPositionZ}
+                glowIntensity={glowIntensity}
+                onDoorClick={onDoorClick}
+                hasGltfFailed={true}
+              />
+              
+              {/* Fallback Cake sitting on tray */}
+              <group position={[0, 0.42, trayPositionZ]}>
+                <group position={[0, 0.38, 0]}>
+                  <CakeCarousel
+                    activeCake={activeCake}
+                    cakeRotationY={cakeRotationY}
+                    hasGltfFailed={true}
+                    onCakeClick={onCakeClick}
+                  />
+                </group>
+              </group>
+
+              <mesh rotation={[-1.57, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
+                <planeGeometry args={[15, 15]} />
+                <shadowMaterial opacity={0.4} />
+              </mesh>
+            </Canvas>
+          );
+        }}
+      >
+        {/* Main 3D Canvas attempting GLTF load */}
+        <Canvas shadows gl={{ antialias: true }}>
+          <CameraRig pointer={pointer} zoomIn={zoomIn} />
+          <Lights glowIntensity={glowIntensity} doorOpen={doorOpen} />
+          <SmokeParticles count={35} />
+          
+          {/* Wrap GLTF loading models inside Suspense */}
+          <Suspense fallback={null}>
             {/* Try rendering GLB Oven */}
             <BakeryOven
               doorAngle={doorAngle}
@@ -132,14 +144,14 @@ export const Scene: React.FC<SceneProps> = ({
                 />
               </group>
             </group>
+          </Suspense>
 
-            <mesh rotation={[-1.57, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
-              <planeGeometry args={[15, 15]} />
-              <shadowMaterial opacity={0.4} />
-            </mesh>
-          </Canvas>
-        </SceneErrorBoundary>
-      </Suspense>
+          <mesh rotation={[-1.57, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
+            <planeGeometry args={[15, 15]} />
+            <shadowMaterial opacity={0.4} />
+          </mesh>
+        </Canvas>
+      </SceneErrorBoundary>
     </div>
   );
 };
