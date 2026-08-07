@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, ChevronRight, Star, LayoutGrid, Layers } from 'lucide-react';
+import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, Star, LayoutGrid, Layers } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -51,7 +51,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
-  const { products, gallery } = useBakeryDatabase();
+  const { products, gallery, settings } = useBakeryDatabase();
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -109,6 +109,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const [galleryView, setGalleryView] = useState<'grid' | 'dome'>('dome');
   // Hero video state — true once the video can play, triggers cross-fade from static poster
   const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // Reviews carousel slide state
+  const [reviewSlide, setReviewSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setReviewSlide(prev => (prev + 1) % REVIEWS.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Static fallback poster image shown while the video loads
   const HERO_POSTER = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80';
@@ -424,21 +434,21 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 </div>
 
                 <blockquote className="font-playfair text-lg italic leading-relaxed text-white/95">
-                  "{REVIEWS[currentSlide % REVIEWS.length].comment}"
+                  "{REVIEWS[reviewSlide % REVIEWS.length].comment}"
                 </blockquote>
 
                 <div className="flex items-center justify-center gap-3 pt-4">
                   <img
-                    src={REVIEWS[currentSlide % REVIEWS.length].avatar}
-                    alt={REVIEWS[currentSlide % REVIEWS.length].name}
+                    src={REVIEWS[reviewSlide % REVIEWS.length].avatar}
+                    alt={REVIEWS[reviewSlide % REVIEWS.length].name}
                     className="w-12 h-12 rounded-full object-cover border-2 border-[#C9A227] shadow-md"
                   />
                   <div className="text-left">
                     <h4 className="text-sm font-bold text-white leading-tight">
-                      {REVIEWS[currentSlide % REVIEWS.length].name}
+                      {REVIEWS[reviewSlide % REVIEWS.length].name}
                     </h4>
                     <span className="text-xs text-[#C9A227] font-medium">
-                      {REVIEWS[currentSlide % REVIEWS.length].role}
+                      {REVIEWS[reviewSlide % REVIEWS.length].role}
                     </span>
                   </div>
                 </div>
@@ -451,9 +461,9 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             {REVIEWS.map((_, idx) => (
               <button
                 key={idx}
-                onClick={() => setCurrentSlide(idx)}
+                onClick={() => setReviewSlide(idx)}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  (currentSlide % REVIEWS.length) === idx ? 'bg-[#C9A227] w-6' : 'bg-white/30'
+                  (reviewSlide % REVIEWS.length) === idx ? 'bg-[#C9A227] w-6' : 'bg-white/30'
                 }`}
                 aria-label={`Go to review ${idx + 1}`}
               />
