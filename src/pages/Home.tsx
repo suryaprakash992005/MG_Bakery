@@ -51,7 +51,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
-  const { products, gallery, banners, settings } = useBakeryDatabase();
+  const { products, gallery } = useBakeryDatabase();
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -106,50 +106,12 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     ? uploadedGalleryImages
     : DOME_FALLBACK_IMAGES;
 
-  const activeBanners = banners
-    .filter(b => b.isActive)
-    .sort((a, b) => a.displayPriority - b.displayPriority);
-
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  // Dome is the default — users can switch to Grid if they want the card layout
   const [galleryView, setGalleryView] = useState<'grid' | 'dome'>('dome');
-  // Hero video state — true once the video can play, triggers cross-fade from slideshow
+  // Hero video state — true once the video can play, triggers cross-fade from static poster
   const [videoLoaded, setVideoLoaded] = useState(false);
 
-  useEffect(() => {
-    if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
-    const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % activeBanners.length);
-    }, 7000);
-    return () => clearInterval(interval);
-  }, [activeBanners.length, settings.isSliderEnabled]);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe) {
-      setCurrentSlide(prev => (prev + 1) % activeBanners.length);
-    } else if (isRightSwipe) {
-      setCurrentSlide(prev => (prev - 1 + activeBanners.length) % activeBanners.length);
-    }
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-
-  const bannerToDisplay = activeBanners[currentSlide] || activeBanners[0];
+  // Static fallback poster image shown while the video loads
+  const HERO_POSTER = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80';
 
 
   const whyChooseUs = [
@@ -163,30 +125,20 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
   return (
     <div className="pt-0 snap-y-container">
-      {/* 1. Hero Section - Mobile View (Inspired by Magnolia Bakery full bleed) */}
-      <section 
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className="block lg:hidden relative h-dvh-locked snap-start-section overflow-hidden bg-[#FAF7F2] select-none pt-20"
+      {/* 1. Hero Section - Mobile View (Full-bleed cinematic video) */}
+      <section
+        className="block lg:hidden relative h-dvh-locked snap-start-section overflow-hidden bg-[#2A0E0A] select-none"
       >
         {/* ── Hero Background: Video (primary) + Slideshow (fallback) ───────── */}
         <div className="absolute inset-0 z-0">
 
-          {/* ─ 1. Cinematic video background ──────────────────────────
-               Drop your video at:  /public/bakery-hero.mp4  (or .webm)
-               Browser autoplay policy: must be muted to autoplay.
-               When the file doesn’t exist the poster image is shown,
-               which keeps the existing slideshow visible below.           */}
+          {/* Cinematic video */}
           <video
             autoPlay
             muted
             loop
             playsInline
-            poster={
-              bannerToDisplay?.image ||
-              'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80'
-            }
+            poster={HERO_POSTER}
             onCanPlay={() => setVideoLoaded(true)}
             className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
             style={{ opacity: videoLoaded ? 1 : 0, zIndex: 2 }}
@@ -196,38 +148,16 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             <source src="/bakery-hero.webm" type="video/webm" />
           </video>
 
-          {/* ─ 2. Existing banner slideshow (visible until video loads) ──────
-               When the video plays, this fades to 0 and sits behind.       */}
-          <div
-            className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
+          {/* Static poster shown while video loads */}
+          <img
+            src={HERO_POSTER}
+            alt="M.G. Iyengar Bakery"
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
             style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }}
             aria-hidden
-          >
-            <AnimatePresence>
-              <motion.div
-                key={bannerToDisplay ? bannerToDisplay.id : 'default'}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.2 }}
-                className="absolute inset-0 w-full h-full"
-              >
-                <motion.img
-                  src={
-                    bannerToDisplay?.image ||
-                    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80'
-                  }
-                  alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                  initial={{ scale: 1.0 }}
-                  animate={{ scale: 1.08 }}
-                  transition={{ duration: 6, ease: 'easeOut' }}
-                  className="w-full h-full object-cover"
-                />
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          />
 
-          {/* ─ 3. Cinematic gradient overlay (always on top of both layers) */}
+          {/* Cinematic gradient overlay */}
           <div
             className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/50 via-[#2A0E0A]/35 to-[#2A0E0A]/75"
             style={{ zIndex: 3 }}
@@ -270,13 +200,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               <span>The Artisan Bakery of Mohanur</span>
             </motion.div>
             
-            {/* Title with stagger */}
+            {/* Title */}
             <h1 className="font-playfair text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-              {bannerToDisplay?.title || 'Freshly Baked Happiness'}
+              Freshly Baked Happiness
             </h1>
             
             <p className="text-sm text-white/95 font-light leading-relaxed max-w-xl mx-auto">
-              {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.'}
+              Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.
             </p>
 
             <div className="flex flex-col items-center gap-4 justify-center pt-6">
@@ -290,39 +220,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
           </div>
         </div>
 
-        {/* Carousel indicators dots */}
-        {activeBanners.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-            {activeBanners.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                  currentSlide === idx ? 'bg-[#C9A227] w-6' : 'bg-white/40'
-                }`}
-                aria-label={`Slide ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Floating Micro-Card Bottom Right */}
-        <div className="absolute bottom-16 sm:bottom-6 right-4 left-4 sm:left-auto bg-[#2A0E0A]/90 backdrop-blur-md p-4 rounded-2xl flex items-center justify-between z-20 border border-white/10 max-w-sm sm:w-80 shadow-2xl transition-all">
-          <div className="min-w-0 pr-4">
-            <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">
-              {bannerToDisplay?.cta_text || 'Featured Specialty'}
-            </span>
-            <span className="text-sm font-bold text-white font-playfair block mt-0.5 truncate">
-              {bannerToDisplay?.featured_product_name || 'Fresh Bakery Selection'}
-            </span>
-          </div>
-          <button 
-            onClick={() => setCurrentPage('cakes')}
-            className="w-9 h-9 rounded-full bg-[#C9A227] text-[#2A0E0A] flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
       </section>
 
       {/* 1. Hero Section - Desktop View (Full-bleed cinematic video) */}
@@ -331,20 +228,20 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         {/* Full-bleed Video Background */}
         <div className="absolute inset-0 z-0">
           <video autoPlay muted loop playsInline
-            poster={bannerToDisplay?.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80'}
+            poster={HERO_POSTER}
             onCanPlay={() => setVideoLoaded(true)}
             className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
             style={{ opacity: videoLoaded ? 1 : 0, zIndex: 2 }} aria-hidden>
             <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
             <source src="/bakery-hero.webm" type="video/webm" />
           </video>
-          <div className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out" style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }} aria-hidden>
-            <AnimatePresence>
-              <motion.div key={bannerToDisplay ? bannerToDisplay.id : 'default'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2 }} className="absolute inset-0 w-full h-full">
-                <motion.img src={bannerToDisplay?.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80'} alt="M.G. Iyengar Bakery" initial={{ scale: 1.0 }} animate={{ scale: 1.06 }} transition={{ duration: 8, ease: 'easeOut' }} className="w-full h-full object-cover" />
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          <img
+            src={HERO_POSTER}
+            alt="M.G. Iyengar Bakery"
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
+            style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }}
+            aria-hidden
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/60 via-[#2A0E0A]/30 to-[#2A0E0A]/80" style={{ zIndex: 3 }} />
         </div>
 
@@ -371,11 +268,11 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.7 }}
               className="font-playfair text-6xl xl:text-7xl font-bold leading-tight text-white drop-shadow-lg">
-              {bannerToDisplay?.title || 'Freshly Baked Happiness'}
+              Freshly Baked Happiness
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7 }}
               className="text-lg text-white/90 font-light leading-relaxed max-w-2xl mx-auto">
-              {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.'}
+              Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65, duration: 0.7 }}
               className="flex items-center justify-center gap-4 pt-2">
@@ -390,28 +287,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               </button>
             </motion.div>
           </div>
-        </div>
-
-        {/* Carousel dots */}
-        {activeBanners.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2" style={{ zIndex: 7 }}>
-            {activeBanners.map((_, idx) => (
-              <button key={idx} onClick={() => setCurrentSlide(idx)} aria-label={`Slide ${idx + 1}`}
-                className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'bg-[#C9A227] w-6' : 'bg-white/40 w-2'}`} />
-            ))}
-          </div>
-        )}
-
-        {/* Floating Micro-Card */}
-        <div className="absolute bottom-8 right-8 bg-[#2A0E0A]/90 backdrop-blur-md p-4 rounded-2xl flex items-center gap-4 border border-white/10 shadow-2xl" style={{ zIndex: 7 }}>
-          <div className="min-w-0">
-            <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">{bannerToDisplay?.cta_text || 'Featured Specialty'}</span>
-            <span className="text-sm font-bold text-white font-playfair block mt-0.5 truncate max-w-[180px]">{bannerToDisplay?.featured_product_name || 'Fresh Bakery Selection'}</span>
-          </div>
-          <button onClick={() => setCurrentPage('cakes')}
-            className="w-9 h-9 rounded-full bg-[#C9A227] text-[#2A0E0A] flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex-shrink-0">
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
 
       </section>
