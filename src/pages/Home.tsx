@@ -115,6 +115,8 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   // Dome is the default — users can switch to Grid if they want the card layout
   const [galleryView, setGalleryView] = useState<'grid' | 'dome'>('dome');
+  // Hero video state — true once the video can play, triggers cross-fade from slideshow
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   useEffect(() => {
     if (activeBanners.length <= 1 || !settings.isSliderEnabled) return;
@@ -168,30 +170,68 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         onTouchEnd={handleTouchEnd}
         className="block lg:hidden relative h-dvh-locked snap-start-section overflow-hidden bg-[#FAF7F2] select-none pt-20"
       >
-        {/* Full-bleed Slideshow Background */}
+        {/* ── Hero Background: Video (primary) + Slideshow (fallback) ───────── */}
         <div className="absolute inset-0 z-0">
-          <AnimatePresence>
-            <motion.div
-              key={bannerToDisplay ? bannerToDisplay.id : 'default'}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2 }}
-              className="absolute inset-0 w-full h-full"
-            >
-              {/* Ken Burns Zoom Effect */}
-              <motion.img
-                src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80'}
-                alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                initial={{ scale: 1.0 }}
-                animate={{ scale: 1.08 }}
-                transition={{ duration: 6, ease: 'easeOut' }}
-                className="w-full h-full object-cover"
-              />
-              {/* Overlay Gradient to preserve contrast */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/50 via-[#2A0E0A]/35 to-[#2A0E0A]/70 z-10" />
-            </motion.div>
-          </AnimatePresence>
+
+          {/* ─ 1. Cinematic video background ──────────────────────────
+               Drop your video at:  /public/bakery-hero.mp4  (or .webm)
+               Browser autoplay policy: must be muted to autoplay.
+               When the file doesn’t exist the poster image is shown,
+               which keeps the existing slideshow visible below.           */}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster={
+              bannerToDisplay?.image ||
+              'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80'
+            }
+            onCanPlay={() => setVideoLoaded(true)}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
+            style={{ opacity: videoLoaded ? 1 : 0, zIndex: 2 }}
+            aria-hidden
+          >
+            <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
+            <source src="/bakery-hero.webm" type="video/webm" />
+          </video>
+
+          {/* ─ 2. Existing banner slideshow (visible until video loads) ──────
+               When the video plays, this fades to 0 and sits behind.       */}
+          <div
+            className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
+            style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }}
+            aria-hidden
+          >
+            <AnimatePresence>
+              <motion.div
+                key={bannerToDisplay ? bannerToDisplay.id : 'default'}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.2 }}
+                className="absolute inset-0 w-full h-full"
+              >
+                <motion.img
+                  src={
+                    bannerToDisplay?.image ||
+                    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80'
+                  }
+                  alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
+                  initial={{ scale: 1.0 }}
+                  animate={{ scale: 1.08 }}
+                  transition={{ duration: 6, ease: 'easeOut' }}
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* ─ 3. Cinematic gradient overlay (always on top of both layers) */}
+          <div
+            className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/50 via-[#2A0E0A]/35 to-[#2A0E0A]/75"
+            style={{ zIndex: 3 }}
+          />
         </div>
 
         {/* WebGL Light Rays Animation (React Bits) */}
@@ -362,18 +402,45 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
                 animated={true}
               >
                 <div className="relative w-full h-full overflow-hidden">
-                  <AnimatePresence>
-                    <motion.img
-                      key={bannerToDisplay ? bannerToDisplay.id : 'default'}
-                      src={bannerToDisplay ? bannerToDisplay.image : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'}
-                      alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                      className="w-full h-full object-cover absolute inset-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8 }}
-                    />
-                  </AnimatePresence>
+                  {/* Video (primary) + banner image (fallback) inside the panel */}
+                  <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster={
+                      bannerToDisplay?.image ||
+                      'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'
+                    }
+                    className="w-full h-full object-cover absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
+                    style={{ opacity: videoLoaded ? 1 : 0, zIndex: 1 }}
+                    aria-hidden
+                  >
+                    <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
+                    <source src="/bakery-hero.webm" type="video/webm" />
+                  </video>
+
+                  {/* Fallback banner image slideshow */}
+                  <div
+                    className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
+                    style={{ opacity: videoLoaded ? 0 : 1, zIndex: 0 }}
+                  >
+                    <AnimatePresence>
+                      <motion.img
+                        key={bannerToDisplay ? bannerToDisplay.id : 'default'}
+                        src={
+                          bannerToDisplay?.image ||
+                          'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'
+                        }
+                        alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
+                        className="w-full h-full object-cover absolute inset-0"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8 }}
+                      />
+                    </AnimatePresence>
+                  </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
                   
                   {/* Banner overlay text if slide has title */}
