@@ -325,158 +325,95 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         </div>
       </section>
 
-      {/* 1. Hero Section - Desktop View (Previous split columns with BorderGlow restored) */}
-      <section className="hidden lg:flex relative min-h-dvh-locked snap-start-section items-center bg-gradient-to-br from-brand-cream-50 via-brand-cream-100/40 to-white overflow-hidden py-12 pt-28 select-none">
-        {/* WebGL Light Rays Animation (React Bits) */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <LightRays
-            raysOrigin="top-center"
-            raysColor="#C9A227"
-            raysSpeed={0.8}
-            lightSpread={0.9}
-            rayLength={1.8}
-            followMouse={true}
-            mouseInfluence={0.05}
-            noiseAmount={0.02}
-            distortion={0.02}
-          />
+      {/* 1. Hero Section - Desktop View (Full-bleed cinematic video) */}
+      <section className="hidden lg:block relative h-screen snap-start-section overflow-hidden select-none">
+
+        {/* Full-bleed Video Background */}
+        <div className="absolute inset-0 z-0">
+          <video autoPlay muted loop playsInline
+            poster={bannerToDisplay?.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80'}
+            onCanPlay={() => setVideoLoaded(true)}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
+            style={{ opacity: videoLoaded ? 1 : 0, zIndex: 2 }} aria-hidden>
+            <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
+            <source src="/bakery-hero.webm" type="video/webm" />
+          </video>
+          <div className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out" style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }} aria-hidden>
+            <AnimatePresence>
+              <motion.div key={bannerToDisplay ? bannerToDisplay.id : 'default'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2 }} className="absolute inset-0 w-full h-full">
+                <motion.img src={bannerToDisplay?.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80'} alt="M.G. Iyengar Bakery" initial={{ scale: 1.0 }} animate={{ scale: 1.06 }} transition={{ duration: 8, ease: 'easeOut' }} className="w-full h-full object-cover" />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/60 via-[#2A0E0A]/30 to-[#2A0E0A]/80" style={{ zIndex: 3 }} />
         </div>
 
-        {/* Floating background graphics */}
-        <div className="absolute top-1/4 right-[-10%] w-[500px] h-[500px] rounded-full bg-brand-gold-100/30 blur-3xl -z-10 pointer-events-none" />
-        <div className="absolute bottom-10 left-[-10%] w-[400px] h-[400px] rounded-full bg-brand-orange-100/20 blur-3xl -z-10 pointer-events-none" />
+        {/* Light Rays */}
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4 }}>
+          <LightRays raysOrigin="top-center" raysColor="#C9A227" raysSpeed={0.8} lightSpread={0.9} rayLength={1.8} followMouse={true} mouseInfluence={0.05} noiseAmount={0.02} distortion={0.02} />
+        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Hero Left Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="space-y-6 max-w-xl text-left"
-            >
-              <div className="inline-flex items-center gap-2 bg-brand-cream-100/80 border border-brand-cream-200 px-4 py-1.5 rounded-full text-xs font-semibold text-brand-gold-700 tracking-wider uppercase">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>The Artisan Bakery of Mohanur</span>
-              </div>
-              <h1 className="font-playfair text-5xl font-bold text-brand-brown-950 leading-tight">
-                Freshly Baked Happiness for Every Celebration
-              </h1>
-              <p className="text-base text-brand-brown-805/85 font-light leading-relaxed">
-                Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
-              </p>
-              
-              <div className="flex flex-row items-center gap-4 justify-start pt-4">
-                <button
-                  onClick={() => setCurrentPage('menu')}
-                  className="btn-primary cursor-pointer"
-                >
-                  <span>Explore Menu</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage('menu')}
-                  className="btn-secondary cursor-pointer"
-                >
-                  <span>Order on WhatsApp</span>
-                </button>
-              </div>
+        {/* Floating particles */}
+        <div className="absolute inset-0 pointer-events-none opacity-50" style={{ zIndex: 5 }}>
+          <div className="absolute top-[18%] left-[8%]   w-2 h-2 rounded-full bg-[#C9A227]/50 blur-xs animate-float" style={{ animationDelay: '0s',  animationDuration: '9s'  }} />
+          <div className="absolute top-[35%] right-[12%]  w-3 h-3 rounded-full bg-white/25   blur-xs animate-float" style={{ animationDelay: '2s',  animationDuration: '11s' }} />
+          <div className="absolute bottom-[28%] left-[18%] w-2 h-2 rounded-full bg-[#C9A227]/35 blur-xs animate-float" style={{ animationDelay: '4s',  animationDuration: '8s'  }} />
+          <div className="absolute bottom-[14%] right-[22%] w-2 h-2 rounded-full bg-white/20  blur-xs animate-float" style={{ animationDelay: '1s',  animationDuration: '13s' }} />
+        </div>
+
+        {/* Main Content — centered over video */}
+        <div className="relative w-full h-full flex items-center justify-center text-center px-6" style={{ zIndex: 6 }}>
+          <div className="max-w-4xl text-white space-y-7">
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
+              className="inline-flex items-center gap-2 bg-[#C9A227]/25 border border-[#C9A227]/40 px-5 py-1.5 rounded-full text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase">
+              <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
+              <span>The Artisan Bakery of Mohanur</span>
             </motion.div>
-
-            {/* Hero Right Media */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1 }}
-              className="relative flex justify-end w-full"
-            >
-              <BorderGlow
-                className="w-full max-w-[480px] aspect-[4/5] shadow-2xl shadow-brand-brown-950/15 border-4 border-white animate-float"
-                backgroundColor="#ffffff"
-                borderRadius={40}
-                glowColor="46 64 52"
-                glowRadius={40}
-                glowIntensity={1.0}
-                colors={['#C9A227', '#2A0E0A', '#A46E6E']}
-                fillOpacity={0.1}
-                animated={true}
-              >
-                <div className="relative w-full h-full overflow-hidden">
-                  {/* Video (primary) + banner image (fallback) inside the panel */}
-                  <video
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    poster={
-                      bannerToDisplay?.image ||
-                      'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'
-                    }
-                    className="w-full h-full object-cover absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
-                    style={{ opacity: videoLoaded ? 1 : 0, zIndex: 1 }}
-                    aria-hidden
-                  >
-                    <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
-                    <source src="/bakery-hero.webm" type="video/webm" />
-                  </video>
-
-                  {/* Fallback banner image slideshow */}
-                  <div
-                    className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
-                    style={{ opacity: videoLoaded ? 0 : 1, zIndex: 0 }}
-                  >
-                    <AnimatePresence>
-                      <motion.img
-                        key={bannerToDisplay ? bannerToDisplay.id : 'default'}
-                        src={
-                          bannerToDisplay?.image ||
-                          'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80'
-                        }
-                        alt={bannerToDisplay?.title || 'Premium Luxury Celebration Cake'}
-                        className="w-full h-full object-cover absolute inset-0"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8 }}
-                      />
-                    </AnimatePresence>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-950/50 via-brand-brown-950/20 to-transparent" />
-                  
-                  {/* Banner overlay text if slide has title */}
-                  {bannerToDisplay && (bannerToDisplay.title || bannerToDisplay.subtitle) && (
-                    <div className="absolute top-6 left-6 right-6 z-10 bg-black/30 backdrop-blur-xs rounded-xl p-3 border border-white/5 pointer-events-none">
-                      {bannerToDisplay.title && (
-                        <h4 className="text-xs font-bold text-brand-gold-500 uppercase tracking-wider font-playfair">{bannerToDisplay.title}</h4>
-                      )}
-                      {bannerToDisplay.subtitle && (
-                        <p className="text-[10px] text-white/80 font-light mt-0.5 leading-snug">{bannerToDisplay.subtitle}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Floating Micro-Card */}
-                  <div className="absolute bottom-6 left-6 right-6 glass-card p-5 rounded-2xl flex items-center justify-between z-10">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-widest text-brand-gold-700 font-bold block">
-                        {bannerToDisplay?.cta_text || 'Featured Cake'}
-                      </span>
-                      <span className="text-base font-bold text-brand-brown-950 font-playfair block mt-0.5 truncate max-w-[200px]">
-                        {bannerToDisplay?.featured_product_name || 'Fresh Bakery Special'}
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => setCurrentPage('cakes')}
-                      className="w-10 h-10 rounded-full bg-brand-brown-950 text-brand-gold-850 flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </BorderGlow>
+            <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.7 }}
+              className="font-playfair text-6xl xl:text-7xl font-bold leading-tight text-white drop-shadow-lg">
+              {bannerToDisplay?.title || 'Freshly Baked Happiness'}
+            </motion.h1>
+            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7 }}
+              className="text-lg text-white/90 font-light leading-relaxed max-w-2xl mx-auto">
+              {bannerToDisplay?.subtitle || 'Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.'}
+            </motion.p>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65, duration: 0.7 }}
+              className="flex items-center justify-center gap-4 pt-2">
+              <button onClick={() => setCurrentPage('menu')}
+                className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/25 cursor-pointer text-sm animate-pulse">
+                <span>Explore Menu</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button onClick={() => setCurrentPage('menu')}
+                className="px-8 py-3.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 text-white font-semibold hover:bg-white/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 cursor-pointer text-sm">
+                Order on WhatsApp
+              </button>
             </motion.div>
           </div>
         </div>
+
+        {/* Carousel dots */}
+        {activeBanners.length > 1 && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2" style={{ zIndex: 7 }}>
+            {activeBanners.map((_, idx) => (
+              <button key={idx} onClick={() => setCurrentSlide(idx)} aria-label={`Slide ${idx + 1}`}
+                className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'bg-[#C9A227] w-6' : 'bg-white/40 w-2'}`} />
+            ))}
+          </div>
+        )}
+
+        {/* Floating Micro-Card */}
+        <div className="absolute bottom-8 right-8 bg-[#2A0E0A]/90 backdrop-blur-md p-4 rounded-2xl flex items-center gap-4 border border-white/10 shadow-2xl" style={{ zIndex: 7 }}>
+          <div className="min-w-0">
+            <span className="text-[9px] uppercase tracking-widest text-[#C9A227] font-bold block">{bannerToDisplay?.cta_text || 'Featured Specialty'}</span>
+            <span className="text-sm font-bold text-white font-playfair block mt-0.5 truncate max-w-[180px]">{bannerToDisplay?.featured_product_name || 'Fresh Bakery Selection'}</span>
+          </div>
+          <button onClick={() => setCurrentPage('cakes')}
+            className="w-9 h-9 rounded-full bg-[#C9A227] text-[#2A0E0A] flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex-shrink-0">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
       </section>
 
       {/* 2. Featured Categories Section */}
