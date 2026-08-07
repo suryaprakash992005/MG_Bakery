@@ -10,7 +10,11 @@ import {
   Cake, 
   Copy, 
   RotateCcw,
-  Move
+  Eye,
+  EyeOff,
+  GripVertical,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 export const Products: React.FC = () => {
@@ -198,6 +202,29 @@ export const Products: React.FC = () => {
     setDraggedIndex(null);
   };
 
+  // Quick visibility toggle — toggles between Available ↔ Hidden without opening the modal
+  const handleQuickToggleVisibility = (p: UnifiedProduct) => {
+    saveProduct({
+      ...p,
+      status: p.status === 'Hidden' ? 'Available' : 'Hidden',
+    });
+  };
+
+  // Move a product one step up or down in priority
+  const handleMovePriority = (p: UnifiedProduct, direction: 'up' | 'down') => {
+    const sorted = [...filteredProducts];
+    const idx = sorted.findIndex(item => item.id === p.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const updated = allProducts.map(item => {
+      if (item.id === sorted[idx].id)    return { ...item, displayPriority: sorted[swapIdx].displayPriority || swapIdx + 1 };
+      if (item.id === sorted[swapIdx].id) return { ...item, displayPriority: sorted[idx].displayPriority || idx + 1 };
+      return item;
+    });
+    reorderProducts(updated);
+  };
+
   // Filter products by search and category selection
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -213,7 +240,10 @@ export const Products: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-[#2C1A17]/10 p-6 rounded-2xl shadow-sm">
         <div>
           <h2 className="font-playfair text-2xl font-bold text-[#2C1A17]">Products Management</h2>
-          <p className="text-xs text-[#2C1A17]/65 mt-1">Add, edit, change prices, set weights, and toggle availability of your cakes and snacks.</p>
+          <p className="text-xs text-[#2C1A17]/65 mt-1">
+            Toggle the <span className="font-bold text-emerald-700">eye icon</span> to show/hide items on the menu.
+            Drag cards or use <span className="font-bold text-brand-gold-800">↑↓ arrows</span> to change display order.
+          </p>
         </div>
         <button
           onClick={handleOpenAdd}
@@ -277,25 +307,19 @@ export const Products: React.FC = () => {
                 <img 
                   src={p.image} 
                   alt={p.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+                    p.status === 'Hidden' ? 'opacity-50 grayscale-[40%]' : ''
+                  }`}
                 />
                 
-                {/* Drag Handle Overlay */}
-                <div className="absolute top-2 left-2 bg-[#1E110F]/70 text-white rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Move className="w-3.5 h-3.5" />
+                {/* Drag Handle */}
+                <div className="absolute top-2 left-2 bg-[#1E110F]/70 text-white rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+                  <GripVertical className="w-3.5 h-3.5" />
                 </div>
 
-                {/* Stock Status Badge */}
-                <div className="absolute top-2 right-2">
-                  <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-full tracking-wider uppercase shadow-sm border ${
-                    p.status === 'Available' 
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-250' 
-                      : p.status === 'Out of Stock' 
-                      ? 'bg-amber-50 text-amber-800 border-amber-250'
-                      : 'bg-slate-100 text-slate-500 border-slate-200'
-                  }`}>
-                    {p.status}
-                  </span>
+                {/* Priority badge */}
+                <div className="absolute top-2 right-2 bg-[#1E110F]/80 text-brand-gold-400 text-[10px] font-extrabold px-2 py-0.5 rounded-lg shadow">
+                  #{p.displayPriority || 999}
                 </div>
 
                 {/* Category tag */}
@@ -304,6 +328,16 @@ export const Products: React.FC = () => {
                     {p.category}
                   </span>
                 </div>
+
+                {/* Hidden overlay */}
+                {p.status === 'Hidden' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/30">
+                    <div className="bg-slate-800/80 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                      <EyeOff className="w-3 h-3" />
+                      Hidden from Menu
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Product Info */}
@@ -348,33 +382,78 @@ export const Products: React.FC = () => {
                 </div>
 
                 {/* Card Actions */}
-                <div className="flex gap-2 mt-4 pt-3 border-t border-[#2C1A17]/5 justify-between">
-                  <div className="flex gap-1.5">
+                <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-[#2C1A17]/5">
+
+                  {/* Row 1: Visibility toggle + Up/Down order controls */}
+                  <div className="flex items-center justify-between gap-2">
+
+                    {/* Visibility toggle button */}
                     <button
-                      onClick={() => handleOpenEdit(p)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17] hover:bg-[#1E110F]/5 text-xs font-bold cursor-pointer transition-all bg-white"
-                      title="Edit Product"
+                      onClick={() => handleQuickToggleVisibility(p)}
+                      title={p.status === 'Hidden' ? 'Show on Menu' : 'Hide from Menu'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border flex-1 justify-center ${
+                        p.status !== 'Hidden'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                      }`}
                     >
-                      <Edit3 className="w-3.5 h-3.5 text-brand-gold-800" />
-                      <span>Edit</span>
+                      {p.status !== 'Hidden' ? (
+                        <Eye className="w-3.5 h-3.5" />
+                      ) : (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      )}
+                      <span>{p.status !== 'Hidden' ? 'Visible' : 'Hidden'}</span>
                     </button>
+
+                    {/* Up / Down priority arrows */}
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleMovePriority(p, 'up')}
+                        title="Move up (show earlier)"
+                        className="p-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17]/70 hover:bg-brand-gold-50 hover:border-brand-gold-300 hover:text-brand-gold-800 cursor-pointer bg-white transition-all"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleMovePriority(p, 'down')}
+                        title="Move down (show later)"
+                        className="p-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17]/70 hover:bg-brand-gold-50 hover:border-brand-gold-300 hover:text-brand-gold-800 cursor-pointer bg-white transition-all"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Edit + Duplicate + Delete */}
+                  <div className="flex gap-2 justify-between">
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => handleOpenEdit(p)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17] hover:bg-[#1E110F]/5 text-xs font-bold cursor-pointer transition-all bg-white"
+                        title="Edit Product"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-brand-gold-800" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => duplicateProduct(p.id)}
+                        className="p-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17]/70 hover:bg-[#1E110F]/5 cursor-pointer bg-white"
+                        title="Duplicate Product"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    
                     <button
-                      onClick={() => duplicateProduct(p.id)}
-                      className="p-1.5 rounded-lg border border-[#2C1A17]/10 text-[#2C1A17]/70 hover:bg-[#1E110F]/5 cursor-pointer bg-white"
-                      title="Duplicate Product"
+                      onClick={() => softDeleteProduct(p.id)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#2C1A17]/10 text-red-650 hover:bg-red-50 hover:border-red-200 text-xs font-bold cursor-pointer transition-all bg-white"
+                      title="Delete Product"
                     >
-                      <Copy className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
                     </button>
                   </div>
-                  
-                  <button
-                    onClick={() => softDeleteProduct(p.id)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#2C1A17]/10 text-red-650 hover:bg-red-50 hover:border-red-200 text-xs font-bold cursor-pointer transition-all bg-white"
-                    title="Delete Product"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
+
                 </div>
               </div>
             </div>
