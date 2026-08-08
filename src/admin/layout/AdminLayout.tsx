@@ -13,7 +13,7 @@ import {
   ChevronRight,
   Coffee,
   Globe,
-  Layers
+  Video
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -40,7 +40,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const navigationItems: SidebarItem[] = [
     { name: 'Products', path: '/admin/products', icon: Cake },
     { name: 'Gallery Manager', path: '/admin/gallery-manager', icon: ImageIcon },
-    { name: 'Banner Manager', path: '/admin/banner-manager', icon: Layers },
+    { name: 'Background Videos', path: '/admin/video-manager', icon: Video },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 

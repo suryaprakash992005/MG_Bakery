@@ -5,7 +5,7 @@ import { Login } from './pages/Login';
 import { AdminLayout } from './layout/AdminLayout';
 import { Products } from './pages/Products';
 import { GalleryManager } from './pages/GalleryManager';
-import { BannerManager } from './pages/BannerManager';
+import { VideoManager } from './pages/VideoManager';
 import { Settings } from './pages/Settings';
 import { DatabaseProvider } from '../context/DatabaseContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -34,10 +34,11 @@ const AdminRouteSwitcher: React.FC = () => {
         case '/admin-gallery':
         case '/admin-gallery-manager':
           return <GalleryManager />;
+        case '/admin/video-manager':
         case '/admin/banner-manager':
         case '/admin-banner':
         case '/admin-banner-manager':
-          return <BannerManager />;
+          return <VideoManager />;
         case '/admin/settings':
         case '/admin-settings':
           return <Settings />;

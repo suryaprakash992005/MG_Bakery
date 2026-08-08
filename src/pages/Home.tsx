@@ -51,7 +51,7 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
-  const { products, gallery, settings } = useBakeryDatabase();
+  const { products, gallery, settings, heroVideos } = useBakeryDatabase();
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -108,6 +108,23 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
   const [galleryView, setGalleryView] = useState<'grid' | 'dome'>('dome');
 
+  // Sequential Background Video Playlist Logic
+  const activeVideos = (heroVideos || [])
+    .filter(v => v.isActive)
+    .sort((a, b) => a.displayPriority - b.displayPriority);
+
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+
+  const currentVideoUrl = activeVideos.length > 0 
+    ? activeVideos[currentVideoIndex % activeVideos.length].videoUrl 
+    : (settings?.heroVideoUrl || '/Like_this_make_and_give_the_.mp4');
+
+  const handleVideoEnded = () => {
+    if (activeVideos.length > 1) {
+      setCurrentVideoIndex(prev => (prev + 1) % activeVideos.length);
+    }
+  };
+
   // Reviews carousel slide state
   const [reviewSlide, setReviewSlide] = useState(0);
 
@@ -117,8 +134,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     }, 6000);
     return () => clearInterval(timer);
   }, []);
-
-  const heroVideoUrl = settings?.heroVideoUrl || '/Like_this_make_and_give_the_.mp4';
 
   const whyChooseUs = [
     { title: 'Fresh Ingredients', desc: 'We source the finest local milk, farm butter, and premium fruits for rich flavors.', icon: Sparkles },
@@ -138,13 +153,14 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         {/* ── Hero Background: Video ─────────────────── */}
         <div className="absolute inset-0 z-0">
           <video
-            key={heroVideoUrl}
+            key={currentVideoUrl}
             autoPlay
             muted
-            loop
             playsInline
             preload="auto"
-            src={heroVideoUrl}
+            loop={activeVideos.length <= 1}
+            onEnded={handleVideoEnded}
+            src={currentVideoUrl}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ zIndex: 2 }}
             aria-hidden
@@ -221,13 +237,14 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         {/* Full-bleed Video Background */}
         <div className="absolute inset-0 z-0">
           <video
-            key={heroVideoUrl}
+            key={currentVideoUrl}
             autoPlay
             muted
-            loop
             playsInline
             preload="auto"
-            src={heroVideoUrl}
+            loop={activeVideos.length <= 1}
+            onEnded={handleVideoEnded}
+            src={currentVideoUrl}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ zIndex: 2 }}
             aria-hidden

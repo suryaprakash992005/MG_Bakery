@@ -64,6 +64,14 @@ export interface UnifiedOrder {
   }[];
 }
 
+export interface UnifiedHeroVideo {
+  id: string;
+  title?: string;
+  videoUrl: string;
+  displayPriority: number;
+  isActive: boolean;
+}
+
 export interface UnifiedBanner {
   id: string;
   image: string;
@@ -117,6 +125,7 @@ interface DatabaseContextType {
   categories: UnifiedCategory[];
   orders: UnifiedOrder[];
   banners: UnifiedBanner[];
+  heroVideos: UnifiedHeroVideo[];
   settings: UnifiedSettings;
   history: UnifiedHistoryLog[];
   offers: UnifiedOffer[];
@@ -152,6 +161,11 @@ interface DatabaseContextType {
   deleteBanner: (id: string) => void | Promise<void>;
   reorderBanners: (banners: UnifiedBanner[]) => void | Promise<void>;
 
+  // Hero Video Operations
+  saveHeroVideo: (video: UnifiedHeroVideo) => void;
+  deleteHeroVideo: (id: string) => void;
+  reorderHeroVideos: (videos: UnifiedHeroVideo[]) => void;
+
   // Settings Operation
   updateSettings: (settings: UnifiedSettings) => void | Promise<void>;
 
@@ -172,6 +186,30 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [categories, setCategories] = useState<UnifiedCategory[]>([]);
   const [orders, setOrders] = useState<UnifiedOrder[]>([]);
   const [banners, setBanners] = useState<UnifiedBanner[]>([]);
+  const [heroVideos, setHeroVideos] = useState<UnifiedHeroVideo[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin_hero_videos');
+      return saved && JSON.parse(saved).length > 0 ? JSON.parse(saved) : [
+        {
+          id: 'v-1',
+          title: 'Artisan Bakery Showcase',
+          videoUrl: '/Like_this_make_and_give_the_.mp4',
+          displayPriority: 1,
+          isActive: true
+        }
+      ];
+    } catch {
+      return [
+        {
+          id: 'v-1',
+          title: 'Artisan Bakery Showcase',
+          videoUrl: '/Like_this_make_and_give_the_.mp4',
+          displayPriority: 1,
+          isActive: true
+        }
+      ];
+    }
+  });
   const [settings, setSettings] = useState<UnifiedSettings>(INITIAL_SETTINGS as any);
   const [history, setHistory] = useState<UnifiedHistoryLog[]>([]);
   const [offers, setOffers] = useState<UnifiedOffer[]>([]);
@@ -904,6 +942,43 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     addHistoryLog(`Deleted Promo Offer: ${target.title}`, `Code: ${target.code}`);
   };
 
+  // --- HERO VIDEOS ---
+  const saveHeroVideo = (video: UnifiedHeroVideo) => {
+    let updated: UnifiedHeroVideo[];
+    const isEdit = heroVideos.some(v => v.id === video.id);
+    if (isEdit) {
+      updated = heroVideos.map(v => v.id === video.id ? video : v);
+      addHistoryLog(`Updated Hero Video: ${video.title || 'Untitled'}`, `ID: ${video.id}`);
+    } else {
+      updated = [...heroVideos, video];
+      addHistoryLog(`Added Hero Video: ${video.title || 'Untitled'}`, `URL: ${video.videoUrl}`);
+    }
+    setHeroVideos(updated);
+    try { localStorage.setItem('admin_hero_videos', JSON.stringify(updated)); } catch (e) {}
+  };
+
+  const deleteHeroVideo = (id: string) => {
+    const target = heroVideos.find(v => v.id === id);
+    if (!target) return;
+    const updated = heroVideos.filter(v => v.id !== id);
+    setHeroVideos(updated);
+    try { localStorage.setItem('admin_hero_videos', JSON.stringify(updated)); } catch (e) {}
+    addHistoryLog(`Deleted Hero Video: ${target.title || id}`, `ID: ${id}`);
+  };
+
+  const reorderHeroVideos = (reordered: UnifiedHeroVideo[]) => {
+    const mapped = heroVideos.map(item => {
+      const matchIndex = reordered.findIndex(r => r.id === item.id);
+      if (matchIndex !== -1) {
+        return { ...item, displayPriority: matchIndex + 1 };
+      }
+      return item;
+    });
+    setHeroVideos(mapped);
+    try { localStorage.setItem('admin_hero_videos', JSON.stringify(mapped)); } catch (e) {}
+    addHistoryLog('Reordered Hero Videos', 'Rearranged video play sequence.');
+  };
+
   return (
     <DatabaseContext.Provider
       value={{
@@ -912,6 +987,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         categories,
         orders,
         banners,
+        heroVideos,
         settings,
         history,
         offers,
@@ -941,6 +1017,10 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveBanner,
         deleteBanner,
         reorderBanners,
+
+        saveHeroVideo,
+        deleteHeroVideo,
+        reorderHeroVideos,
 
         updateSettings,
 
