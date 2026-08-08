@@ -310,18 +310,17 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }));
         setBanners(mapped);
 
-        // Map existing database rows to heroVideos
         const mappedVideos: UnifiedHeroVideo[] = data.map((row: any) => ({
           id: String(row.id),
-          videoUrl: row.image_url || '/Like_this_make_and_give_the_.mp4',
           title: row.title || 'Background Video',
+          videoUrl: row.image_url || '/Like_this_make_and_give_the_.mp4',
           displayPriority: Number(row.priority || 1),
           isActive: row.is_active !== false
         }));
         setHeroVideos(mappedVideos);
       }
     } catch (err) {
-      console.error('Error fetching banners:', err);
+      console.error('Error fetching banners/videos:', err);
     }
   };
 
@@ -954,7 +953,18 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // --- HERO VIDEOS ---
   const saveHeroVideo = async (video: UnifiedHeroVideo) => {
-    const isEdit = !video.id.startsWith('v-') && !video.id.startsWith('b-');
+    let updated: UnifiedHeroVideo[];
+    const isEdit = heroVideos.some(v => v.id === video.id);
+    if (isEdit) {
+      updated = heroVideos.map(v => v.id === video.id ? video : v);
+      addHistoryLog(`Updated Hero Video: ${video.title || 'Untitled'}`, `ID: ${video.id}`);
+    } else {
+      updated = [...heroVideos, video];
+      addHistoryLog(`Added Hero Video: ${video.title || 'Untitled'}`, `URL: ${video.videoUrl.slice(0, 30)}...`);
+    }
+    setHeroVideos(updated);
+    try { localStorage.setItem('admin_hero_videos', JSON.stringify(updated)); } catch (e) {}
+
     const payload = {
       title: video.title || 'Background Video',
       image_url: video.videoUrl,
@@ -962,80 +972,47 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       priority: video.displayPriority
     };
 
-    let updated: UnifiedHeroVideo[];
-    if (heroVideos.some(v => v.id === video.id)) {
-      updated = heroVideos.map(v => v.id === video.id ? video : v);
-      addHistoryLog(`Updated Hero Video: ${video.title || 'Untitled'}`, `ID: ${video.id}`);
-    } else {
-      updated = [...heroVideos, video];
-      addHistoryLog(`Added Hero Video: ${video.title || 'Untitled'}`, `URL: ${video.videoUrl}`);
-    }
-    setHeroVideos(updated);
-    try { localStorage.setItem('admin_hero_videos', JSON.stringify(updated)); } catch (e) {}
-
     try {
-      if (isEdit) {
-        const { error } = await supabase
-          .from('banners')
-          .update(payload)
-          .eq('id', video.id);
-
-        if (error) console.error('Error updating video in Supabase banners table:', error);
+      if (isEdit && !video.id.startsWith('v-')) {
+        await supabase.from('banners').update(payload).eq('id', video.id);
       } else {
-        const { error } = await supabase
-          .from('banners')
-          .insert([payload]);
-
-        if (error) console.error('Error inserting video in Supabase banners table:', error);
+        await supabase.from('banners').insert([payload]);
       }
       await fetchBanners();
     } catch (err) {
-      console.error('Error syncing video with Supabase:', err);
+      console.error('Error syncing hero video to Supabase:', err);
     }
   };
 
   const deleteHeroVideo = async (id: string) => {
     const target = heroVideos.find(v => v.id === id);
+    if (!target) return;
     const updated = heroVideos.filter(v => v.id !== id);
     setHeroVideos(updated);
     try { localStorage.setItem('admin_hero_videos', JSON.stringify(updated)); } catch (e) {}
+    addHistoryLog(`Deleted Hero Video: ${target.title || id}`, `ID: ${id}`);
 
-    if (target) {
-      addHistoryLog(`Deleted Hero Video: ${target.title || id}`, `ID: ${id}`);
-    }
-
-    try {
-      const { error } = await supabase
-        .from('banners')
-        .delete()
-        .eq('id', id);
-
-      if (error) console.error('Error deleting video from Supabase banners table:', error);
-    } catch (err) {
-      console.error('Error deleting video from Supabase:', err);
+    if (!id.startsWith('v-')) {
+      try {
+        await supabase.from('banners').delete().eq('id', id);
+        await fetchBanners();
+      } catch (err) {
+        console.error('Error deleting video from Supabase:', err);
+      }
     }
   };
 
-  const reorderHeroVideos = async (reordered: UnifiedHeroVideo[]) => {
-    const mapped = reordered.map((item, idx) => ({
-      ...item,
-      displayPriority: idx + 1
-    }));
+  const reorderHeroVideos = (reordered: UnifiedHeroVideo[]) => {
+    const mapped = heroVideos.map(item => {
+      const matchIndex = reordered.findIndex(r => r.id === item.id);
+      if (matchIndex !== -1) {
+        return { ...item, displayPriority: matchIndex + 1 };
+      }
+      return item;
+    });
     setHeroVideos(mapped);
     try { localStorage.setItem('admin_hero_videos', JSON.stringify(mapped)); } catch (e) {}
-
-    try {
-      const promises = mapped.map(item =>
-        supabase
-          .from('banners')
-          .update({ priority: item.displayPriority })
-          .eq('id', item.id)
-      );
-      await Promise.all(promises);
-      addHistoryLog('Reordered Hero Videos', 'Rearranged video play sequence.');
-    } catch (err) {
-      console.error('Error reordering videos in Supabase:', err);
-    }
+    addHistoryLog('Reordered Hero Videos', 'Rearranged video play sequence.');
   };
 
   return (
