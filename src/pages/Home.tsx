@@ -107,8 +107,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     : DOME_FALLBACK_IMAGES;
 
   const [galleryView, setGalleryView] = useState<'grid' | 'dome'>('dome');
-  // Hero video state — true once the video can play, triggers cross-fade from static poster
-  const [videoLoaded, setVideoLoaded] = useState(false);
 
   // Reviews carousel slide state
   const [reviewSlide, setReviewSlide] = useState(0);
@@ -119,10 +117,6 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     }, 6000);
     return () => clearInterval(timer);
   }, []);
-
-  // Static fallback poster image shown while the video loads
-  const HERO_POSTER = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1920&q=80';
-
 
   const whyChooseUs = [
     { title: 'Fresh Ingredients', desc: 'We source the finest local milk, farm butter, and premium fruits for rich flavors.', icon: Sparkles },
@@ -139,33 +133,21 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       <section
         className="block lg:hidden relative h-dvh-locked snap-start-section overflow-hidden bg-[#2A0E0A] select-none"
       >
-        {/* ── Hero Background: Video (primary) + Slideshow (fallback) ───────── */}
+        {/* ── Hero Background: Video ─────────────────── */}
         <div className="absolute inset-0 z-0">
-
-          {/* Cinematic video */}
           <video
             autoPlay
             muted
             loop
             playsInline
-            poster={HERO_POSTER}
-            onCanPlay={() => setVideoLoaded(true)}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
-            style={{ opacity: videoLoaded ? 1 : 0, zIndex: 2 }}
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: 2 }}
             aria-hidden
           >
             <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
             <source src="/bakery-hero.webm" type="video/webm" />
           </video>
-
-          {/* Static poster shown while video loads */}
-          <img
-            src={HERO_POSTER}
-            alt="M.G. Iyengar Bakery"
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
-            style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }}
-            aria-hidden
-          />
 
           {/* Cinematic gradient overlay */}
           <div
@@ -237,21 +219,19 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
         {/* Full-bleed Video Background */}
         <div className="absolute inset-0 z-0">
-          <video autoPlay muted loop playsInline
-            poster={HERO_POSTER}
-            onCanPlay={() => setVideoLoaded(true)}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
-            style={{ opacity: videoLoaded ? 1 : 0, zIndex: 2 }} aria-hidden>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: 2 }}
+            aria-hidden
+          >
             <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
             <source src="/bakery-hero.webm" type="video/webm" />
           </video>
-          <img
-            src={HERO_POSTER}
-            alt="M.G. Iyengar Bakery"
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
-            style={{ opacity: videoLoaded ? 0 : 1, zIndex: 1 }}
-            aria-hidden
-          />
           <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/60 via-[#2A0E0A]/30 to-[#2A0E0A]/80" style={{ zIndex: 3 }} />
         </div>
 
