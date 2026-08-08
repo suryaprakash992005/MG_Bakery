@@ -118,6 +118,8 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     return () => clearInterval(timer);
   }, []);
 
+  const heroVideoUrl = settings?.heroVideoUrl || '/Like_this_make_and_give_the_.mp4';
+
   const whyChooseUs = [
     { title: 'Fresh Ingredients', desc: 'We source the finest local milk, farm butter, and premium fruits for rich flavors.', icon: Sparkles },
     { title: 'Daily Baking', desc: 'Ovens turn at dawn to bring you warm bread, cookies, and flaky puffs every single day.', icon: ShieldCheck },
@@ -136,18 +138,17 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         {/* ── Hero Background: Video ─────────────────── */}
         <div className="absolute inset-0 z-0">
           <video
+            key={heroVideoUrl}
             autoPlay
             muted
             loop
             playsInline
             preload="auto"
+            src={heroVideoUrl}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ zIndex: 2 }}
             aria-hidden
-          >
-            <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
-            <source src="/bakery-hero.webm" type="video/webm" />
-          </video>
+          />
 
           {/* Cinematic gradient overlay */}
           <div
@@ -220,18 +221,17 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         {/* Full-bleed Video Background */}
         <div className="absolute inset-0 z-0">
           <video
+            key={heroVideoUrl}
             autoPlay
             muted
             loop
             playsInline
             preload="auto"
+            src={heroVideoUrl}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ zIndex: 2 }}
             aria-hidden
-          >
-            <source src="/Like_this_make_and_give_the_.mp4" type="video/mp4" />
-            <source src="/bakery-hero.webm" type="video/webm" />
-          </video>
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/60 via-[#2A0E0A]/30 to-[#2A0E0A]/80" style={{ zIndex: 3 }} />
         </div>
 

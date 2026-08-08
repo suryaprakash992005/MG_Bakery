@@ -68,4 +68,5 @@ export interface BakerySettings {
   facebookUrl: string;
   businessHours: string;
   holidaySettings: string;
+  heroVideoUrl?: string;
 }

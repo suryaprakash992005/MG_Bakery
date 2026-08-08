@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useBakeryDatabase } from '../../context/DatabaseContext';
 import { 
   Save, 
@@ -8,7 +8,10 @@ import {
   Clock, 
   CheckCircle2, 
   Map,
-  ShieldAlert
+  ShieldAlert,
+  Video,
+  Upload,
+  Film
 } from 'lucide-react';
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -48,6 +51,9 @@ export const Settings: React.FC = () => {
   const [closingTime, setClosingTime] = useState(settings.closingTime || '10:00 PM');
   const [instagramUrl, setInstagramUrl] = useState(settings.instagramUrl);
   const [googleMapsLink, setGoogleMapsLink] = useState(settings.googleMapsLink || '');
+  const [heroVideoUrl, setHeroVideoUrl] = useState(settings.heroVideoUrl || '/Like_this_make_and_give_the_.mp4');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Synchronize input fields when settings load from Supabase
   useEffect(() => {
@@ -59,8 +65,24 @@ export const Settings: React.FC = () => {
       setClosingTime(settings.closingTime || '10:00 PM');
       setInstagramUrl(settings.instagramUrl || '');
       setGoogleMapsLink(settings.googleMapsLink || '');
+      setHeroVideoUrl(settings.heroVideoUrl || '/Like_this_make_and_give_the_.mp4');
     }
   }, [settings]);
+
+  const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      setErrorMsg('Please select a valid video file (.mp4, .webm, .mov)');
+      return;
+    }
+
+    // Create a local blob URL or file path URL
+    const videoObjUrl = URL.createObjectURL(file);
+    setHeroVideoUrl(videoObjUrl);
+    setSuccessMsg(`Video file "${file.name}" selected! Click "Save Settings" to apply.`);
+  };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +100,7 @@ export const Settings: React.FC = () => {
         closingTime,
         googleMapsLink,
         instagramUrl,
+        heroVideoUrl,
         // Backwards compatibility for businessHours string
         businessHours: `${openingTime} - ${closingTime}`
       });
@@ -102,7 +125,7 @@ export const Settings: React.FC = () => {
       {/* Header */}
       <div className="bg-white border border-[#2C1A17]/10 p-6 rounded-2xl shadow-sm">
         <h2 className="font-playfair text-2xl font-bold text-[#2C1A17]">Settings</h2>
-        <p className="text-xs text-[#2C1A17]/65 mt-1">Configure your bakery website profile and contact links.</p>
+        <p className="text-xs text-[#2C1A17]/65 mt-1">Configure your bakery website profile, homepage background video, and contact links.</p>
       </div>
 
       {/* Success Banner */}
@@ -124,6 +147,81 @@ export const Settings: React.FC = () => {
       {/* Settings Form */}
       <form onSubmit={handleSaveSettings} className="space-y-6">
         
+        {/* 🎬 Homepage Hero Background Video Card */}
+        <div className="bg-white border border-[#2C1A17]/10 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-[#2C1A17]/5 pb-3">
+            <h3 className="font-playfair text-base font-bold text-[#2C1A17] flex items-center gap-2">
+              <Video className="w-4.5 h-4.5 text-brand-gold-800" />
+              <span>Homepage Background Video</span>
+            </h3>
+            <span className="text-[10px] bg-brand-gold-100 text-brand-gold-900 font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">
+              Live Background
+            </span>
+          </div>
+
+          <p className="text-xs text-[#2C1A17]/60 leading-relaxed">
+            Upload or provide the URL of the background video that plays on your website homepage.
+          </p>
+
+          {/* Video Preview Player */}
+          {heroVideoUrl && (
+            <div className="relative rounded-xl overflow-hidden border border-[#2C1A17]/10 bg-black aspect-video max-h-56 w-full shadow-inner">
+              <video
+                key={heroVideoUrl}
+                src={heroVideoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-2 left-2 bg-[#1E110F]/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 backdrop-blur-xs">
+                <Film className="w-3 h-3 text-brand-gold-400" />
+                <span>Live Video Preview</span>
+              </div>
+            </div>
+          )}
+
+          {/* Video URL & Upload Controls */}
+          <div className="space-y-3 pt-1">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Video URL or Local Path</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  value={heroVideoUrl}
+                  onChange={(e) => setHeroVideoUrl(e.target.value)}
+                  placeholder="/Like_this_make_and_give_the_.mp4 or https://..."
+                  className="flex-1 bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all font-mono"
+                />
+                
+                {/* File Upload Button */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleVideoFileUpload}
+                  accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                  className="hidden"
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-[#FAF6F0] hover:bg-brand-gold-50 border border-[#2C1A17]/15 text-[#2C1A17] font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+                  title="Upload Video File from Computer"
+                >
+                  <Upload className="w-3.5 h-3.5 text-brand-gold-800" />
+                  <span>Choose File</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-[#2C1A17]/50 mt-1">
+                Formats supported: MP4, WebM, MOV. You can pick a video file from your device or type a URL.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Profile Card */}
         <div className="bg-white border border-[#2C1A17]/10 rounded-2xl p-6 shadow-sm space-y-4">
           <h3 className="font-playfair text-base font-bold text-[#2C1A17] flex items-center gap-2 border-b border-[#2C1A17]/5 pb-3">

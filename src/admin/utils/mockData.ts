@@ -400,7 +400,8 @@ export const INITIAL_SETTINGS: BakerySettings = {
   instagramUrl: 'https://instagram.com/mgiyengar.bakery',
   facebookUrl: 'https://facebook.com/mgiyengar.bakery',
   businessHours: '9:00 AM - 10:00 PM',
-  holidaySettings: 'All Sundays open. Close only on National Holidays (Diwali, Pongal, Republic Day).'
+  holidaySettings: 'All Sundays open. Close only on National Holidays (Diwali, Pongal, Republic Day).',
+  heroVideoUrl: '/Like_this_make_and_give_the_.mp4'
 };
 
 // SVG Chart data structures for Analytics

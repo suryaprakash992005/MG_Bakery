@@ -92,6 +92,7 @@ export interface UnifiedSettings {
   openingTime?: string;
   closingTime?: string;
   googleMapsLink?: string;
+  heroVideoUrl?: string;
 }
 
 export interface UnifiedHistoryLog {
