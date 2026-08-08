@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useBakeryDatabase, UnifiedHeroVideo } from '../../context/DatabaseContext';
+import { supabase } from '../../utils/supabase';
 import { 
   Plus, 
   Trash2, 
@@ -11,7 +12,10 @@ import {
   ArrowUp, 
   ArrowDown, 
   Film,
-  Edit3
+  Edit3,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 export const VideoManager: React.FC = () => {
@@ -31,6 +35,9 @@ export const VideoManager: React.FC = () => {
   const [videoUrl, setVideoUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [displayPriority, setDisplayPriority] = useState(1);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -40,9 +47,11 @@ export const VideoManager: React.FC = () => {
 
   const handleOpenAdd = () => {
     setTitle('');
-    setVideoUrl('/Like_this_make_and_give_the_.mp4');
+    setVideoUrl('');
     setIsActive(true);
     setDisplayPriority(videos.length + 1);
+    setUploadError(null);
+    setUploadSuccess(null);
     setShowAddForm(true);
   };
 
@@ -52,23 +61,66 @@ export const VideoManager: React.FC = () => {
     setVideoUrl(v.videoUrl);
     setIsActive(v.isActive);
     setDisplayPriority(v.displayPriority || 99);
+    setUploadError(null);
+    setUploadSuccess(null);
     setIsEditOpen(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditForm = false) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('video/')) {
-      alert('Please select a valid video file (.mp4, .webm, .mov)');
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    // 1. Validate file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    const hasValidExt = Boolean(file.name.match(/\.(mp4|webm|ogg|mov)$/i));
+    if (!validTypes.includes(file.type) && !hasValidExt) {
+      setUploadError('Unsupported video format. Please select an MP4, WebM, or MOV video file.');
       return;
     }
 
-    const blobUrl = URL.createObjectURL(file);
-    if (isEditForm) {
-      setVideoUrl(blobUrl);
-    } else {
-      setVideoUrl(blobUrl);
+    // 2. Validate reasonable file size (<= 150MB)
+    const MAX_SIZE_BYTES = 150 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      setUploadError(`File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum supported size is 150MB.`);
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // 3. Unique filename formatting to avoid collisions
+      const cleanFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+      // 4. Upload directly to Supabase Storage bucket: homepage-videos
+      const { error: uploadErr } = await supabase.storage
+        .from('homepage-videos')
+        .upload(cleanFileName, file, {
+          contentType: file.type || 'video/mp4',
+          upsert: false
+        });
+
+      if (uploadErr) {
+        console.error('Supabase Storage upload error:', uploadErr);
+        throw new Error(uploadErr.message || 'Storage upload denied. Please verify RLS storage policy for homepage-videos bucket.');
+      }
+
+      // 5. Retrieve public URL from homepage-videos bucket
+      const { data: publicUrlData } = supabase.storage
+        .from('homepage-videos')
+        .getPublicUrl(cleanFileName);
+
+      const finalPublicUrl = publicUrlData.publicUrl;
+
+      setVideoUrl(finalPublicUrl);
+      setUploadSuccess(`Video file "${file.name}" uploaded successfully to homepage-videos bucket!`);
+    } catch (err: any) {
+      console.error('Video Upload Error:', err);
+      setUploadError(err.message || 'Video upload failed. Please check Supabase storage bucket permissions.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -195,31 +247,54 @@ export const VideoManager: React.FC = () => {
                 required
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="/Like_this_make_and_give_the_.mp4 or https://..."
+                placeholder="https://zsejwlzaqtnqszwvjayw.supabase.co/storage/v1/object/public/homepage-videos/..."
                 className="flex-1 bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none font-mono"
               />
               <input
                 type="file"
                 ref={fileInputRef}
-                onChange={(e) => handleFileUpload(e, false)}
+                onChange={(e) => handleFileUpload(e)}
                 accept="video/mp4,video/webm,video/ogg,video/quicktime"
                 className="hidden"
               />
               <button
                 type="button"
+                disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#FAF6F0] hover:bg-brand-gold-50 border border-[#2C1A17]/15 text-[#2C1A17] font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#FAF6F0] hover:bg-brand-gold-50 border border-[#2C1A17]/15 text-[#2C1A17] font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer shrink-0 disabled:opacity-60"
               >
-                <Upload className="w-3.5 h-3.5 text-brand-gold-800" />
-                <span>Upload File</span>
+                {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-gold-800" /> : <Upload className="w-3.5 h-3.5 text-brand-gold-800" />}
+                <span>{isUploading ? 'Uploading...' : 'Upload File'}</span>
               </button>
             </div>
           </div>
 
+          {/* Upload Status Banners */}
+          {uploadError && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          {uploadSuccess && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{uploadSuccess}</span>
+            </div>
+          )}
+
           {/* Preview player */}
           {videoUrl && (
             <div className="relative rounded-xl overflow-hidden border border-[#2C1A17]/10 bg-black aspect-video max-h-48 w-full">
-              <video src={videoUrl} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+              <video
+                controls
+                muted
+                playsInline
+                preload="metadata"
+                src={videoUrl}
+                className="w-full h-full object-cover"
+              />
             </div>
           )}
 
@@ -245,9 +320,10 @@ export const VideoManager: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-[#1E110F] text-[#FAF6F0] font-bold text-xs hover:bg-brand-brown-900 cursor-pointer shadow-sm"
+                disabled={isUploading}
+                className="px-5 py-2 rounded-xl bg-[#1E110F] text-[#FAF6F0] font-bold text-xs hover:bg-brand-brown-900 cursor-pointer shadow-sm disabled:opacity-60"
               >
-                Save Background Video
+                {isUploading ? 'Uploading Video...' : 'Save Background Video'}
               </button>
             </div>
           </div>
@@ -267,11 +343,11 @@ export const VideoManager: React.FC = () => {
             <div className="relative aspect-video bg-black overflow-hidden border-b border-[#2C1A17]/10">
               <video
                 key={v.videoUrl}
-                src={v.videoUrl}
-                autoPlay
+                controls
                 muted
-                loop
                 playsInline
+                preload="metadata"
+                src={v.videoUrl}
                 className="w-full h-full object-cover"
               />
 
@@ -415,7 +491,7 @@ export const VideoManager: React.FC = () => {
                   <input
                     type="file"
                     ref={editFileInputRef}
-                    onChange={(e) => handleFileUpload(e, true)}
+                    onChange={(e) => handleFileUpload(e)}
                     accept="video/mp4,video/webm,video/ogg,video/quicktime"
                     className="hidden"
                   />
@@ -431,7 +507,7 @@ export const VideoManager: React.FC = () => {
 
               {videoUrl && (
                 <div className="relative rounded-xl overflow-hidden border border-[#2C1A17]/10 bg-black aspect-video max-h-44 w-full">
-                  <video src={videoUrl} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                  <video controls muted playsInline preload="metadata" src={videoUrl} className="w-full h-full object-cover" />
                 </div>
               )}
 
