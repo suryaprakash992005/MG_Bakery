@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, Star, LayoutGrid, Layers } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
@@ -45,13 +45,13 @@ const LOGO_LOOP_ITEMS: LogoItem[] = CATEGORIES.map(cat => ({
   title: cat.name,
 }));
 
-
 interface HomeProps {
   setCurrentPage: (page: string) => void;
 }
 
 export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   const { products, gallery, settings, heroVideos } = useBakeryDatabase();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const activeProducts = products
     .filter(p => p.status !== 'Hidden' && !p.isDeleted)
@@ -125,6 +125,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     }
   };
 
+  // Force instant video playback on mount / video source change
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [currentVideoUrl]);
+
   // Reviews carousel slide state
   const [reviewSlide, setReviewSlide] = useState(0);
 
@@ -146,13 +153,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
   return (
     <div className="pt-0 snap-y-container">
-      {/* 1. Hero Section - Mobile View (Full-bleed cinematic video) */}
-      <section
-        className="block lg:hidden relative h-dvh-locked snap-start-section overflow-hidden bg-[#2A0E0A] select-none"
-      >
-        {/* ── Hero Background: Video ─────────────────── */}
+      {/* 1. Hero Section - Unified Responsive View (Single Background Video for 0ms Instant Laptop Playback) */}
+      <section className="relative min-h-dvh-locked h-screen snap-start-section overflow-hidden bg-[#2A0E0A] select-none flex items-center justify-center">
+
+        {/* ── Single Full-bleed Video Background ─────────────────── */}
         <div className="absolute inset-0 z-0">
           <video
+            ref={videoRef}
             key={currentVideoUrl}
             autoPlay
             muted
@@ -168,19 +175,19 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
 
           {/* Cinematic gradient overlay */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/50 via-[#2A0E0A]/35 to-[#2A0E0A]/75"
+            className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/60 via-[#2A0E0A]/35 to-[#2A0E0A]/80"
             style={{ zIndex: 3 }}
           />
         </div>
 
-        {/* WebGL Light Rays Animation (React Bits) */}
-        <div className="absolute inset-0 z-5 pointer-events-none">
+        {/* ── WebGL Light Rays Animation ─────────────────────────── */}
+        <div className="absolute inset-0 z-4 pointer-events-none">
           <LightRays
             raysOrigin="top-center"
             raysColor="#C9A227"
-            raysSpeed={1.0}
-            lightSpread={0.8}
-            rayLength={1.5}
+            raysSpeed={0.9}
+            lightSpread={0.85}
+            rayLength={1.6}
             followMouse={true}
             mouseInfluence={0.05}
             noiseAmount={0.03}
@@ -188,108 +195,67 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
           />
         </div>
 
-        {/* Floating Particles Effect (Subtle Magnolia luxury aesthetics) */}
-        <div className="absolute inset-0 z-10 pointer-events-none opacity-40">
-          <div className="absolute top-[20%] left-[10%] w-2 h-2 rounded-full bg-[#C9A227]/40 blur-xs animate-float" style={{ animationDelay: '0s', animationDuration: '8s' }} />
-          <div className="absolute top-[40%] right-[15%] w-3 h-3 rounded-full bg-white/30 blur-xs animate-float" style={{ animationDelay: '2s', animationDuration: '10s' }} />
-          <div className="absolute bottom-[30%] left-[20%] w-2 h-2 rounded-full bg-[#C9A227]/30 blur-xs animate-float" style={{ animationDelay: '4s', animationDuration: '7s' }} />
-          <div className="absolute bottom-[15%] right-[25%] w-3 h-3 rounded-full bg-white/20 blur-xs animate-float" style={{ animationDelay: '1s', animationDuration: '12s' }} />
-        </div>
-
-        {/* Content Wrapper */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 relative flex items-center justify-center h-full text-center">
-          <div className="max-w-3xl text-white space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-1.5 bg-[#C9A227]/25 border border-[#C9A227]/40 px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
-              <span>The Artisan Bakery of Mohanur</span>
-            </motion.div>
-            
-            {/* Title */}
-            <h1 className="font-playfair text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-              Freshly Baked Happiness
-            </h1>
-            
-            <p className="text-sm text-white/95 font-light leading-relaxed max-w-xl mx-auto">
-              Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties.
-            </p>
-
-            <div className="flex flex-col items-center gap-4 justify-center pt-6">
-              <button
-                onClick={() => setCurrentPage('menu')}
-                className="w-full px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/20 cursor-pointer animate-pulse"
-              >
-                Explore Menu
-              </button>
-            </div>
-          </div>
-        </div>
-
-      </section>
-
-      {/* 1. Hero Section - Desktop View (Full-bleed cinematic video) */}
-      <section className="hidden lg:block relative h-screen snap-start-section overflow-hidden select-none">
-
-        {/* Full-bleed Video Background */}
-        <div className="absolute inset-0 z-0">
-          <video
-            key={currentVideoUrl}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            loop={activeVideos.length <= 1}
-            onEnded={handleVideoEnded}
-            src={currentVideoUrl}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ zIndex: 2 }}
-            aria-hidden
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#2A0E0A]/60 via-[#2A0E0A]/30 to-[#2A0E0A]/80" style={{ zIndex: 3 }} />
-        </div>
-
-        {/* Light Rays */}
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4 }}>
-          <LightRays raysOrigin="top-center" raysColor="#C9A227" raysSpeed={0.8} lightSpread={0.9} rayLength={1.8} followMouse={true} mouseInfluence={0.05} noiseAmount={0.02} distortion={0.02} />
-        </div>
-
-        {/* Floating particles */}
-        <div className="absolute inset-0 pointer-events-none opacity-50" style={{ zIndex: 5 }}>
+        {/* ── Floating Particles Effect ─────────────────────────── */}
+        <div className="absolute inset-0 z-5 pointer-events-none opacity-45">
           <div className="absolute top-[18%] left-[8%]   w-2 h-2 rounded-full bg-[#C9A227]/50 blur-xs animate-float" style={{ animationDelay: '0s',  animationDuration: '9s'  }} />
           <div className="absolute top-[35%] right-[12%]  w-3 h-3 rounded-full bg-white/25   blur-xs animate-float" style={{ animationDelay: '2s',  animationDuration: '11s' }} />
           <div className="absolute bottom-[28%] left-[18%] w-2 h-2 rounded-full bg-[#C9A227]/35 blur-xs animate-float" style={{ animationDelay: '4s',  animationDuration: '8s'  }} />
           <div className="absolute bottom-[14%] right-[22%] w-2 h-2 rounded-full bg-white/20  blur-xs animate-float" style={{ animationDelay: '1s',  animationDuration: '13s' }} />
         </div>
 
-        {/* Main Content — centered over video */}
-        <div className="relative w-full h-full flex items-center justify-center text-center px-6" style={{ zIndex: 6 }}>
-          <div className="max-w-4xl text-white space-y-7">
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-[#C9A227]/25 border border-[#C9A227]/40 px-5 py-1.5 rounded-full text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase">
+        {/* ── Unified Hero Content Wrapper ────────────────────────── */}
+        <div className="relative w-full h-full flex items-center justify-center text-center px-4 sm:px-6 lg:px-8 z-10 pt-16 lg:pt-0">
+          <div className="max-w-4xl text-white space-y-5 lg:space-y-7">
+            
+            {/* Badge */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="inline-flex items-center gap-1.5 lg:gap-2 bg-[#C9A227]/25 border border-[#C9A227]/40 px-4 lg:px-5 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase"
+            >
               <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
               <span>The Artisan Bakery of Mohanur</span>
             </motion.div>
-            <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.7 }}
-              className="font-playfair text-6xl xl:text-7xl font-bold leading-tight text-white drop-shadow-lg">
+            
+            {/* Title */}
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.7 }}
+              className="font-playfair text-4xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-lg"
+            >
               Freshly Baked Happiness
             </motion.h1>
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7 }}
-              className="text-lg text-white/90 font-light leading-relaxed max-w-2xl mx-auto">
+            
+            {/* Subtitle */}
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.7 }}
+              className="text-sm sm:text-base lg:text-lg text-white/95 font-light leading-relaxed max-w-xl lg:max-w-2xl mx-auto"
+            >
               Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
             </motion.p>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65, duration: 0.7 }}
-              className="flex items-center justify-center gap-4 pt-2">
-              <button onClick={() => setCurrentPage('menu')}
-                className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/25 cursor-pointer text-sm animate-pulse">
+
+            {/* CTAs */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65, duration: 0.7 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-3 lg:pt-2"
+            >
+              <button
+                onClick={() => setCurrentPage('menu')}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/25 cursor-pointer text-sm animate-pulse"
+              >
                 <span>Explore Menu</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 hidden sm:block" />
               </button>
-              <button onClick={() => setCurrentPage('menu')}
-                className="px-8 py-3.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 text-white font-semibold hover:bg-white/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 cursor-pointer text-sm">
+              <button
+                onClick={() => setCurrentPage('menu')}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 text-white font-semibold hover:bg-white/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 cursor-pointer text-sm"
+              >
                 Order on WhatsApp
               </button>
             </motion.div>
