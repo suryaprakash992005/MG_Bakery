@@ -52,6 +52,8 @@ export const Settings: React.FC = () => {
   const [instagramUrl, setInstagramUrl] = useState(settings.instagramUrl);
   const [googleMapsLink, setGoogleMapsLink] = useState(settings.googleMapsLink || '');
   const [heroVideoUrl, setHeroVideoUrl] = useState(settings.heroVideoUrl || '/Like_this_make_and_give_the_.mp4');
+  const [deliveryCharge, setDeliveryCharge] = useState(settings.deliveryCharge || 40);
+  const [deliveryAreaName, setDeliveryAreaName] = useState(settings.deliveryAreaName || 'Mohanur');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +68,8 @@ export const Settings: React.FC = () => {
       setInstagramUrl(settings.instagramUrl || '');
       setGoogleMapsLink(settings.googleMapsLink || '');
       setHeroVideoUrl(settings.heroVideoUrl || '/Like_this_make_and_give_the_.mp4');
+      setDeliveryCharge(settings.deliveryCharge || 40);
+      setDeliveryAreaName(settings.deliveryAreaName || 'Mohanur');
     }
   }, [settings]);
 
@@ -101,6 +105,8 @@ export const Settings: React.FC = () => {
         googleMapsLink,
         instagramUrl,
         heroVideoUrl,
+        deliveryCharge,
+        deliveryAreaName,
         // Backwards compatibility for businessHours string
         businessHours: `${openingTime} - ${closingTime}`
       });
@@ -350,6 +356,41 @@ export const Settings: React.FC = () => {
                   className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 pl-10 pr-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery & Online Payment Configuration Card */}
+        <div className="bg-white border border-[#2C1A17]/10 rounded-2xl p-6 shadow-sm space-y-4">
+          <h3 className="font-playfair text-base font-bold text-[#2C1A17] flex items-center gap-2 border-b border-[#2C1A17]/5 pb-3">
+            <Store className="w-4.5 h-4.5 text-brand-gold-800" />
+            <span>Delivery & Online Payment Configuration</span>
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Restricted Delivery Area Name</label>
+              <input
+                type="text"
+                required
+                value={deliveryAreaName}
+                onChange={(e) => setDeliveryAreaName(e.target.value)}
+                placeholder="Mohanur"
+                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
+              />
+              <p className="text-[10px] text-[#2C1A17]/50 font-light">Home delivery will strictly be restricted to this town/pincode region.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#2C1A17]/70 uppercase block">Delivery Fee (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={deliveryCharge}
+                onChange={(e) => setDeliveryCharge(Number(e.target.value))}
+                className="w-full bg-[#FAF6F0] border border-[#2C1A17]/10 focus:border-brand-gold-500 rounded-xl py-2.5 px-3 text-xs font-semibold focus:outline-none focus:bg-white transition-all"
+              />
+              <p className="text-[10px] text-[#2C1A17]/50 font-light">Flat delivery fee added for Home Delivery orders.</p>
             </div>
           </div>
         </div>

@@ -11,6 +11,8 @@ import { Gallery } from './pages/Gallery';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { SpecialOffer } from './pages/SpecialOffer';
+import { Checkout } from './pages/Checkout';
+import { OrderConfirmation } from './pages/OrderConfirmation';
 import { AdminApp } from './admin/AdminApp';
 import { CartProvider } from './context/CartContext';
 import { CartDrawer } from './components/CartDrawer';
@@ -97,6 +99,8 @@ const AppContent: React.FC = () => {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/special-offer" element={<SpecialOffer />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </motion.div>

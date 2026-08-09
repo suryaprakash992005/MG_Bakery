@@ -138,11 +138,11 @@ export const AdminStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     customerName: o.customerName,
     phone: o.phone,
     deliveryAddress: o.deliveryAddress || 'Store Pickup',
-    orderedProduct: o.orderedProduct,
+    orderedProduct: o.orderedProduct || '',
     quantity: o.items?.[0]?.quantity || 1,
     amount: o.amount,
     paymentMethod: o.paymentMethod as any,
-    paymentStatus: o.paymentStatus,
+    paymentStatus: o.paymentStatus as any,
     orderStatus: o.orderStatus as any,
     createdDate: o.createdDate
   }));

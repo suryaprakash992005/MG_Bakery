@@ -45,18 +45,50 @@ export interface UnifiedCategory {
 
 export interface UnifiedOrder {
   id: string;
+  orderNumber: string;
   customerName: string;
   phone: string;
+  customerEmail?: string;
+  orderType: 'delivery' | 'pickup';
   deliveryAddress?: string;
-  orderedProduct: string; // Summary string for list
+  streetArea?: string;
+  landmark?: string;
+  city?: string;
+  pincode?: string;
+  latitude?: number;
+  longitude?: number;
+  deliveryArea?: string;
+  deliveryFee: number;
+  subtotal: number;
   amount: number;
   paymentMethod: string;
-  paymentStatus: 'Pending' | 'Paid' | 'Failed';
-  orderStatus: 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Delivered' | 'Cancelled';
+  paymentStatus: 'Pending' | 'Paid' | 'Failed' | 'PENDING' | 'PAID' | 'FAILED';
+  orderStatus:
+    | 'Pending'
+    | 'Confirmed'
+    | 'Preparing'
+    | 'Ready'
+    | 'Delivered'
+    | 'Cancelled'
+    | 'PENDING PAYMENT'
+    | 'PAID'
+    | 'CONFIRMED'
+    | 'PREPARING'
+    | 'READY'
+    | 'OUT FOR DELIVERY'
+    | 'DELIVERED'
+    | 'READY FOR PICKUP'
+    | 'PICKED UP'
+    | 'CANCELLED';
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
   createdDate: string;
+  orderedProduct?: string;
   items: {
-    id: string;
-    name: string;
+    id?: string;
+    productId?: string;
+    productName?: string;
+    name?: string;
     selectedWeight: string;
     price: number;
     quantity: number;
@@ -101,6 +133,15 @@ export interface UnifiedSettings {
   closingTime?: string;
   googleMapsLink?: string;
   heroVideoUrl?: string;
+  // Delivery & Online Payment settings
+  deliveryEnabled?: boolean;
+  deliveryAreaName?: string;
+  minOrderAmount?: number;
+  pickupEnabled?: boolean;
+  onlinePaymentEnabled?: boolean;
+  mohanurLat?: number;
+  mohanurLng?: number;
+  deliveryRadiusKm?: number;
 }
 
 export interface UnifiedHistoryLog {
@@ -151,7 +192,7 @@ interface DatabaseContextType {
   reorderCategories: (categories: UnifiedCategory[]) => void;
 
   // Order Operations
-  addOrder: (order: Omit<UnifiedOrder, 'id' | 'createdDate'>) => UnifiedOrder;
+  addOrder: (order: Partial<UnifiedOrder>) => Promise<UnifiedOrder>;
   updateOrderStatus: (id: string, status: UnifiedOrder['orderStatus']) => void;
   updateOrderPaymentStatus: (id: string, status: UnifiedOrder['paymentStatus']) => void;
   deleteOrder: (id: string) => void;
@@ -430,9 +471,13 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       const initial: UnifiedOrder[] = INITIAL_ORDERS.map((o) => ({
         id: o.id,
+        orderNumber: `#MG-${o.id.slice(-6)}`,
         customerName: o.customerName,
         phone: o.phone,
+        orderType: 'delivery',
         deliveryAddress: o.deliveryAddress,
+        deliveryFee: 40,
+        subtotal: o.amount,
         orderedProduct: o.orderedProduct,
         amount: o.amount,
         paymentMethod: o.paymentMethod,
@@ -443,6 +488,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           {
             id: `item-${Date.now()}`,
             name: o.orderedProduct,
+            productName: o.orderedProduct,
             selectedWeight: 'Standard',
             price: o.amount / o.quantity,
             quantity: o.quantity
@@ -773,43 +819,150 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- ORDERS ---
-  const addOrder = (o: Omit<UnifiedOrder, 'id' | 'createdDate'>): UnifiedOrder => {
+  const addOrder = async (orderData: Partial<UnifiedOrder>): Promise<UnifiedOrder> => {
+    const orderNum = orderData.orderNumber || `#MG-${Math.floor(100000 + Math.random() * 900000)}`;
     const newOrder: UnifiedOrder = {
-      ...o,
-      id: `ORD-${Date.now().toString().slice(-6)}`,
-      createdDate: new Date().toISOString()
+      id: orderData.id || `ord-${Date.now()}`,
+      orderNumber: orderNum,
+      customerName: orderData.customerName || 'Customer',
+      phone: orderData.phone || '',
+      customerEmail: orderData.customerEmail || '',
+      orderType: orderData.orderType || 'delivery',
+      deliveryAddress: orderData.deliveryAddress || '',
+      streetArea: orderData.streetArea || '',
+      landmark: orderData.landmark || '',
+      city: orderData.city || 'Mohanur',
+      pincode: orderData.pincode || '637015',
+      latitude: orderData.latitude,
+      longitude: orderData.longitude,
+      deliveryArea: orderData.deliveryArea || 'Mohanur',
+      deliveryFee: orderData.deliveryFee || 0,
+      subtotal: orderData.subtotal || orderData.amount || 0,
+      amount: orderData.amount || 0,
+      paymentMethod: orderData.paymentMethod || 'razorpay',
+      paymentStatus: orderData.paymentStatus || 'PENDING',
+      orderStatus: orderData.orderStatus || 'CONFIRMED',
+      razorpayOrderId: orderData.razorpayOrderId || '',
+      razorpayPaymentId: orderData.razorpayPaymentId || '',
+      createdDate: new Date().toISOString().split('T')[0],
+      orderedProduct: (orderData.items || []).map(i => `${i.quantity}x ${i.productName || i.name}`).join(', '),
+      items: orderData.items || []
     };
+
     const updated = [newOrder, ...orders];
     setOrders(updated);
     syncToLocal('admin_orders', updated);
-    addHistoryLog(`New Order Received: ${newOrder.id}`, `Customer: ${newOrder.customerName} | Amount: ₹${newOrder.amount}`);
+
+    // Sync to Supabase `orders` and `order_items` tables if configured
+    try {
+      const orderPayload = {
+        order_number: newOrder.orderNumber,
+        customer_name: newOrder.customerName,
+        customer_phone: newOrder.phone,
+        customer_email: newOrder.customerEmail,
+        order_type: newOrder.orderType,
+        delivery_address: newOrder.deliveryAddress,
+        street_area: newOrder.streetArea,
+        landmark: newOrder.landmark,
+        city: newOrder.city,
+        pincode: newOrder.pincode,
+        latitude: newOrder.latitude,
+        longitude: newOrder.longitude,
+        delivery_area: newOrder.deliveryArea,
+        delivery_fee: newOrder.deliveryFee,
+        subtotal: newOrder.subtotal,
+        total_amount: newOrder.amount,
+        payment_method: newOrder.paymentMethod,
+        payment_status: newOrder.paymentStatus,
+        order_status: newOrder.orderStatus,
+        razorpay_order_id: newOrder.razorpayOrderId,
+        razorpay_payment_id: newOrder.razorpayPaymentId
+      };
+
+      const { data: dbOrder, error: orderErr } = await supabase
+        .from('orders')
+        .insert([orderPayload])
+        .select()
+        .single();
+
+      if (!orderErr && dbOrder) {
+        // Insert order items
+        const itemPayloads = (newOrder.items || []).map(item => ({
+          order_id: dbOrder.id,
+          product_id: item.productId || 'p-1',
+          product_name: item.productName || item.name || 'Bakery Item',
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+          selected_options: { selectedWeight: item.selectedWeight }
+        }));
+
+        if (itemPayloads.length > 0) {
+          await supabase.from('order_items').insert(itemPayloads);
+        }
+      }
+    } catch (err) {
+      console.warn('Notice syncing order to Supabase orders table:', err);
+    }
+
+    addHistoryLog(`New Order Received: ${newOrder.orderNumber}`, `Customer: ${newOrder.customerName} | Amount: ₹${newOrder.amount}`);
     return newOrder;
   };
 
-  const updateOrderStatus = (id: string, status: UnifiedOrder['orderStatus']) => {
+  const updateOrderStatus = async (id: string, status: UnifiedOrder['orderStatus']) => {
     const updated = orders.map(item => {
-      if (item.id === id) {
-        const paymentStatus = status === 'Delivered' ? 'Paid' as const : item.paymentStatus;
+      if (item.id === id || item.orderNumber === id) {
+        const paymentStatus = (status === 'Delivered' || status === 'DELIVERED') ? 'PAID' as const : item.paymentStatus;
         return { ...item, orderStatus: status, paymentStatus };
       }
       return item;
     });
     setOrders(updated);
     syncToLocal('admin_orders', updated);
+
+    try {
+      await supabase
+        .from('orders')
+        .update({ order_status: status })
+        .or(`id.eq.${id},order_number.eq.${id}`);
+    } catch (err) {
+      console.warn('Notice updating order status in Supabase:', err);
+    }
+
     addHistoryLog(`Updated Order Status: ${id}`, `New Status: ${status}`);
   };
 
-  const updateOrderPaymentStatus = (id: string, status: UnifiedOrder['paymentStatus']) => {
-    const updated = orders.map(item => item.id === id ? { ...item, paymentStatus: status } : item);
+  const updateOrderPaymentStatus = async (id: string, status: UnifiedOrder['paymentStatus']) => {
+    const updated = orders.map(item => (item.id === id || item.orderNumber === id) ? { ...item, paymentStatus: status } : item);
     setOrders(updated);
     syncToLocal('admin_orders', updated);
+
+    try {
+      await supabase
+        .from('orders')
+        .update({ payment_status: status })
+        .or(`id.eq.${id},order_number.eq.${id}`);
+    } catch (err) {
+      console.warn('Notice updating payment status in Supabase:', err);
+    }
+
     addHistoryLog(`Updated Order Payment Status: ${id}`, `Payment Status: ${status}`);
   };
 
-  const deleteOrder = (id: string) => {
-    const updated = orders.filter(item => item.id !== id);
+  const deleteOrder = async (id: string) => {
+    const updated = orders.filter(item => item.id !== id && item.orderNumber !== id);
     setOrders(updated);
     syncToLocal('admin_orders', updated);
+
+    try {
+      await supabase
+        .from('orders')
+        .delete()
+        .or(`id.eq.${id},order_number.eq.${id}`);
+    } catch (err) {
+      console.warn('Notice deleting order from Supabase:', err);
+    }
+
     addHistoryLog(`Removed Order Archive: ${id}`, `ID: ${id}`);
   };
 

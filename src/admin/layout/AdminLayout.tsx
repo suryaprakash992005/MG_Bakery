@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Coffee,
   Globe,
-  Video
+  Video,
+  ShoppingBag
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -38,6 +39,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigationItems: SidebarItem[] = [
+    { name: 'Customer Orders', path: '/admin/orders', icon: ShoppingBag },
     { name: 'Products', path: '/admin/products', icon: Cake },
     { name: 'Gallery Manager', path: '/admin/gallery-manager', icon: ImageIcon },
     { name: 'Background Videos', path: '/admin/video-manager', icon: Video },

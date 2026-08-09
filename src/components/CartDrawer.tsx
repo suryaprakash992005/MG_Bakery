@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Plus, Minus, Trash2, ShoppingBag, Send, ArrowLeft, Landmark, ChevronRight, Gift, Percent } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 
 export const CartDrawer: React.FC = () => {
+  const navigate = useNavigate();
   const {
     cartItems,
     isCartOpen,
@@ -37,7 +39,7 @@ export const CartDrawer: React.FC = () => {
     }
   }, [isCartOpen]);
 
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cartItems.length === 0 || !custName || !custPhone) return;
 
@@ -51,7 +53,7 @@ export const CartDrawer: React.FC = () => {
       .join(', ');
 
     // 1. Create order record in dashboard database
-    const createdOrder = addOrder({
+    const createdOrder = await addOrder({
       customerName: custName,
       phone: custPhone,
       deliveryAddress: custAddress || 'Store Pickup',
@@ -392,7 +394,10 @@ We look forward to serving you!`;
                     ) : (
                       <div className="grid grid-cols-1 gap-3">
                         <button
-                          onClick={() => setIsCheckoutMode(true)}
+                          onClick={() => {
+                            setIsCartOpen(false);
+                            navigate('/checkout');
+                          }}
                           className="w-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] py-4 px-6 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95 shadow-lg shadow-[#2A0E0A]/10 cursor-pointer group overflow-hidden relative"
                         >
                           <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />

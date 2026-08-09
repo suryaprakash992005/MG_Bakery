@@ -10,13 +10,15 @@ import { Settings } from './pages/Settings';
 import { DatabaseProvider } from '../context/DatabaseContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
+import { Orders } from './pages/Orders';
+
 const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
 
   useEffect(() => {
-    // Redirect /admin or /admin/ to products
+    // Redirect /admin or /admin/ to orders
     if (currentPath === '/admin' || currentPath === '/admin/' || currentPath === '/admin-dashboard') {
-      navigate('/admin/products');
+      navigate('/admin/orders');
     }
   }, [currentPath, navigate]);
 
@@ -27,6 +29,9 @@ const AdminRouteSwitcher: React.FC = () => {
   if (currentPath.startsWith('/admin')) {
     const renderAdminPage = () => {
       switch (currentPath) {
+        case '/admin/orders':
+        case '/admin-orders':
+          return <Orders />;
         case '/admin/products':
         case '/admin-products':
           return <Products />;
@@ -43,7 +48,7 @@ const AdminRouteSwitcher: React.FC = () => {
         case '/admin-settings':
           return <Settings />;
         default:
-          return <Products />;
+          return <Orders />;
       }
     };
 
