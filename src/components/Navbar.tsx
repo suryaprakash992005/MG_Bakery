@@ -1,10 +1,13 @@
 import React from 'react';
-import { Coffee, PhoneCall } from 'lucide-react';
+import { Coffee, PhoneCall, Heart, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import { StaggeredMenu, StaggeredMenuItem } from './StaggeredMenu';
 import { CartIcon } from './CartIcon';
 import { useBakeryDatabase } from '../context/DatabaseContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   currentPage: string;
@@ -13,6 +16,9 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) => {
   const { settings } = useBakeryDatabase();
+  const { wishlistCount } = useWishlist();
+  const { user, setIsAuthModalOpen } = useAuth();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -41,12 +47,32 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
     setCurrentPage(pageId);
   };
 
-  const staggeredItems: StaggeredMenuItem[] = navItems.map((item) => ({
-    label: item.label,
-    ariaLabel: `Go to ${item.label}`,
-    link: `#${item.id}`,
-    onClick: () => handleNavClick(item.id)
-  }));
+  const staggeredItems: StaggeredMenuItem[] = [
+    ...navItems.map((item) => ({
+      label: item.label,
+      ariaLabel: `Go to ${item.label}`,
+      link: `#${item.id}`,
+      onClick: () => handleNavClick(item.id)
+    })),
+    {
+      label: `Wishlist ${wishlistCount > 0 ? `(${wishlistCount})` : ''}`,
+      ariaLabel: 'Go to Wishlist',
+      link: '#wishlist',
+      onClick: () => navigate('/wishlist')
+    },
+    {
+      label: 'My Orders & Tracking',
+      ariaLabel: 'Go to My Orders',
+      link: '#my-orders',
+      onClick: () => navigate('/my-orders')
+    },
+    {
+      label: user ? 'My Account' : 'Sign In / Account',
+      ariaLabel: 'Go to Account',
+      link: '#account',
+      onClick: () => (user ? navigate('/account') : setIsAuthModalOpen(true))
+    }
+  ];
 
   const getBakeryNameParts = () => {
     const name = settings?.bakeryName || 'M.G. Iyengar Bakery & Chats';
@@ -120,6 +146,30 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
 
             {/* Quick WhatsApp Action Button (Desktop) & Shopping Cart */}
             <div className="hidden lg:flex items-center gap-3">
+              {/* Wishlist icon */}
+              <button
+                onClick={() => navigate('/wishlist')}
+                className="relative p-2.5 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 hover:text-brand-brown-950 transition-colors cursor-pointer"
+                aria-label="Wishlist"
+              >
+                <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-[#C9A227] text-[#C9A227]' : ''}`} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-[#C9A227] text-[#2A0E0A] text-[9px] font-black rounded-full flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Account icon */}
+              <button
+                onClick={() => (user ? navigate('/account') : setIsAuthModalOpen(true))}
+                className="relative p-2.5 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 hover:text-brand-brown-950 transition-colors cursor-pointer"
+                aria-label="Account"
+                title={user ? 'My Account' : 'Sign In'}
+              >
+                <User className={`w-5 h-5 ${user ? 'text-[#C9A227]' : ''}`} />
+              </button>
+
               <CartIcon />
               <a
                 href={`https://wa.me/${cleanNumber}?text=${encodeURIComponent('Hello M.G. Iyengar Bakery, I would like to explore your menu and place an order.')}`}

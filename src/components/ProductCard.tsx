@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Product } from '../types';
 import { AddToCartButton } from './AddToCartButton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, X, PhoneCall, ShoppingBag, Check } from 'lucide-react';
+import { Heart, X, PhoneCall, ShoppingBag, Check, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import BorderGlow from './BorderGlow';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
   product: Product;
@@ -15,6 +17,8 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const { settings } = useBakeryDatabase();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const navigate = useNavigate();
 
   const isCakeWithMultiPrice = typeof product.price === 'object';
   
@@ -29,9 +33,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const [selectedTier, setSelectedTier] = useState<string>(getInitialTier());
   const [isOpen, setIsOpen] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [shake, setShake] = useState(false);
   const [added, setAdded] = useState(false);
+
+  const isFavorite = isInWishlist(product.id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWishlist({
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: product.price as any,
+      category: product.category,
+      status: product.status,
+      isEggless: product.isEggless,
+    });
+  };
 
   const getPriceDisplay = (): number => {
     if (!isCakeWithMultiPrice) {
@@ -119,6 +137,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </div>
               )}
 
+              {/* Wishlist Button (Desktop) */}
+              <button
+                onClick={handleWishlistToggle}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer opacity-0 group-hover:opacity-100 z-10"
+                aria-label="Toggle wishlist"
+              >
+                <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'fill-[#C9A227] text-[#C9A227]' : 'text-brand-brown-800'}`} />
+              </button>
+
               {/* Floating Badges */}
               <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
                 <div className="flex flex-col gap-1.5">
@@ -152,9 +179,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             {/* Content */}
             <div className="p-6 flex flex-col flex-grow justify-between">
               <div>
-                <h3 className="font-playfair text-lg sm:text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300">
-                  {product.name}
-                </h3>
+                <button
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  className="text-left cursor-pointer"
+                >
+                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-brand-brown-950 group-hover:text-brand-gold-700 transition-colors duration-300 hover:underline underline-offset-2">
+                    {product.name}
+                  </h3>
+                </button>
                 <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
                   {product.description}
                 </p>
@@ -354,11 +386,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   <X className="w-5 h-5" />
                 </button>
 
-                {/* Heart Favorite Toggle Button */}
+                {/* Heart Wishlist Toggle Button */}
                 <button
-                  onClick={() => setIsFavorite(!isFavorite)}
+                  onClick={handleWishlistToggle}
                   className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/70 backdrop-blur-md text-[#2A0E0A] hover:bg-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
-                  aria-label="Toggle favorite"
+                  aria-label="Toggle wishlist"
                 >
                   <motion.div
                     animate={{ scale: isFavorite ? [1, 1.4, 1] : 1 }}
@@ -366,6 +398,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   >
                     <Heart className={`w-5 h-5 ${isFavorite ? 'fill-[#C9A227] text-[#C9A227]' : 'text-brand-brown-800'}`} />
                   </motion.div>
+                </button>
+
+                {/* View Details Button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsOpen(false); navigate(`/product/${product.id}`); }}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/70 backdrop-blur-md text-[#2A0E0A] hover:bg-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                  aria-label="View product details"
+                >
+                  <Eye className="w-4 h-4" />
                 </button>
               </div>
 

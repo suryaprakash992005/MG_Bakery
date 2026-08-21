@@ -3,6 +3,7 @@ import { Search, Sparkles, X } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { FoodOrderCard } from '../components/FoodOrderCard';
 import { CategoryChips } from '../components/CategoryChips';
+import { FilterPanel, FilterState, defaultFilters } from '../components/FilterPanel';
 import { useBakeryDatabase } from '../context/DatabaseContext';
 import ShinyText from '../components/ShinyText';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,6 +67,7 @@ export const Menu: React.FC = () => {
   const [searchQuery,      setSearchQuery]       = useState<string>('');
   const [isFocused,        setIsFocused]         = useState<boolean>(false);
   const [scrollProgress,   setScrollProgress]    = useState<number>(0);
+  const [filters,          setFilters]           = useState<FilterState>(defaultFilters);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const productsRef    = useRef<HTMLDivElement>(null);
@@ -91,24 +93,65 @@ export const Menu: React.FC = () => {
     [categories.map((c) => c.name).join(',')],
   );
 
-  // ── Filtered + sorted products (preserves existing filter logic exactly) ─────
-  const filteredProducts = useMemo(
-    () =>
-      products
-        .filter((product) => {
-          if (!isCurrentlyVisible(product)) return false;
-          const matchesCategory =
-            selectedCategory === 'All' || product.category === selectedCategory;
-          const q = searchQuery.toLowerCase();
-          const matchesSearch =
-            product.name.toLowerCase().includes(q) ||
-            product.description.toLowerCase().includes(q) ||
-            product.category.toLowerCase().includes(q);
-          return matchesCategory && matchesSearch;
-        })
-        .sort((a, b) => (a.displayPriority ?? 9999) - (b.displayPriority ?? 9999)),
-    [products, selectedCategory, searchQuery],
-  );
+  // ── Filtered + sorted products (with all new filter options) ─────────────
+  const filteredProducts = useMemo(() => {
+    const getMinPrice = (price: any): number => {
+      if (typeof price === 'number') return price;
+      const vals = Object.values(price as Record<string, number>);
+      return Math.min(...vals);
+    };
+
+    let list = products.filter((product) => {
+      if (!isCurrentlyVisible(product)) return false;
+
+      // Category chip filter
+      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+
+      // Search filter
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        !q ||
+        product.name.toLowerCase().includes(q) ||
+        product.description.toLowerCase().includes(q) ||
+        product.category.toLowerCase().includes(q) ||
+        product.tags?.some((t: string) => t.toLowerCase().includes(q));
+
+      // Quick filters
+      if (filters.onlyAvailable && product.status === 'Out of Stock') return false;
+      if (filters.onlyEggless && !product.isEggless) return false;
+      if (filters.onlyBestSeller && !product.isBestSeller) return false;
+
+      // Price filter
+      if (filters.priceMin !== null || filters.priceMax !== null) {
+        const minP = getMinPrice(product.price);
+        if (filters.priceMin !== null && minP < filters.priceMin) return false;
+        if (filters.priceMax !== null && minP > filters.priceMax) return false;
+      }
+
+      return matchesCategory && matchesSearch;
+    });
+
+    // Sort
+    switch (filters.sort) {
+      case 'price-asc':
+        list = list.sort((a, b) => getMinPrice(a.price) - getMinPrice(b.price));
+        break;
+      case 'price-desc':
+        list = list.sort((a, b) => getMinPrice(b.price) - getMinPrice(a.price));
+        break;
+      case 'newest':
+        list = list.sort((a, b) => (b.displayPriority ?? 0) - (a.displayPriority ?? 0));
+        break;
+      case 'name-asc':
+        list = list.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'popular':
+      default:
+        list = list.sort((a, b) => (a.displayPriority ?? 9999) - (b.displayPriority ?? 9999));
+    }
+
+    return list;
+  }, [products, selectedCategory, searchQuery, filters]);
 
   // ── Smooth scroll to product list after category/search change ───────────────
   // Height of the sticky bar: mobile nav (80px) + search (46px) + chips (96px) + a bit of gap = ~230px total
@@ -250,7 +293,7 @@ export const Menu: React.FC = () => {
       </div>
 
       {/* ── Results Meta Row ────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-3 sm:px-5 lg:px-8 py-2.5 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between px-3 sm:px-5 lg:px-8 py-2.5 max-w-7xl mx-auto gap-3 flex-wrap">
         <motion.span
           key={`${filteredProducts.length}-${isLoading}`}
           initial={{ opacity: 0 }}
@@ -265,19 +308,28 @@ export const Menu: React.FC = () => {
               }`}
         </motion.span>
 
-        <AnimatePresence>
-          {(searchQuery || selectedCategory !== 'All') && (
-            <motion.button
-              initial={{ opacity: 0, x: 6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 6 }}
-              onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
-              className="text-xs font-semibold text-brand-gold-700 hover:underline cursor-pointer"
-            >
-              Clear filters
-            </motion.button>
-          )}
-        </AnimatePresence>
+        <div className="flex items-center gap-2">
+          {/* Filter Panel */}
+          <FilterPanel
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableCategories={sortedCategories}
+          />
+
+          <AnimatePresence>
+            {(searchQuery || selectedCategory !== 'All') && (
+              <motion.button
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 6 }}
+                onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+                className="text-xs font-semibold text-brand-gold-700 hover:underline cursor-pointer"
+              >
+                Clear search
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* ── Products Area ───────────────────────────────────────────────────── */}

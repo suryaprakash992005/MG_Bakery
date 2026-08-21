@@ -3,6 +3,7 @@ import { AdminRouterProvider, useAdminRouter } from './hooks/useAdminRouter';
 import { AdminStateProvider } from './hooks/useAdminState';
 import { Login } from './pages/Login';
 import { AdminLayout } from './layout/AdminLayout';
+import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
 import { GalleryManager } from './pages/GalleryManager';
 import { VideoManager } from './pages/VideoManager';
@@ -16,9 +17,9 @@ const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
 
   useEffect(() => {
-    // Redirect /admin or /admin/ to orders
+    // Redirect /admin or /admin/ to dashboard
     if (currentPath === '/admin' || currentPath === '/admin/' || currentPath === '/admin-dashboard') {
-      navigate('/admin/orders');
+      navigate('/admin/dashboard');
     }
   }, [currentPath, navigate]);
 
@@ -29,6 +30,8 @@ const AdminRouteSwitcher: React.FC = () => {
   if (currentPath.startsWith('/admin')) {
     const renderAdminPage = () => {
       switch (currentPath) {
+        case '/admin/dashboard':
+          return <Dashboard />;
         case '/admin/orders':
         case '/admin-orders':
           return <Orders />;

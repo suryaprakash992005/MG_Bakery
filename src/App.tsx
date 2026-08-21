@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navbar } from './components/Navbar';
@@ -15,10 +15,35 @@ import { Checkout } from './pages/Checkout';
 import { OrderConfirmation } from './pages/OrderConfirmation';
 import { AdminApp } from './admin/AdminApp';
 import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
+import { AuthProvider } from './context/AuthContext';
 import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
+import { AuthModal } from './components/AuthModal';
 import { DatabaseProvider } from './context/DatabaseContext';
 import ScrollToTop from './components/ScrollToTop';
+
+// Lazy-loaded routes for optimal performance
+const ProductDetail = lazy(() => import('./pages/ProductDetail').then(m => ({ default: m.ProductDetail })));
+const Wishlist = lazy(() => import('./pages/Wishlist').then(m => ({ default: m.Wishlist })));
+const MyOrders = lazy(() => import('./pages/MyOrders').then(m => ({ default: m.MyOrders })));
+const Account = lazy(() => import('./pages/Account').then(m => ({ default: m.Account })));
+
+// ─── Page Loading Skeleton ────────────────────────────────────────────────────
+const PageLoader: React.FC = () => (
+  <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
+        className="w-10 h-10 rounded-full border-2 border-[#C9A227] border-t-transparent"
+      />
+      <p className="text-xs text-[#2A0E0A]/50 font-semibold">Loading…</p>
+    </div>
+  </div>
+);
+
+// ─── App Content ─────────────────────────────────────────────────────────────
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -30,7 +55,6 @@ const AppContent: React.FC = () => {
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
     setVh();
-    
     let lastWidth = window.innerWidth;
     const handleResize = () => {
       if (window.innerWidth !== lastWidth) {
@@ -42,15 +66,13 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Intercept Admin system routes
-  const isLocationAdmin = 
-    location.pathname.startsWith('/admin') || 
+  const isLocationAdmin =
+    location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/admin-');
 
-  // Synchronize state-based navbar highlight
   const getPageId = (path: string): string => {
     if (path === '/') return 'home';
-    const sub = path.substring(1); // e.g., 'cakes' from '/cakes'
+    const sub = path.substring(1);
     return sub || 'home';
   };
 
@@ -67,16 +89,15 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
-      {/* Premium Floating Navigation Header */}
+      {/* Navbar */}
       <Navbar currentPage={currentPage} setCurrentPage={handleNavClick} />
 
-      {/* Shopping Cart Side Drawer */}
+      {/* Global Modals & Drawers */}
       <CartDrawer />
-
-      {/* Mobile Floating Cart Action Button */}
+      <AuthModal />
       <FloatingCartButton />
 
-      {/* Main Content Area with Route Transition Animations */}
+      {/* Main Content */}
       <main className="flex-grow">
         <AnimatePresence mode="wait">
           <motion.div
@@ -86,45 +107,63 @@ const AppContent: React.FC = () => {
             exit={{ opacity: 0, y: -10 }}
             transition={{
               duration: 0.4,
-              ease: [0.16, 1, 0.3, 1] // Apple-style custom ease-out
+              ease: [0.16, 1, 0.3, 1],
             }}
             className="w-full h-full"
           >
-            <Routes location={location} key={location.pathname}>
-              <Route path="/" element={<Home setCurrentPage={handleNavClick} />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/cakes" element={<Cakes />} />
-              <Route path="/custom-cake" element={<CustomCake />} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/special-offer" element={<SpecialOffer />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<Home setCurrentPage={handleNavClick} />} />
+                <Route path="/menu" element={<Menu />} />
+                <Route path="/cakes" element={<Cakes />} />
+                <Route path="/custom-cake" element={<CustomCake />} />
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/special-offer" element={<SpecialOffer />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+
+                {/* ── UPGRADED E-COMMERCE ROUTES ── */}
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/my-orders" element={<MyOrders />} />
+                <Route path="/orders" element={<Navigate to="/my-orders" replace />} />
+                <Route path="/track" element={<MyOrders />} />
+                <Route path="/track/:orderId" element={<MyOrders />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/profile" element={<Navigate to="/account" replace />} />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Luxury Footer */}
+      {/* Footer */}
       <Footer setCurrentPage={handleNavClick} />
     </div>
   );
 };
 
+// ─── Root App ─────────────────────────────────────────────────────────────────
+
 const App: React.FC = () => {
   return (
     <DatabaseProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <AppContent />
-        </BrowserRouter>
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <BrowserRouter>
+              <ScrollToTop />
+              <AppContent />
+            </BrowserRouter>
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
     </DatabaseProvider>
   );
 };
 
 export default App;
-

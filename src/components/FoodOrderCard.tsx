@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { Product } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface FoodOrderCardProps {
   product: Product;
@@ -30,6 +32,23 @@ const getTierLabel = (tier: string): string => {
  */
 export const FoodOrderCard: React.FC<FoodOrderCardProps> = ({ product }) => {
   const { cartItems, addToCart, updateQuantity, removeFromCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const navigate = useNavigate();
+
+  const isFavorite = isInWishlist(product.id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWishlist({
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: product.price as any,
+      category: product.category,
+      status: product.status,
+      isEggless: product.isEggless,
+    });
+  };
 
   const isCakeWithMultiPrice = typeof product.price === 'object';
 
@@ -123,7 +142,10 @@ export const FoodOrderCard: React.FC<FoodOrderCardProps> = ({ product }) => {
           </div>
 
           {/* Product name */}
-          <h3 className="font-playfair font-bold text-[13px] sm:text-sm text-brand-brown-950 leading-tight line-clamp-2">
+          <h3
+            onClick={() => navigate(`/product/${product.id}`)}
+            className="font-playfair font-bold text-[13px] sm:text-sm text-brand-brown-950 leading-tight line-clamp-2 cursor-pointer hover:text-brand-gold-700 transition-colors"
+          >
             {product.name}
           </h3>
 
@@ -269,6 +291,15 @@ export const FoodOrderCard: React.FC<FoodOrderCardProps> = ({ product }) => {
             />
 
             {/* Out-of-stock overlay on image */}
+
+            {/* Wishlist heart button */}
+            <button
+              onClick={handleWishlistToggle}
+              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm hover:scale-110 cursor-pointer transition-all z-10"
+              aria-label="Toggle wishlist"
+            >
+              <Heart className={`w-3.5 h-3.5 transition-colors ${isFavorite ? 'fill-[#C9A227] text-[#C9A227]' : 'text-brand-brown-800/60'}`} />
+            </button>
             {isOutOfStock && (
               <div className="absolute inset-0 bg-white/65 backdrop-blur-[2px] flex items-center justify-center">
                 <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">

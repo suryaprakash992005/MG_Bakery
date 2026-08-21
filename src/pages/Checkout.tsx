@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
+import { useAuth, CustomerAddress } from '../context/AuthContext';
 import {
   getCurrentCoordinates,
   validateMohanurDeliveryArea,
@@ -38,24 +39,46 @@ import { OrderType } from '../types';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { cartItems, totalAmount, clearCart } = useCart();
+  const { cartItems, totalAmount, appliedCoupon, couponDiscount, clearCart } = useCart();
   const { settings, addOrder } = useBakeryDatabase();
+  const { profile, savedAddresses, saveAddress } = useAuth();
 
-  // Customer Details Form State
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  // Customer Details Form State (autofilled from profile if exists)
+  const [customerName, setCustomerName] = useState(profile?.name || '');
+  const [customerPhone, setCustomerPhone] = useState(profile?.phone || '');
+  const [customerEmail, setCustomerEmail] = useState(profile?.email || '');
 
   // Order Type State: 'delivery' | 'pickup'
   const [orderType, setOrderType] = useState<OrderType>('delivery');
 
   // Delivery Address Form State
-  const [addressLine, setAddressLine] = useState('');
-  const [doorNo, setDoorNo] = useState('');
-  const [streetArea, setStreetArea] = useState('');
-  const [landmark, setLandmark] = useState('');
-  const [city, setCity] = useState('Mohanur');
-  const [pincode, setPincode] = useState('637015');
+  const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+  const [addressLine, setAddressLine] = useState(defaultAddr?.landmark || '');
+  const [doorNo, setDoorNo] = useState(defaultAddr?.doorNo || '');
+  const [streetArea, setStreetArea] = useState(defaultAddr?.streetArea || '');
+  const [landmark, setLandmark] = useState(defaultAddr?.landmark || '');
+  const [city, setCity] = useState(defaultAddr?.city || 'Mohanur');
+  const [pincode, setPincode] = useState(defaultAddr?.pincode || '637015');
+  const [saveThisAddress, setSaveThisAddress] = useState(false);
+
+  // Sync profile if it becomes available
+  useEffect(() => {
+    if (profile) {
+      if (!customerName && profile.name) setCustomerName(profile.name);
+      if (!customerPhone && profile.phone) setCustomerPhone(profile.phone);
+      if (!customerEmail && profile.email) setCustomerEmail(profile.email);
+    }
+  }, [profile]);
+
+  const selectSavedAddress = (addr: CustomerAddress) => {
+    setStreetArea(addr.streetArea);
+    setDoorNo(addr.doorNo || '');
+    setLandmark(addr.landmark || '');
+    setCity(addr.city || 'Mohanur');
+    setPincode(addr.pincode || '637015');
+    if (addr.name && !customerName) setCustomerName(addr.name);
+    if (addr.phone && !customerPhone) setCustomerPhone(addr.phone);
+  };
 
   // Geolocation & Validation State
   const [latitude, setLatitude] = useState<number | undefined>(undefined);
@@ -242,6 +265,20 @@ export const Checkout: React.FC = () => {
           razorpayOrderId: razorpay_order_id || rzpOrderId,
           razorpayPaymentId: razorpay_payment_id || `pay_${Date.now()}`
         });
+
+        // Save address to address book if requested
+        if (saveThisAddress && orderType === 'delivery' && streetArea.trim()) {
+          saveAddress({
+            label: 'Home',
+            name: customerName,
+            phone: customerPhone,
+            doorNo,
+            streetArea,
+            landmark,
+            city,
+            pincode,
+          });
+        }
 
         clearCart();
         setIsProcessingPayment(false);
@@ -491,6 +528,35 @@ export const Checkout: React.FC = () => {
                     </button>
                   </div>
 
+                  {/* Saved Addresses Picker (if user has saved addresses) */}
+                  {savedAddresses.length > 0 && (
+                    <div className="space-y-2 pb-2">
+                      <label className="text-[10px] font-black text-[#2C1A17]/60 uppercase tracking-widest block">
+                        Saved Addresses (Click to Select)
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {savedAddresses.map(addr => {
+                          const isSelected = streetArea === addr.streetArea && doorNo === (addr.doorNo || '');
+                          return (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => selectSavedAddress(addr)}
+                              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                                isSelected
+                                  ? 'bg-[#2A0E0A] text-[#C9A227] border-[#2A0E0A] shadow-sm'
+                                  : 'bg-[#FAF6F0] text-[#2C1A17]/80 border-[#2C1A17]/15 hover:border-[#C9A227]'
+                              }`}
+                            >
+                              <MapPin className="w-3.5 h-3.5" />
+                              <span>{addr.label}: {addr.streetArea}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Location Detection Error Banner */}
                   {locationError && (
                     <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
@@ -599,6 +665,17 @@ export const Checkout: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Save address checkbox */}
+                  <label className="flex items-center gap-2 text-xs text-[#2C1A17]/80 cursor-pointer pt-2">
+                    <input
+                      type="checkbox"
+                      checked={saveThisAddress}
+                      onChange={e => setSaveThisAddress(e.target.checked)}
+                      className="rounded border-[#2C1A17]/20 text-[#C9A227] focus:ring-[#C9A227]"
+                    />
+                    <span>Save this address to my account for faster future checkouts</span>
+                  </label>
                 </motion.div>
               ) : (
                 // --- PICKUP FROM SHOP DISPLAY CARD ---
@@ -693,9 +770,18 @@ export const Checkout: React.FC = () => {
               {/* Price Breakdown */}
               <div className="border-t border-[#2C1A17]/10 pt-4 space-y-2 text-xs">
                 <div className="flex justify-between text-[#2C1A17]/70">
-                  <span>Subtotal</span>
-                  <span className="font-bold text-[#2C1A17]">₹{totalAmount}</span>
+                  <span>Item Total</span>
+                  <span className="font-bold text-[#2C1A17]">₹{totalAmount + couponDiscount}</span>
                 </div>
+
+                {appliedCoupon && couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-700 bg-green-50 px-2.5 py-1.5 rounded-xl font-semibold">
+                    <span className="flex items-center gap-1">
+                      <span>🏷️ Coupon ({appliedCoupon.code})</span>
+                    </span>
+                    <span>-₹{couponDiscount}</span>
+                  </div>
+                )}
 
                 <div className="flex justify-between text-[#2C1A17]/70">
                   <span>Delivery Fee</span>

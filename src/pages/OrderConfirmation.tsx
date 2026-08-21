@@ -171,7 +171,15 @@ export const OrderConfirmation: React.FC = () => {
         </div>
 
         {/* ACTIONS */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => navigate(`/my-orders?order=${encodeURIComponent(currentOrder.orderNumber)}`)}
+            className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#C9A227] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[#2A0E0A]/20 active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Track Live Order Status</span>
+          </button>
+
           <button
             onClick={() => window.print()}
             className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white border border-[#2C1A17]/15 hover:bg-[#FAF6F0] text-[#2C1A17] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
@@ -182,7 +190,7 @@ export const OrderConfirmation: React.FC = () => {
 
           <button
             onClick={() => navigate('/menu')}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[#2A0E0A]/20"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-[#FAF6F0] hover:bg-[#F3EDE2] border border-[#2C1A17]/15 text-[#2C1A17] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
           >
             <span>Continue Shopping</span>
             <ArrowRight className="w-4 h-4" />
