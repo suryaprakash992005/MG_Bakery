@@ -263,8 +263,7 @@ export const FoodOrderCard: React.FC<FoodOrderCardProps> = ({ product }) => {
         {/* ── RIGHT: Product Image ──────────────────────────────────────────── */}
         <div className="flex-shrink-0 self-center">
           <div
-            className="relative rounded-2xl overflow-hidden bg-brand-cream-100"
-            style={{ width: 108, height: 108 }}
+            className="relative rounded-2xl overflow-hidden bg-brand-cream-100 w-24 h-24 sm:w-28 sm:h-28"
           >
             {/* Skeleton shimmer while image loads */}
             {!imgLoaded && (

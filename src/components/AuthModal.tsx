@@ -114,10 +114,10 @@ export const AuthModal: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden z-10 border border-[#C9A227]/20"
+            className="relative w-full max-w-md max-h-[92vh] flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden z-10 border border-[#C9A227]/20"
           >
             {/* Header / Brand Banner */}
-            <div className="bg-gradient-to-br from-[#2A0E0A] via-[#401C16] to-[#2A0E0A] p-6 text-[#FAF7F2] relative">
+            <div className="bg-gradient-to-br from-[#2A0E0A] via-[#401C16] to-[#2A0E0A] p-5 sm:p-6 text-[#FAF7F2] relative shrink-0">
               <button
                 onClick={() => {
                   setIsAuthModalOpen(false);
@@ -178,7 +178,7 @@ export const AuthModal: React.FC = () => {
             </div>
 
             {/* Form Body */}
-            <div className="p-6 space-y-4">
+            <div className="p-5 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(92vh-180px)]">
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}

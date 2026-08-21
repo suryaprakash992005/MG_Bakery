@@ -343,11 +343,11 @@ export const Account: React.FC = () => {
                 {savedAddresses.map(addr => (
                   <div
                     key={addr.id}
-                    className={`p-4 rounded-2xl border-2 transition-all flex items-start justify-between gap-3 ${
+                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${
                       addr.isDefault ? 'bg-[#FAF7F2] border-[#C9A227]' : 'bg-white border-[#2C1A17]/10'
                     }`}
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-[#2A0E0A] flex items-center gap-1">
                           {addr.label === 'Work' ? <Briefcase className="w-3.5 h-3.5 text-[#C9A227]" /> : <HomeIcon className="w-3.5 h-3.5 text-[#C9A227]" />}
@@ -359,24 +359,24 @@ export const Account: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#2C1A17]/75 leading-relaxed">
+                      <p className="text-xs text-[#2C1A17]/75 leading-relaxed break-words">
                         {addr.doorNo ? `${addr.doorNo}, ` : ''}{addr.streetArea}
                         {addr.landmark ? ` (Near ${addr.landmark})` : ''}, {addr.city} - {addr.pincode}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2C1A17]/5 shrink-0 self-end sm:self-start">
                       {!addr.isDefault && (
                         <button
                           onClick={() => setDefaultAddress(addr.id)}
-                          className="text-[10px] font-bold text-[#C9A227] hover:underline cursor-pointer"
+                          className="text-[11px] font-bold text-[#C9A227] hover:underline cursor-pointer px-2 py-1 rounded-lg hover:bg-[#FAF6F0]"
                         >
                           Set Default
                         </button>
                       )}
                       <button
                         onClick={() => removeAddress(addr.id)}
-                        className="w-7 h-7 rounded-lg hover:bg-red-50 text-red-500 flex items-center justify-center cursor-pointer transition-colors"
+                        className="w-8 h-8 rounded-lg hover:bg-red-50 text-red-500 flex items-center justify-center cursor-pointer transition-colors"
                         aria-label="Delete address"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

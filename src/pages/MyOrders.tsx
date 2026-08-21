@@ -306,7 +306,7 @@ export const MyOrders: React.FC = () => {
                       Live Order Status
                     </h3>
 
-                    <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-[#2C1A17]/10">
+                    <div className="relative pl-8 space-y-6 before:absolute before:left-[9px] before:top-3 before:bottom-3 before:w-[2px] before:bg-[#2C1A17]/15">
                       {ORDER_STAGES.map((stg, idx) => {
                         const currentStageIdx = getStageIndex(selectedOrder.orderStatus);
                         const isDone = idx <= currentStageIdx;
@@ -316,7 +316,7 @@ export const MyOrders: React.FC = () => {
                           <div key={stg.key} className="relative flex items-start gap-3.5">
                             {/* Dot / Icon */}
                             <div
-                              className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+                              className={`absolute -left-8 top-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
                                 isDone
                                   ? 'bg-[#C9A227] text-[#2A0E0A] ring-4 ring-[#C9A227]/20 shadow-sm'
                                   : 'bg-[#FAF7F2] border-2 border-[#2C1A17]/20 text-transparent'
@@ -325,7 +325,7 @@ export const MyOrders: React.FC = () => {
                               {isDone && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
                             </div>
 
-                            <div className="pl-2">
+                            <div className="pl-1">
                               <p className={`text-xs font-bold ${isCurrent ? 'text-[#2A0E0A] text-sm' : isDone ? 'text-[#2A0E0A]' : 'text-[#2C1A17]/40'}`}>
                                 {stg.label}
                                 {isCurrent && (

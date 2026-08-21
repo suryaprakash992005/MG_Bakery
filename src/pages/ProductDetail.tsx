@@ -965,29 +965,33 @@ export const ProductDetail: React.FC = () => {
       </div>
 
       {/* ── Mobile Sticky Bottom Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-[#2C1A17]/10 px-4 py-3 flex gap-3 shadow-2xl">
-        <div className="flex-1">
-          <p className="text-[10px] text-[#2C1A17]/50 font-semibold">Total</p>
-          <p className="text-lg font-black text-[#2A0E0A] font-playfair">₹{totalPrice}</p>
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-[#2C1A17]/10 px-4 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] flex items-center gap-2.5 shadow-[0_-8px_25px_rgba(0,0,0,0.08)]">
+        <div className="shrink-0 pr-1">
+          <p className="text-[10px] text-[#2C1A17]/50 font-semibold leading-none">Total</p>
+          <p className="text-base sm:text-lg font-black text-[#2A0E0A] font-playfair mt-0.5 leading-tight">₹{totalPrice}</p>
         </div>
-        {!isOutOfStock && (
-          <>
+        {!isOutOfStock ? (
+          <div className="flex-1 flex gap-2 min-w-0">
             <button
               onClick={handleAddToCart}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-xs font-bold border-2 cursor-pointer transition-all active:scale-95 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-full text-xs font-bold border-2 cursor-pointer transition-all active:scale-95 min-w-0 truncate ${
                 addedToCart ? 'border-[#C9A227] bg-[#C9A227]/10 text-[#2A0E0A]' : 'border-[#2A0E0A] text-[#2A0E0A] hover:bg-[#FAF6F0]'
               }`}
             >
-              {addedToCart ? <><CheckCircle className="w-3.5 h-3.5" /> Added</> : <><ShoppingBag className="w-3.5 h-3.5" /> Add to Cart</>}
+              {addedToCart ? <><CheckCircle className="w-3.5 h-3.5 shrink-0" /> Added</> : <><ShoppingBag className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Add to Cart</span></>}
             </button>
             <button
               onClick={handleBuyNow}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-xs font-bold bg-[#2A0E0A] text-[#FAF7F2] cursor-pointer transition-all active:scale-95 shadow-lg"
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-full text-xs font-bold bg-[#2A0E0A] text-[#FAF7F2] hover:text-[#C9A227] cursor-pointer transition-all active:scale-95 shadow-md shadow-[#2A0E0A]/20 min-w-0 truncate"
             >
-              <Zap className="w-3.5 h-3.5 text-[#C9A227]" />
-              Buy Now
+              <Zap className="w-3.5 h-3.5 text-[#C9A227] shrink-0" />
+              <span className="truncate">Buy Now</span>
             </button>
-          </>
+          </div>
+        ) : (
+          <div className="flex-1 min-w-0">
+            <NotifyMeButton productId={product.id} productName={product.name} />
+          </div>
         )}
       </div>
     </div>

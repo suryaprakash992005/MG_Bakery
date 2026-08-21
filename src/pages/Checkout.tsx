@@ -505,7 +505,7 @@ export const Checkout: React.FC = () => {
                   exit={{ opacity: 0, y: -10 }}
                   className="bg-white rounded-3xl p-6 border border-[#2C1A17]/10 shadow-sm space-y-5"
                 >
-                  <div className="flex items-center justify-between border-b border-[#2C1A17]/5 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2C1A17]/5 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-2xl bg-[#2A0E0A] flex items-center justify-center text-[#C9A227] shrink-0">
                         <MapPin className="w-4.5 h-4.5" />
@@ -521,7 +521,7 @@ export const Checkout: React.FC = () => {
                       type="button"
                       onClick={handleUseCurrentLocation}
                       disabled={isDetectingLocation}
-                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#2A0E0A] font-bold text-xs cursor-pointer transition-all active:scale-95 disabled:opacity-60"
+                      className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#2A0E0A] font-bold text-xs cursor-pointer transition-all active:scale-95 disabled:opacity-60"
                     >
                       <Compass className={`w-3.5 h-3.5 text-[#C9A227] ${isDetectingLocation ? 'animate-spin' : ''}`} />
                       <span>{isDetectingLocation ? 'Detecting...' : '📍 Use Current Location'}</span>
@@ -542,14 +542,14 @@ export const Checkout: React.FC = () => {
                               key={addr.id}
                               type="button"
                               onClick={() => selectSavedAddress(addr)}
-                              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 max-w-full ${
                                 isSelected
                                   ? 'bg-[#2A0E0A] text-[#C9A227] border-[#2A0E0A] shadow-sm'
                                   : 'bg-[#FAF6F0] text-[#2C1A17]/80 border-[#2C1A17]/15 hover:border-[#C9A227]'
                               }`}
                             >
-                              <MapPin className="w-3.5 h-3.5" />
-                              <span>{addr.label}: {addr.streetArea}</span>
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate max-w-[200px] sm:max-w-xs">{addr.label}: {addr.streetArea}</span>
                             </button>
                           );
                         })}
