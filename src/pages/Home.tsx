@@ -154,7 +154,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   return (
     <div className="pt-0 snap-y-container">
       {/* 1. Hero Section - Unified Responsive View (Single Background Video for 0ms Instant Laptop Playback) */}
-      <section className="relative min-h-dvh-locked h-screen snap-start-section overflow-hidden bg-[#2A0E0A] select-none flex items-center justify-center">
+      <section className="relative min-h-dvh-locked h-screen snap-start-section overflow-hidden bg-[#2A0E0A] flex items-center justify-center">
 
         {/* ── Single Full-bleed Video Background ─────────────────── */}
         <div className="absolute inset-0 z-0">

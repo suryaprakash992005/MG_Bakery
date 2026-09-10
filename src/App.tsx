@@ -88,7 +88,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-cream-50 select-none">
+    <div className="flex flex-col min-h-screen bg-brand-cream-50">
       {/* Navbar */}
       <Navbar currentPage={currentPage} setCurrentPage={handleNavClick} />
 

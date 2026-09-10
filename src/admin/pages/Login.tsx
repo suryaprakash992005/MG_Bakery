@@ -52,7 +52,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[#FAF6F0] overflow-hidden px-4 select-none">
+    <div className="relative min-h-screen flex items-center justify-center bg-[#FAF6F0] overflow-hidden px-4">
       {/* Background Decorative Mesh */}
       <div 
         className="absolute inset-0 opacity-[0.03] pointer-events-none"

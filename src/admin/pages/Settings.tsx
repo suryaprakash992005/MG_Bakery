@@ -126,7 +126,7 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto pb-12 select-none">
+    <div className="space-y-6 max-w-3xl mx-auto pb-12">
       
       {/* Header */}
       <div className="bg-white border border-[#2C1A17]/10 p-6 rounded-2xl shadow-sm">
