@@ -136,3 +136,14 @@ export interface ExtendedBakerySettings {
   mohanurLng: number;
   deliveryRadiusKm: number;
 }
+
+export interface CustomerProfile {
+  id: string;
+  full_name: string;
+  name?: string; // alias for backwards compatibility
+  phone: string;
+  email: string;
+  currency: string;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -4,9 +4,13 @@ import { User, Session } from '@supabase/supabase-js';
 
 export interface CustomerProfile {
   id?: string;
-  name: string;
+  full_name: string;
+  name?: string; // backwards compatibility alias for full_name
   phone: string;
-  email?: string;
+  email: string;
+  currency?: string;
+  created_at?: string;
+  updated_at?: string;
   addresses?: CustomerAddress[];
 }
 
@@ -30,12 +34,12 @@ interface AuthContextType {
   savedAddresses: CustomerAddress[];
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
-  authModalTab: 'login' | 'signup' | 'phone';
-  setAuthModalTab: (tab: 'login' | 'signup' | 'phone') => void;
+  authModalTab: 'login' | 'signup';
+  setAuthModalTab: (tab: 'login' | 'signup') => void;
   authModalMessage?: string;
   setAuthModalMessage: (msg: string) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signupWithEmail: (email: string, password: string, name: string, phone: string) => Promise<{ error: string | null }>;
+  signupWithEmail: (email: string, password: string, name: string, phone: string) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<CustomerProfile>) => Promise<void>;
   updateGuestProfile: (data: Partial<CustomerProfile>) => void;
@@ -47,20 +51,73 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const GUEST_PROFILE_KEY = 'mg_guest_customer_profile';
+export const formatAuthError = (err: any): string => {
+  if (!err) return 'An unexpected error occurred. Please try again.';
+  const msg = typeof err === 'string' ? err : err.message || '';
+  const code = err.code || '';
+
+  if (
+    code === 'user_already_exists' ||
+    msg.toLowerCase().includes('already registered') ||
+    msg.toLowerCase().includes('already exists')
+  ) {
+    return 'An account with this email already exists. Please sign in instead.';
+  }
+  if (
+    code === 'email_not_confirmed' ||
+    msg.toLowerCase().includes('email not confirmed')
+  ) {
+    return 'Please verify your email address before signing in. Check your inbox for the confirmation link.';
+  }
+  if (
+    code === 'invalid_credentials' ||
+    code === 'invalid_grant' ||
+    msg.toLowerCase().includes('invalid login credentials')
+  ) {
+    return 'Invalid email or password. Please check your credentials and try again.';
+  }
+  if (
+    code === 'email_address_invalid' ||
+    msg.toLowerCase().includes('unable to validate email') ||
+    msg.toLowerCase().includes('invalid email')
+  ) {
+    return 'Please enter a valid email address.';
+  }
+  if (
+    code === 'weak_password' ||
+    msg.toLowerCase().includes('at least 6 characters')
+  ) {
+    return 'Password must be at least 6 characters.';
+  }
+  if (
+    code === 'over_email_send_rate_limit' ||
+    msg.toLowerCase().includes('rate limit')
+  ) {
+    return 'Too many attempts. Please wait a few moments before trying again.';
+  }
+  if (
+    msg.toLowerCase().includes('network') ||
+    msg.toLowerCase().includes('failed to fetch') ||
+    msg.toLowerCase().includes('connection')
+  ) {
+    return 'Unable to connect to the server. Please check your internet connection.';
+  }
+  if (
+    msg.toLowerCase().includes('violates') ||
+    msg.toLowerCase().includes('syntax error') ||
+    msg.toLowerCase().includes('pgrst')
+  ) {
+    return 'Unable to process your request at this time. Please try again.';
+  }
+  return msg;
+};
+
 const SAVED_ADDRESSES_KEY = 'mg_saved_addresses';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<CustomerProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem(GUEST_PROFILE_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
 
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>(() => {
     try {
@@ -72,47 +129,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup' | 'phone'>('login');
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
   const [authModalMessage, setAuthModalMessage] = useState('');
 
+  // ── Upsert profile in Supabase ──────────────────────────────────────────────
+  const upsertUserProfile = async (
+    userId: string,
+    data: { full_name: string; phone: string; email?: string }
+  ): Promise<{ data: CustomerProfile | null; error: string | null }> => {
+    const baseRow = {
+      id: userId,
+      full_name: data.full_name,
+      phone: data.phone,
+      email: data.email || '',
+    };
+
+    // Attempt with currency and updated_at
+    const fullRow = {
+      ...baseRow,
+      currency: 'INR',
+      updated_at: new Date().toISOString(),
+    };
+
+    let res = await supabase
+      .from('profiles')
+      .upsert([fullRow], { onConflict: 'id' })
+      .select()
+      .maybeSingle();
+
+    // Fallback if PostgREST schema cache does not have currency or updated_at (PGRST204)
+    if (res.error && (res.error.code === 'PGRST204' || res.error.message?.includes('does not exist'))) {
+      res = await supabase
+        .from('profiles')
+        .upsert([baseRow], { onConflict: 'id' })
+        .select()
+        .maybeSingle();
+    }
+
+    if (res.error) {
+      console.error('Error upserting profile in Supabase:', res.error);
+      return { data: null, error: 'Failed to save customer profile to database' };
+    }
+
+    const saved = res.data;
+    const profileObj: CustomerProfile = {
+      id: userId,
+      full_name: saved?.full_name || data.full_name,
+      name: saved?.full_name || data.full_name,
+      phone: saved?.phone || data.phone,
+      email: saved?.email || data.email || '',
+      currency: saved?.currency || 'INR',
+      created_at: saved?.created_at,
+      updated_at: saved?.updated_at,
+    };
+
+    return { data: profileObj, error: null };
+  };
+
   // ── Fetch profile from Supabase ─────────────────────────────────────────────
-  const fetchProfile = async (userId: string, userEmail?: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string): Promise<CustomerProfile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
-        setProfile({
-          id: userId,
-          name: data.name || '',
+        const profileObj: CustomerProfile = {
+          id: data.id,
+          full_name: data.full_name || '',
+          name: data.full_name || '',
           phone: data.phone || '',
           email: data.email || userEmail || '',
-        });
-        localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify({
-          id: userId,
-          name: data.name || '',
-          phone: data.phone || '',
-          email: data.email || userEmail || '',
-        }));
-      } else {
-        // Profile row doesn't exist yet — create it
-        const meta = (await supabase.auth.getUser()).data.user?.user_metadata || {};
-        const profileData = {
-          id: userId,
-          name: meta.name || '',
-          phone: meta.phone || '',
-          email: userEmail || '',
+          currency: data.currency || 'INR',
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         };
-        await supabase.from('profiles').upsert([profileData]);
-        setProfile(profileData);
-        localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(profileData));
+        setProfile(profileObj);
+        return profileObj;
+      } else {
+        // Profile row doesn't exist yet — create it from auth metadata
+        const { data: authData } = await supabase.auth.getUser();
+        const meta = authData?.user?.user_metadata || {};
+        const { data: createdProfile } = await upsertUserProfile(userId, {
+          full_name: meta.full_name || meta.name || '',
+          phone: meta.phone || '',
+          email: userEmail || authData?.user?.email || '',
+        });
+        if (createdProfile) {
+          setProfile(createdProfile);
+          return createdProfile;
+        }
       }
     } catch (err) {
-      console.warn('Error fetching profile:', err);
+      console.warn('Error fetching profile from Supabase:', err);
     }
+    return null;
   };
 
   // ── Fetch addresses from Supabase ───────────────────────────────────────────
@@ -157,6 +270,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         fetchProfile(session.user.id, session.user.email);
         fetchAddresses(session.user.id);
+      } else {
+        setProfile(null);
       }
     });
 
@@ -167,10 +282,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchProfile(session.user.id, session.user.email);
         fetchAddresses(session.user.id);
       } else {
-        // Logged out — clear to guest state
         setProfile(null);
         setSavedAddresses([]);
-        localStorage.removeItem(GUEST_PROFILE_KEY);
         localStorage.removeItem(SAVED_ADDRESSES_KEY);
       }
     });
@@ -178,53 +291,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Guest profile persistence ───────────────────────────────────────────────
-  useEffect(() => {
-    if (profile && !user) {
-      localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(profile));
-    }
-  }, [profile, user]);
-
   // ── Auth Operations ─────────────────────────────────────────────────────────
 
-  const loginWithEmail = async (email: string, password: string) => {
+  const loginWithEmail = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message };
+      if (error) {
+        return { error: formatAuthError(error) };
+      }
       if (data.user) {
+        setUser(data.user);
+        setSession(data.session);
+        await fetchProfile(data.user.id, data.user.email);
+        await fetchAddresses(data.user.id);
         setIsAuthModalOpen(false);
         setAuthModalMessage('');
       }
       return { error: null };
     } catch (err: any) {
-      return { error: err.message || 'Login failed' };
+      return { error: formatAuthError(err) };
     }
   };
 
-  const signupWithEmail = async (email: string, password: string, name: string, phone: string) => {
+  const signupWithEmail = async (
+    email: string,
+    password: string,
+    name: string,
+    phone: string
+  ): Promise<{ error: string | null; needsEmailConfirmation?: boolean }> => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name, phone }
+          data: {
+            full_name: name,
+            phone,
+          }
         }
       });
-      if (error) return { error: error.message };
+
+      if (error) {
+        return { error: formatAuthError(error) };
+      }
+
+      // Check for duplicate account where Supabase doesn't error but returns empty identities
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        return { error: 'An account with this email already exists. Please sign in instead.' };
+      }
+
       if (data.user) {
-        // Upsert profile immediately
-        await supabase.from('profiles').upsert([{
-          id: data.user.id,
-          name,
+        // Upsert into public.profiles immediately using user's UUID
+        const { data: savedProfile, error: profileErr } = await upsertUserProfile(data.user.id, {
+          full_name: name,
           phone,
           email,
-        }]);
-        setIsAuthModalOpen(false);
-        setAuthModalMessage('');
+        });
+
+        if (profileErr) {
+          console.warn('Profile upsert warning:', profileErr);
+        }
+
+        // If session was returned immediately (auto-confirm enabled)
+        if (data.session) {
+          setUser(data.user);
+          setSession(data.session);
+          if (savedProfile) {
+            setProfile(savedProfile);
+          }
+          setIsAuthModalOpen(false);
+          setAuthModalMessage('');
+          return { error: null, needsEmailConfirmation: false };
+        } else {
+          // Email confirmation is required by Supabase Auth configuration
+          return { error: null, needsEmailConfirmation: true };
+        }
       }
+
       return { error: null };
     } catch (err: any) {
-      return { error: err.message || 'Registration failed' };
+      return { error: formatAuthError(err) };
     }
   };
 
@@ -232,13 +378,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await supabase.auth.signOut();
     } catch (e) {
-      console.error(e);
+      console.error('Logout error:', e);
     } finally {
       setUser(null);
       setSession(null);
       setProfile(null);
       setSavedAddresses([]);
-      localStorage.removeItem(GUEST_PROFILE_KEY);
       localStorage.removeItem(SAVED_ADDRESSES_KEY);
     }
   };
@@ -246,25 +391,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ── Profile Operations ──────────────────────────────────────────────────────
 
   const updateProfile = async (data: Partial<CustomerProfile>) => {
-    const updated = { ...profile, ...data } as CustomerProfile;
-    setProfile(updated);
-    localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(updated));
+    if (!user?.id) return;
 
-    if (user?.id) {
-      await supabase.from('profiles').upsert([{
-        id: user.id,
-        name: updated.name || '',
-        phone: updated.phone || '',
-        email: updated.email || user.email || '',
-        updated_at: new Date().toISOString(),
-      }]);
+    const newFullName = data.full_name || data.name || profile?.full_name || '';
+    const newPhone = data.phone || profile?.phone || '';
+    const newEmail = data.email || profile?.email || user.email || '';
+
+    const { data: updated, error } = await upsertUserProfile(user.id, {
+      full_name: newFullName,
+      phone: newPhone,
+      email: newEmail,
+    });
+
+    if (!error && updated) {
+      setProfile(updated);
     }
   };
 
   const updateGuestProfile = (data: Partial<CustomerProfile>) => {
     setProfile(prev => {
-      const updated = { ...prev, ...data } as CustomerProfile;
-      return updated;
+      if (!prev) return null;
+      return { ...prev, ...data } as CustomerProfile;
     });
   };
 

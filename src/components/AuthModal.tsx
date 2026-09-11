@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Mail, Phone, User, Check, ArrowRight, ShieldCheck, Sparkles, ShoppingBag } from 'lucide-react';
+import { X, Lock, Mail, Phone, User, Check, ArrowRight, Sparkles, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthModal: React.FC = () => {
@@ -11,7 +11,6 @@ export const AuthModal: React.FC = () => {
     setAuthModalTab,
     loginWithEmail,
     signupWithEmail,
-    updateGuestProfile,
     authModalMessage,
     setAuthModalMessage,
     profile,
@@ -38,18 +37,29 @@ export const AuthModal: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    if (loading) return;
+
+    if (!email.trim() || !password) {
+      setError('Please fill in both email and password');
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    const { error: err } = await loginWithEmail(email, password);
+    setSuccessMsg(null);
+
+    const { error: err } = await loginWithEmail(email.trim(), password);
     setLoading(false);
+
     if (err) {
       setError(err);
     } else {
-      setSuccessMsg('Welcome back!');
+      setSuccessMsg('Welcome back! Signed in successfully.');
       setTimeout(() => {
         setIsAuthModalOpen(false);
         resetForm();
@@ -59,46 +69,59 @@ export const AuthModal: React.FC = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password || !phone) {
-      setError('Please fill in all required fields');
+    if (loading) return;
+
+    const trimmedName = name.trim();
+    const cleanPhone = phone.replace(/\D/g, '');
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName || trimmedName.length < 2) {
+      setError('Please enter your full name (at least 2 characters)');
       return;
     }
-    if (phone.length < 10) {
+
+    if (cleanPhone.length !== 10) {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    const { error: err } = await signupWithEmail(email, password, name, phone);
+    setSuccessMsg(null);
+
+    const res = await signupWithEmail(trimmedEmail, password, trimmedName, cleanPhone);
     setLoading(false);
-    if (err) {
-      setError(err);
+
+    if (res.error) {
+      setError(res.error);
     } else {
-      setSuccessMsg('Account created successfully! Check email for verification if prompted.');
-      setTimeout(() => {
-        setIsAuthModalOpen(false);
-        resetForm();
-      }, 1500);
+      if (res.needsEmailConfirmation) {
+        setSuccessMsg('Account created! Please check your email inbox to verify your account.');
+        setTimeout(() => {
+          setIsAuthModalOpen(false);
+          resetForm();
+        }, 3000);
+      } else {
+        setSuccessMsg('Welcome to M.G. Bakery! Account created successfully.');
+        setTimeout(() => {
+          setIsAuthModalOpen(false);
+          resetForm();
+        }, 1200);
+      }
     }
   };
 
-  const handleQuickPhoneSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phone || phone.length < 10) {
-      setError('Please enter a valid 10-digit mobile number');
-      return;
-    }
-    updateGuestProfile({
-      name: name || 'Valued Customer',
-      phone,
-      email: email || undefined
-    });
-    setSuccessMsg('Profile details saved for faster checkout!');
-    setTimeout(() => {
-      setIsAuthModalOpen(false);
-      resetForm();
-    }, 800);
-  };
 
   return (
     <AnimatePresence>
@@ -147,14 +170,12 @@ export const AuthModal: React.FC = () => {
                 </span>
               </div>
               <h2 className="font-playfair text-xl sm:text-2xl font-bold">
-                {authModalTab === 'login' && 'Sign In to Your Account'}
-                {authModalTab === 'signup' && 'Create Your Bakery Account'}
-                {authModalTab === 'phone' && 'Express Customer Profile'}
+                {authModalTab === 'login' ? 'Sign In to Your Account' : 'Create Your Bakery Account'}
               </h2>
               <p className="text-xs text-white/70 mt-1">
-                {authModalTab === 'login' && 'Track past orders, save delivery addresses & access exclusive bakery treats.'}
-                {authModalTab === 'signup' && 'Join Mohanur’s favorite traditional bakery for fast ordering & rewards.'}
-                {authModalTab === 'phone' && 'Save your details for 1-click checkout and live WhatsApp updates.'}
+                {authModalTab === 'login'
+                  ? 'Track past orders, save delivery addresses & access exclusive bakery treats.'
+                  : 'Join Mohanur’s favorite traditional bakery for fast ordering & rewards.'}
               </p>
 
               {/* Tabs Switcher */}
@@ -174,14 +195,6 @@ export const AuthModal: React.FC = () => {
                   }`}
                 >
                   Sign Up
-                </button>
-                <button
-                  onClick={() => { setAuthModalTab('phone'); resetForm(); }}
-                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
-                    authModalTab === 'phone' ? 'bg-[#C9A227] text-[#2A0E0A] shadow-sm' : 'text-white/70 hover:text-white'
-                  }`}
-                >
-                  Quick Guest
                 </button>
               </div>
             </div>
@@ -331,54 +344,7 @@ export const AuthModal: React.FC = () => {
                 </form>
               )}
 
-              {/* Express Phone Form */}
-              {authModalTab === 'phone' && (
-                <form onSubmit={handleQuickPhoneSave} className="space-y-3.5">
-                  <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#C9A227]/20 flex items-start gap-2.5">
-                    <ShieldCheck className="w-5 h-5 text-[#C9A227] flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-[#2C1A17]/70 leading-relaxed">
-                      No password required! Save your name and phone to autofill every checkout and track orders with SMS/WhatsApp.
-                    </p>
-                  </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2C1A17]/70 uppercase tracking-wider">Your Name</label>
-                    <div className="relative">
-                      <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/40" />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="e.g. Ramesh Kumar"
-                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2C1A17]/70 uppercase tracking-wider">WhatsApp / Mobile Number *</label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/40" />
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="10-digit mobile number"
-                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#C9A227] font-bold py-3 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    Save Express Profile
-                    <Check className="w-4 h-4" />
-                  </button>
-                </form>
-              )}
 
               {/* Footer note */}
               <p className="text-center text-[10px] text-[#2C1A17]/40 pt-2">
