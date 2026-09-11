@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Mail, Phone, User, Check, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, Lock, Mail, Phone, User, Check, ArrowRight, ShieldCheck, Sparkles, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthModal: React.FC = () => {
@@ -12,6 +12,8 @@ export const AuthModal: React.FC = () => {
     loginWithEmail,
     signupWithEmail,
     updateGuestProfile,
+    authModalMessage,
+    setAuthModalMessage,
     profile,
   } = useAuth();
 
@@ -26,6 +28,12 @@ export const AuthModal: React.FC = () => {
   const resetForm = () => {
     setError(null);
     setSuccessMsg(null);
+  };
+
+  const handleClose = () => {
+    setIsAuthModalOpen(false);
+    setAuthModalMessage('');
+    resetForm();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -101,10 +109,7 @@ export const AuthModal: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
-              setIsAuthModalOpen(false);
-              resetForm();
-            }}
+            onClick={handleClose}
             className="absolute inset-0 bg-[#2A0E0A]/60 backdrop-blur-sm"
           />
 
@@ -119,15 +124,19 @@ export const AuthModal: React.FC = () => {
             {/* Header / Brand Banner */}
             <div className="bg-gradient-to-br from-[#2A0E0A] via-[#401C16] to-[#2A0E0A] p-5 sm:p-6 text-[#FAF7F2] relative shrink-0">
               <button
-                onClick={() => {
-                  setIsAuthModalOpen(false);
-                  resetForm();
-                }}
+                onClick={handleClose}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
+
+              {authModalMessage && (
+                <div className="bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-xl px-3 py-2 mb-3 flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-[#C9A227] shrink-0" />
+                  <p className="text-xs text-[#FAF7F2]/90">{authModalMessage}</p>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-xl bg-[#C9A227] flex items-center justify-center text-[#2A0E0A]">
@@ -370,6 +379,11 @@ export const AuthModal: React.FC = () => {
                   </button>
                 </form>
               )}
+
+              {/* Footer note */}
+              <p className="text-center text-[10px] text-[#2C1A17]/40 pt-2">
+                Your cart items are preserved after login ✓
+              </p>
             </div>
           </motion.div>
         </div>

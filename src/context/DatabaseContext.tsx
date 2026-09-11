@@ -46,6 +46,7 @@ export interface UnifiedCategory {
 export interface UnifiedOrder {
   id: string;
   orderNumber: string;
+  userId?: string;
   customerName: string;
   phone: string;
   customerEmail?: string;
@@ -72,6 +73,8 @@ export interface UnifiedOrder {
     | 'Cancelled'
     | 'PENDING PAYMENT'
     | 'PAID'
+    | 'ORDER PLACED'
+    | 'ORDER_PLACED'
     | 'CONFIRMED'
     | 'PREPARING'
     | 'READY'
@@ -80,8 +83,7 @@ export interface UnifiedOrder {
     | 'READY FOR PICKUP'
     | 'PICKED UP'
     | 'CANCELLED';
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
+  whatsappOpenedAt?: string;
   createdDate: string;
   orderedProduct?: string;
   items: {
@@ -93,7 +95,21 @@ export interface UnifiedOrder {
     price: number;
     quantity: number;
     image?: string;
+    customizations?: Record<string, string | undefined>;
   }[];
+}
+
+export interface UnifiedCustomer {
+  userId: string;
+  name: string;
+  phone: string;
+  email?: string;
+  registeredAt: string;
+  totalOrders: number;
+  totalSpent: number;
+  avgOrderValue: number;
+  lastOrderAt?: string;
+  firstOrderAt?: string;
 }
 
 export interface UnifiedHeroVideo {
@@ -165,6 +181,7 @@ interface DatabaseContextType {
   gallery: UnifiedGalleryItem[];
   categories: UnifiedCategory[];
   orders: UnifiedOrder[];
+  customers: UnifiedCustomer[];
   banners: UnifiedBanner[];
   heroVideos: UnifiedHeroVideo[];
   settings: UnifiedSettings;
@@ -196,6 +213,7 @@ interface DatabaseContextType {
   updateOrderStatus: (id: string, status: UnifiedOrder['orderStatus']) => void;
   updateOrderPaymentStatus: (id: string, status: UnifiedOrder['paymentStatus']) => void;
   deleteOrder: (id: string) => void;
+  fetchOrdersFromSupabase: () => Promise<void>;
 
   // Banner Operations
   saveBanner: (banner: UnifiedBanner) => void | Promise<void>;
@@ -217,6 +235,9 @@ interface DatabaseContextType {
   // History Operations
   addHistoryLog: (action: string, details: string) => void;
   clearHistory: () => void;
+
+  // Customer Operations
+  fetchCustomers: () => Promise<void>;
 }
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
@@ -226,6 +247,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [gallery, setGallery] = useState<UnifiedGalleryItem[]>([]);
   const [categories, setCategories] = useState<UnifiedCategory[]>([]);
   const [orders, setOrders] = useState<UnifiedOrder[]>([]);
+  const [customers, setCustomers] = useState<UnifiedCustomer[]>([]);
   const [banners, setBanners] = useState<UnifiedBanner[]>([]);
   const [heroVideos, setHeroVideos] = useState<UnifiedHeroVideo[]>(() => {
     try {
@@ -504,6 +526,14 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // 6. Load Settings from Supabase
     fetchSettings();
+
+    // 9. Load Orders from Supabase (primary source of truth)
+    // Async — will update state when loaded
+    setTimeout(() => {
+      fetchOrdersFromSupabase().catch(() => {
+        // Supabase unavailable — localStorage fallback already loaded above
+      });
+    }, 500);
 
     // 7. Load History
     const localHistory = localStorage.getItem('admin_history');
@@ -819,11 +849,79 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // --- ORDERS ---
+  const fetchOrdersFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(id, product_id, product_name, quantity, unit_price, total_price, selected_weight, customizations)')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) { console.warn('fetchOrdersFromSupabase error:', error); return; }
+
+      if (data) {
+        const mapped: UnifiedOrder[] = data.map((row: any) => ({
+          id: row.id,
+          orderNumber: row.order_number,
+          userId: row.user_id,
+          customerName: row.customer_name,
+          phone: row.customer_phone,
+          customerEmail: row.customer_email || '',
+          orderType: row.order_type || 'delivery',
+          deliveryAddress: row.delivery_address || '',
+          streetArea: row.street_area || '',
+          landmark: row.landmark || '',
+          city: row.city || 'Mohanur',
+          pincode: row.pincode || '637015',
+          latitude: row.latitude,
+          longitude: row.longitude,
+          deliveryArea: row.delivery_area || 'Mohanur',
+          deliveryFee: Number(row.delivery_fee || 0),
+          subtotal: Number(row.subtotal || 0),
+          amount: Number(row.total_amount || 0),
+          paymentMethod: row.payment_method || 'whatsapp',
+          paymentStatus: row.payment_status || 'PENDING',
+          orderStatus: row.order_status || 'ORDER_PLACED',
+          whatsappOpenedAt: row.whatsapp_opened_at,
+          createdDate: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          orderedProduct: (row.order_items || []).map((i: any) => `${i.quantity}x ${i.product_name}`).join(', '),
+          items: (row.order_items || []).map((i: any) => ({
+            id: i.id, productId: i.product_id, productName: i.product_name, name: i.product_name,
+            selectedWeight: i.selected_weight || 'Standard', price: Number(i.unit_price || 0),
+            quantity: Number(i.quantity || 1), customizations: i.customizations || {},
+          })),
+        }));
+        setOrders(mapped);
+        syncToLocal('admin_orders', mapped);
+      }
+    } catch (err) { console.warn('fetchOrdersFromSupabase error:', err); }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customer_stats')
+        .select('*')
+        .order('total_spent', { ascending: false });
+
+      if (!error && data) {
+        const mapped: UnifiedCustomer[] = data.map((row: any) => ({
+          userId: row.user_id, name: row.name || '', phone: row.phone || '', email: row.email || '',
+          registeredAt: row.registered_at || '', totalOrders: Number(row.total_orders || 0),
+          totalSpent: Number(row.total_spent || 0), avgOrderValue: Number(row.avg_order_value || 0),
+          lastOrderAt: row.last_order_at || undefined, firstOrderAt: row.first_order_at || undefined,
+        }));
+        setCustomers(mapped);
+      }
+    } catch (err) { console.warn('fetchCustomers error:', err); }
+  };
+
   const addOrder = async (orderData: Partial<UnifiedOrder>): Promise<UnifiedOrder> => {
-    const orderNum = orderData.orderNumber || `#MG-${Math.floor(100000 + Math.random() * 900000)}`;
+    const orderNum = orderData.orderNumber || `MG-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrder: UnifiedOrder = {
-      id: orderData.id || `ord-${Date.now()}`,
+      id: `ord-${Date.now()}`,
       orderNumber: orderNum,
+      userId: orderData.userId,
       customerName: orderData.customerName || 'Customer',
       phone: orderData.phone || '',
       customerEmail: orderData.customerEmail || '',
@@ -839,73 +937,68 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       deliveryFee: orderData.deliveryFee || 0,
       subtotal: orderData.subtotal || orderData.amount || 0,
       amount: orderData.amount || 0,
-      paymentMethod: orderData.paymentMethod || 'razorpay',
+      paymentMethod: orderData.paymentMethod || 'whatsapp',
       paymentStatus: orderData.paymentStatus || 'PENDING',
-      orderStatus: orderData.orderStatus || 'CONFIRMED',
-      razorpayOrderId: orderData.razorpayOrderId || '',
-      razorpayPaymentId: orderData.razorpayPaymentId || '',
+      orderStatus: orderData.orderStatus || 'ORDER_PLACED',
       createdDate: new Date().toISOString().split('T')[0],
       orderedProduct: (orderData.items || []).map(i => `${i.quantity}x ${i.productName || i.name}`).join(', '),
       items: orderData.items || []
     };
 
-    const updated = [newOrder, ...orders];
-    setOrders(updated);
-    syncToLocal('admin_orders', updated);
-
-    // Sync to Supabase `orders` and `order_items` tables if configured
+    // Save to Supabase first (source of truth)
     try {
-      const orderPayload = {
-        order_number: newOrder.orderNumber,
-        customer_name: newOrder.customerName,
-        customer_phone: newOrder.phone,
-        customer_email: newOrder.customerEmail,
-        order_type: newOrder.orderType,
-        delivery_address: newOrder.deliveryAddress,
-        street_area: newOrder.streetArea,
-        landmark: newOrder.landmark,
-        city: newOrder.city,
-        pincode: newOrder.pincode,
-        latitude: newOrder.latitude,
-        longitude: newOrder.longitude,
-        delivery_area: newOrder.deliveryArea,
-        delivery_fee: newOrder.deliveryFee,
-        subtotal: newOrder.subtotal,
-        total_amount: newOrder.amount,
-        payment_method: newOrder.paymentMethod,
-        payment_status: newOrder.paymentStatus,
-        order_status: newOrder.orderStatus,
-        razorpay_order_id: newOrder.razorpayOrderId,
-        razorpay_payment_id: newOrder.razorpayPaymentId
-      };
-
       const { data: dbOrder, error: orderErr } = await supabase
         .from('orders')
-        .insert([orderPayload])
+        .insert([{
+          order_number: newOrder.orderNumber,
+          user_id: newOrder.userId || null,
+          customer_name: newOrder.customerName,
+          customer_phone: newOrder.phone,
+          customer_email: newOrder.customerEmail || null,
+          order_type: newOrder.orderType,
+          delivery_address: newOrder.deliveryAddress,
+          street_area: newOrder.streetArea,
+          landmark: newOrder.landmark,
+          city: newOrder.city,
+          pincode: newOrder.pincode,
+          latitude: newOrder.latitude || null,
+          longitude: newOrder.longitude || null,
+          delivery_area: newOrder.deliveryArea,
+          delivery_fee: newOrder.deliveryFee,
+          subtotal: newOrder.subtotal,
+          total_amount: newOrder.amount,
+          payment_method: newOrder.paymentMethod,
+          payment_status: newOrder.paymentStatus,
+          order_status: newOrder.orderStatus,
+        }])
         .select()
         .single();
 
       if (!orderErr && dbOrder) {
-        // Insert order items
+        newOrder.id = dbOrder.id; // Use real Supabase UUID
         const itemPayloads = (newOrder.items || []).map(item => ({
           order_id: dbOrder.id,
-          product_id: item.productId || 'p-1',
+          product_id: item.productId || item.id || 'unknown',
           product_name: item.productName || item.name || 'Bakery Item',
           quantity: item.quantity,
           unit_price: item.price,
           total_price: item.price * item.quantity,
-          selected_options: { selectedWeight: item.selectedWeight }
+          selected_weight: item.selectedWeight || 'Standard',
+          customizations: item.customizations || {},
+          product_snapshot: { name: item.productName || item.name, price: item.price, selectedWeight: item.selectedWeight },
         }));
-
         if (itemPayloads.length > 0) {
           await supabase.from('order_items').insert(itemPayloads);
         }
       }
     } catch (err) {
-      console.warn('Notice syncing order to Supabase orders table:', err);
+      console.warn('Notice syncing order to Supabase:', err);
     }
 
-    addHistoryLog(`New Order Received: ${newOrder.orderNumber}`, `Customer: ${newOrder.customerName} | Amount: ₹${newOrder.amount}`);
+    const updated = [newOrder, ...orders];
+    setOrders(updated);
+    syncToLocal('admin_orders', updated);
+    addHistoryLog(`New Order: ${newOrder.orderNumber}`, `Customer: ${newOrder.customerName} | ₹${newOrder.amount} | ${newOrder.orderType}`);
     return newOrder;
   };
 
@@ -1175,6 +1268,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         gallery,
         categories,
         orders,
+        customers,
         banners,
         heroVideos,
         settings,
@@ -1202,6 +1296,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateOrderStatus,
         updateOrderPaymentStatus,
         deleteOrder,
+        fetchOrdersFromSupabase,
 
         saveBanner,
         deleteBanner,
@@ -1217,7 +1312,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deleteOffer,
         
         addHistoryLog,
-        clearHistory
+        clearHistory,
+        fetchCustomers,
       }}
     >
       {children}

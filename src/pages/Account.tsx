@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
+import { useBakeryDatabase } from '../context/DatabaseContext';
 
 export const Account: React.FC = () => {
   const {
@@ -24,7 +25,16 @@ export const Account: React.FC = () => {
   } = useAuth();
 
   const { wishlistCount } = useWishlist();
+  const { orders } = useBakeryDatabase();
   const navigate = useNavigate();
+
+  const userOrders = React.useMemo(() => {
+    return orders.filter(ord => {
+      if (user?.id && ((ord as any).userId === user.id || (ord as any).user_id === user.id)) return true;
+      if (profile?.phone && ord.phone?.includes(profile.phone.replace(/\D/g, ''))) return true;
+      return false;
+    });
+  }, [orders, user, profile]);
 
   // Profile Edit State
   const [name, setName] = useState(profile?.name || '');
@@ -114,18 +124,44 @@ export const Account: React.FC = () => {
           </div>
         </div>
 
+        {/* ── Guest Warning / Sync Banner ────────────────────────────────────────── */}
+        {!user && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#2A0E0A] text-[#C9A227] flex items-center justify-center shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-[#2A0E0A]">Sync your account with Supabase</h4>
+                <p className="text-[11px] text-[#2C1A17]/70 mt-0.5">
+                  Sign in or create an account with your mobile number to permanently save addresses and view live order statuses across any device.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setAuthModalTab('signup');
+                setIsAuthModalOpen(true);
+              }}
+              className="px-4 py-2 bg-[#2A0E0A] hover:bg-[#401C16] text-[#C9A227] rounded-xl text-xs font-bold shrink-0 cursor-pointer transition-all shadow-sm"
+            >
+              Sign In / Register
+            </button>
+          </div>
+        )}
+
         {/* ── Quick Links Strip ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div
             onClick={() => navigate('/my-orders')}
             className="bg-white p-4 rounded-2xl border border-[#2C1A17]/10 hover:border-[#C9A227] shadow-sm flex items-center gap-3 cursor-pointer transition-all hover:-translate-y-0.5"
           >
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
               <Package className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-bold text-xs text-[#2A0E0A]">My Orders</p>
-              <p className="text-[10px] text-[#2C1A17]/50">Track live orders</p>
+            <div className="min-w-0">
+              <p className="font-bold text-xs text-[#2A0E0A] truncate">My Orders</p>
+              <p className="text-[10px] text-[#2C1A17]/50">{userOrders.length} order{userOrders.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
 
@@ -133,24 +169,37 @@ export const Account: React.FC = () => {
             onClick={() => navigate('/wishlist')}
             className="bg-white p-4 rounded-2xl border border-[#2C1A17]/10 hover:border-[#C9A227] shadow-sm flex items-center gap-3 cursor-pointer transition-all hover:-translate-y-0.5"
           >
-            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
               <Heart className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-bold text-xs text-[#2A0E0A]">Wishlist</p>
+            <div className="min-w-0">
+              <p className="font-bold text-xs text-[#2A0E0A] truncate">Wishlist</p>
               <p className="text-[10px] text-[#2C1A17]/50">{wishlistCount} saved item{wishlistCount !== 1 ? 's' : ''}</p>
             </div>
           </div>
 
           <div
-            onClick={() => navigate('/menu')}
-            className="col-span-2 sm:col-span-1 bg-white p-4 rounded-2xl border border-[#2C1A17]/10 hover:border-[#C9A227] shadow-sm flex items-center gap-3 cursor-pointer transition-all hover:-translate-y-0.5"
+            onClick={() => setShowAddressForm(true)}
+            className="bg-white p-4 rounded-2xl border border-[#2C1A17]/10 hover:border-[#C9A227] shadow-sm flex items-center gap-3 cursor-pointer transition-all hover:-translate-y-0.5"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#2A0E0A] text-[#C9A227] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-xs text-[#2A0E0A] truncate">Addresses</p>
+              <p className="text-[10px] text-[#2C1A17]/50">{savedAddresses.length} saved</p>
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/menu')}
+            className="bg-white p-4 rounded-2xl border border-[#2C1A17]/10 hover:border-[#C9A227] shadow-sm flex items-center gap-3 cursor-pointer transition-all hover:-translate-y-0.5"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#2A0E0A] text-[#C9A227] flex items-center justify-center shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-bold text-xs text-[#2A0E0A]">Browse Menu</p>
+            <div className="min-w-0">
+              <p className="font-bold text-xs text-[#2A0E0A] truncate">Browse Menu</p>
               <p className="text-[10px] text-[#2C1A17]/50">Fresh daily bakes</p>
             </div>
           </div>

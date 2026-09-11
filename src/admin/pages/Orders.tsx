@@ -8,15 +8,24 @@ import {
   Search,
   Eye,
   Calendar,
-  X
+  X,
+  MessageCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useBakeryDatabase, UnifiedOrder } from '../../context/DatabaseContext';
 
 export const Orders: React.FC = () => {
-  const { orders, updateOrderStatus } = useBakeryDatabase();
+  const { orders, updateOrderStatus, fetchOrdersFromSupabase } = useBakeryDatabase();
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModalOrder, setActiveModalOrder] = useState<UnifiedOrder | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchOrdersFromSupabase();
+    setIsRefreshing(false);
+  };
 
   // Filter orders based on status tab & search query
   const filteredOrders = orders.filter(order => {
@@ -29,12 +38,13 @@ export const Orders: React.FC = () => {
     if (!matchesSearch) return false;
 
     if (selectedFilter === 'All') return true;
-    if (selectedFilter === 'Pending') return order.orderStatus === 'PENDING PAYMENT' || order.orderStatus === 'Pending';
-    if (selectedFilter === 'Paid') return order.paymentStatus === 'PAID' || order.paymentStatus === 'Paid';
-    if (selectedFilter === 'Preparing') return order.orderStatus === 'PREPARING' || order.orderStatus === 'Preparing';
-    if (selectedFilter === 'Ready') return order.orderStatus === 'READY' || order.orderStatus === 'READY FOR PICKUP' || order.orderStatus === 'Ready';
-    if (selectedFilter === 'Delivered') return order.orderStatus === 'DELIVERED' || order.orderStatus === 'PICKED UP' || order.orderStatus === 'Delivered';
-    if (selectedFilter === 'Cancelled') return order.orderStatus === 'CANCELLED' || order.orderStatus === 'Cancelled';
+    const s = (order.orderStatus || '').toUpperCase();
+    if (selectedFilter === 'Order Placed') return s.includes('PLACED') || s.includes('PENDING');
+    if (selectedFilter === 'Confirmed') return s === 'CONFIRMED';
+    if (selectedFilter === 'Preparing') return s === 'PREPARING';
+    if (selectedFilter === 'Ready / Out') return s.includes('READY') || s.includes('OUT');
+    if (selectedFilter === 'Delivered') return s.includes('DELIVERED') || s.includes('PICKED');
+    if (selectedFilter === 'Cancelled') return s === 'CANCELLED';
 
     return true;
   });
@@ -72,6 +82,14 @@ export const Orders: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#FAF6F0] hover:bg-[#F3EDE2] border border-[#2C1A17]/10 rounded-2xl text-xs font-bold text-[#2A0E0A] cursor-pointer transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#C9A227]' : ''}`} />
+            <span>{isRefreshing ? 'Syncing...' : 'Sync Orders'}</span>
+          </button>
           <div className="bg-[#FAF6F0] border border-[#2C1A17]/10 rounded-2xl px-4 py-2 text-xs font-bold text-[#2C1A17]">
             Total Orders: <strong className="text-brand-gold-850 text-sm ml-1">{orders.length}</strong>
           </div>
@@ -83,7 +101,7 @@ export const Orders: React.FC = () => {
         
         {/* Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
-          {['All', 'Paid', 'Preparing', 'Ready', 'Delivered', 'Cancelled'].map(tab => (
+          {['All', 'Order Placed', 'Confirmed', 'Preparing', 'Ready / Out', 'Delivered', 'Cancelled'].map(tab => (
             <button
               key={tab}
               onClick={() => setSelectedFilter(tab)}
@@ -207,6 +225,14 @@ export const Orders: React.FC = () => {
 
                   {/* Lifecycle Buttons */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {(order.orderStatus === 'ORDER PLACED' || order.orderStatus === 'ORDER_PLACED' || order.orderStatus === 'PENDING PAYMENT') && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'CONFIRMED')}
+                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer shadow-xs"
+                      >
+                        Accept & Confirm
+                      </button>
+                    )}
                     {order.orderStatus === 'CONFIRMED' && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'PREPARING')}
@@ -287,16 +313,33 @@ export const Orders: React.FC = () => {
                   <span className="text-[#2C1A17]/60">Payment Status</span>
                   <span className="font-bold text-emerald-700 uppercase">{activeModalOrder.paymentStatus}</span>
                 </div>
-                {activeModalOrder.razorpayPaymentId && (
-                  <div className="flex justify-between font-mono">
-                    <span className="text-[#2C1A17]/60">Payment ID</span>
-                    <span className="font-bold text-[#2C1A17]">{activeModalOrder.razorpayPaymentId}</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span className="text-[#2C1A17]/60">Address</span>
                   <span className="font-bold text-[#2C1A17] text-right max-w-xs">{activeModalOrder.deliveryAddress || 'Pickup from Store'}</span>
                 </div>
+              </div>
+
+              {/* Status Selector */}
+              <div className="flex items-center justify-between bg-[#FAF6F0] p-3 rounded-2xl">
+                <span className="font-bold text-[#2C1A17] text-xs">Update Status:</span>
+                <select
+                  value={activeModalOrder.orderStatus}
+                  onChange={(e) => {
+                    const newStatus = e.target.value as any;
+                    updateOrderStatus(activeModalOrder.id, newStatus);
+                    setActiveModalOrder({ ...activeModalOrder, orderStatus: newStatus });
+                  }}
+                  className="bg-white border border-[#2C1A17]/20 rounded-xl px-3 py-1.5 text-xs font-bold text-[#2A0E0A] focus:outline-none focus:border-[#C9A227]"
+                >
+                  <option value="ORDER PLACED">ORDER PLACED</option>
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="PREPARING">PREPARING</option>
+                  <option value="OUT FOR DELIVERY">OUT FOR DELIVERY</option>
+                  <option value="READY FOR PICKUP">READY FOR PICKUP</option>
+                  <option value="DELIVERED">DELIVERED</option>
+                  <option value="PICKED UP">PICKED UP</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
               </div>
 
               {/* Items List */}
@@ -321,6 +364,15 @@ export const Orders: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <a
+                    href={`https://wa.me/91${activeModalOrder.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello ${activeModalOrder.customerName}, regarding your order #${activeModalOrder.orderNumber || activeModalOrder.id} with M.G. Iyengar Bakery...`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </a>
                   <button
                     onClick={() => {
                       updateOrderStatus(activeModalOrder.id, 'CANCELLED');
@@ -328,7 +380,7 @@ export const Orders: React.FC = () => {
                     }}
                     className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-xs cursor-pointer"
                   >
-                    Cancel Order
+                    Cancel
                   </button>
                   <button
                     onClick={() => setActiveModalOrder(null)}

@@ -1,137 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Plus, Minus, Trash2, ShoppingBag,
-  ChevronRight, Gift, Tag, Bookmark, BookmarkCheck,
-  ShoppingCart, Sparkles, RotateCcw, Check, AlertCircle,
-  Package
+  Bookmark, BookmarkCheck,
+  ShoppingCart, Sparkles, RotateCcw,
+  Package, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
-
-// ─── Coupon Validator ─────────────────────────────────────────────────────────
-// Validates against the existing offers in DatabaseContext (simple percentage system)
-// Will be upgraded in Phase 8 with full Supabase coupons table
-
-const CouponInput: React.FC<{ subtotal: number }> = ({ subtotal }) => {
-  const { appliedCoupon, applyCoupon, removeCoupon } = useCart();
-  const { offers } = useBakeryDatabase();
-  const [inputCode, setInputCode] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleApply = () => {
-    setError('');
-    setSuccess('');
-    const code = inputCode.trim().toUpperCase();
-    if (!code) return;
-
-    const offer = offers.find(o => o.code.toUpperCase() === code && o.isActive);
-    if (!offer) {
-      setError('Invalid or expired coupon code.');
-      return;
-    }
-
-    const minOrder = 100; // default minimum
-    if (subtotal < minOrder) {
-      setError(`Minimum order ₹${minOrder} required for this coupon.`);
-      return;
-    }
-
-    applyCoupon({
-      code: offer.code,
-      discountType: 'percentage',
-      discountValue: offer.discountPercent,
-      title: offer.title,
-    });
-    setSuccess(`✓ "${offer.title}" applied! ${offer.discountPercent}% off`);
-    setInputCode('');
-  };
-
-  const handleRemove = () => {
-    removeCoupon();
-    setSuccess('');
-    setError('');
-    setInputCode('');
-  };
-
-  return (
-    <div className="border border-brand-cream-200/60 rounded-2xl overflow-hidden">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3.5 bg-brand-cream-50/40 text-xs font-bold text-brand-brown-950 cursor-pointer hover:bg-brand-cream-50/80 transition-colors"
-      >
-        <span className="flex items-center gap-2">
-          <Tag className="w-3.5 h-3.5 text-brand-gold-700" />
-          <span>{appliedCoupon ? `Coupon: ${appliedCoupon.code}` : 'Apply Coupon Code'}</span>
-          {appliedCoupon && (
-            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[9px] font-bold">APPLIED</span>
-          )}
-        </span>
-        <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 pt-2 space-y-2 bg-white border-t border-brand-cream-100/40">
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between p-2.5 bg-green-50 border border-green-200 rounded-xl">
-                  <div>
-                    <p className="text-xs font-bold text-green-800">{appliedCoupon.code}</p>
-                    <p className="text-[10px] text-green-700">{appliedCoupon.title} — {appliedCoupon.discountValue}% off</p>
-                  </div>
-                  <button
-                    onClick={handleRemove}
-                    className="text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer px-2 py-1 rounded"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter code (e.g. WELCOME10)"
-                      value={inputCode}
-                      onChange={e => { setInputCode(e.target.value.toUpperCase()); setError(''); }}
-                      onKeyDown={e => e.key === 'Enter' && handleApply()}
-                      className="flex-1 bg-brand-cream-50 border border-brand-cream-200 focus:border-brand-gold-500 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none transition-all"
-                    />
-                    <button
-                      onClick={handleApply}
-                      className="px-4 py-2 bg-brand-brown-950 text-brand-cream-50 text-xs font-bold rounded-xl cursor-pointer hover:bg-brand-brown-900 transition-colors"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                  {error && (
-                    <p className="text-[10px] text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />{error}
-                    </p>
-                  )}
-                  {success && (
-                    <p className="text-[10px] text-green-700 flex items-center gap-1">
-                      <Check className="w-3 h-3" />{success}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
+import { useAuth } from '../context/AuthContext';
 
 // ─── Saved Items Section ──────────────────────────────────────────────────────
 
@@ -202,23 +80,9 @@ export const CartDrawer: React.FC = () => {
     removeFromCart, updateQuantity, clearCart,
     saveForLater,
     totalAmount, totalItemsCount,
-    appliedCoupon, couponDiscount, finalTotal,
   } = useCart();
   const { settings } = useBakeryDatabase();
-
-  const [showPriceDetails, setShowPriceDetails] = useState(false);
-
-  // Reset when drawer closes
-  React.useEffect(() => {
-    if (!isCartOpen) setShowPriceDetails(false);
-  }, [isCartOpen]);
-
-  // Delivery fee logic
-  const DELIVERY_THRESHOLD = 300;
-  const deliveryFee = totalAmount >= DELIVERY_THRESHOLD ? 0 : (settings.deliveryCharge || 40);
-  const remainingForFree = Math.max(0, DELIVERY_THRESHOLD - totalAmount);
-  const deliveryProgress = Math.min(100, (totalAmount / DELIVERY_THRESHOLD) * 100);
-  const grandTotal = finalTotal(deliveryFee);
+  const { user, setIsAuthModalOpen, setAuthModalTab, setAuthModalMessage } = useAuth();
 
   // ── Animations ────────────────────────────────────────────────────────────
 
@@ -295,28 +159,20 @@ export const CartDrawer: React.FC = () => {
               </button>
             </div>
 
-            {/* ── Free Delivery Progress ── */}
+            {/* ── Bakery Freshness & Quality Banner ── */}
             {cartItems.length > 0 && (
-              <div className="bg-[#FAF5EC] border-b border-brand-cream-100/70 px-4 py-3 shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-brown-950">
-                    <Gift className="w-3.5 h-3.5 text-brand-gold-700 animate-pulse" />
-                    {remainingForFree > 0 ? (
-                      <span>Add <strong className="text-brand-gold-700">₹{remainingForFree}</strong> more for Free Delivery</span>
-                    ) : (
-                      <span className="text-green-700 font-bold">🎉 You unlocked Free Delivery!</span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-brand-brown-800/50 font-bold uppercase">{Math.round(deliveryProgress)}%</span>
+              <div className="bg-gradient-to-r from-[#FAF6F0] via-[#FFF9EE] to-[#FAF6F0] border-b border-[#C9A227]/20 px-4 py-2.5 shrink-0 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#2A0E0A]">
+                  <span className="w-6 h-6 rounded-full bg-[#C9A227]/15 flex items-center justify-center text-[#C9A227] shrink-0">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="text-[11px] font-medium text-[#2C1A17]/85">
+                    Freshly baked & handcrafted with love in Mohanur
+                  </span>
                 </div>
-                <div className="w-full h-1.5 bg-brand-cream-200/60 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${deliveryProgress}%` }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    className="h-full bg-gradient-to-r from-brand-gold-500 to-[#C9A227] rounded-full"
-                  />
-                </div>
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#C9A227] bg-white px-2.5 py-0.5 rounded-full border border-[#C9A227]/25 shadow-xs shrink-0">
+                  Daily Fresh
+                </span>
               </div>
             )}
 
@@ -451,78 +307,44 @@ export const CartDrawer: React.FC = () => {
             {/* ── Saved for Later Section ── */}
             <SavedItemsSection />
 
-            {/* ── Footer: Price Summary + Actions ── */}
+            {/* ── Footer: Summary + Actions ── */}
             {cartItems.length > 0 && (
-              <div className="p-5 border-t border-brand-cream-100 bg-white space-y-3.5 shadow-lg shrink-0">
+              <div className="p-5 border-t border-brand-cream-100 bg-white space-y-3.5 shadow-2xl shrink-0">
 
-                {/* Coupon */}
-                <CouponInput subtotal={totalAmount} />
-
-                {/* Price Details Accordion */}
-                <div className="border border-brand-cream-200/50 rounded-2xl overflow-hidden">
-                  <button
-                    onClick={() => setShowPriceDetails(!showPriceDetails)}
-                    className="w-full flex items-center justify-between p-3.5 bg-brand-cream-50/50 text-xs font-bold text-brand-brown-950 cursor-pointer hover:bg-brand-cream-50 transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-brand-gold-700" />
-                      Price Details ({totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'})
+                {/* Clean & Elegant Bill Summary Card */}
+                <div className="bg-[#FAF7F2] rounded-2xl p-3.5 border border-[#2C1A17]/8 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs text-[#2C1A17]/75">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Package className="w-3.5 h-3.5 text-[#C9A227]" />
+                      Items Subtotal ({totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'})
                     </span>
-                    <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${showPriceDetails ? 'rotate-90' : ''}`} />
-                  </button>
+                    <span className="font-bold text-[#2A0E0A]">₹{totalAmount.toLocaleString('en-IN')}</span>
+                  </div>
 
-                  <AnimatePresence>
-                    {showPriceDetails && (
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: 'auto' }}
-                        exit={{ height: 0 }}
-                        className="overflow-hidden bg-white border-t border-brand-cream-100/50"
-                      >
-                        <div className="px-4 py-3 space-y-2 text-[11px] text-brand-brown-800/80">
-                          <div className="flex justify-between">
-                            <span>Subtotal ({totalItemsCount} items)</span>
-                            <span className="font-semibold text-brand-brown-950">₹{totalAmount}</span>
-                          </div>
-                          {appliedCoupon && couponDiscount > 0 && (
-                            <div className="flex justify-between text-green-700">
-                              <span>Coupon ({appliedCoupon.code})</span>
-                              <span className="font-bold">−₹{couponDiscount}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between">
-                            <span>Delivery Fee</span>
-                            {deliveryFee === 0 ? (
-                              <span className="font-bold text-green-700">FREE</span>
-                            ) : (
-                              <span className="font-semibold text-brand-brown-950">₹{deliveryFee}</span>
-                            )}
-                          </div>
-                          <div className="flex justify-between pt-2 border-t border-brand-cream-100 text-xs font-bold text-brand-brown-950">
-                            <span>Total Amount</span>
-                            <span>₹{grandTotal}</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Total Row */}
-                <div className="flex items-center justify-between text-brand-brown-950 py-0.5">
-                  <div>
-                    <span className="text-[10px] font-bold text-brand-brown-800/45 uppercase tracking-widest block">
-                      Total Payable
+                  <div className="flex items-center justify-between text-xs text-[#2C1A17]/60">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
+                      Delivery & Pickup
                     </span>
-                    <span className="text-[10px] text-[#C9A227] font-semibold">
-                      {appliedCoupon ? `Saved ₹${couponDiscount}!` : 'inclusive of all taxes'}
+                    <span className="text-[10px] font-semibold text-[#C9A227] bg-white border border-[#C9A227]/25 px-2 py-0.5 rounded-full shadow-2xs">
+                      Selected at Checkout
                     </span>
                   </div>
-                  <div className="text-right">
-                    {appliedCoupon && (
-                      <span className="text-xs line-through text-brand-brown-800/40 block">₹{totalAmount + deliveryFee}</span>
-                    )}
-                    <span className="text-2xl font-bold font-playfair">₹{grandTotal}</span>
+
+                  <div className="pt-2.5 border-t border-[#2C1A17]/10 flex items-baseline justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-[#2C1A17]/50 uppercase tracking-widest block">
+                        Subtotal Payable
+                      </span>
+                      <span className="text-[10px] text-[#C9A227] font-semibold">
+                        Inclusive of all taxes
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold font-playfair text-[#2A0E0A] tracking-tight">
+                        ₹{totalAmount.toLocaleString('en-IN')}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -537,23 +359,44 @@ export const CartDrawer: React.FC = () => {
                 ) : (
                   <div className="space-y-2">
                     <button
-                      onClick={() => { setIsCartOpen(false); navigate('/checkout'); }}
-                      className="w-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] py-4 px-6 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-lg shadow-[#2A0E0A]/10 cursor-pointer group overflow-hidden relative"
+                      onClick={() => {
+                        setIsCartOpen(false);
+                        if (!user) {
+                          setAuthModalMessage('Please sign in or register with your mobile number to complete your order.');
+                          setAuthModalTab('login');
+                          setIsAuthModalOpen(true);
+                        }
+                        navigate('/checkout');
+                      }}
+                      className="w-full bg-[#2A0E0A] hover:bg-[#3D140E] text-[#FAF7F2] py-3.5 px-5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-xl shadow-[#2A0E0A]/15 cursor-pointer group overflow-hidden relative"
                     >
-                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />
-                      <ShoppingCart className="w-4 h-4 text-[#C9A227]" />
-                      <span>Proceed to Checkout</span>
-                      <span className="ml-auto bg-[#C9A227]/20 text-[#C9A227] px-2 py-0.5 rounded-full text-[10px]">
-                        ₹{grandTotal}
+                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-xl bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227]">
+                          <ShoppingCart className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-semibold tracking-wide text-white">Proceed to Checkout</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-[#C9A227] text-[#2A0E0A] px-3 py-1 rounded-xl text-xs font-extrabold shadow-sm">
+                          ₹{totalAmount.toLocaleString('en-IN')}
+                        </span>
+                        <ArrowRight className="w-4 h-4 text-[#C9A227] group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </button>
+
+                    <div className="flex items-center justify-between px-1 pt-1">
+                      <button
+                        onClick={clearCart}
+                        className="text-[10px] font-bold uppercase tracking-wider text-[#2C1A17]/40 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        <span>Clear Bag</span>
+                      </button>
+                      <span className="text-[10px] text-[#2C1A17]/50 font-medium flex items-center gap-1">
+                        <span>✨ Direct WhatsApp Ordering</span>
                       </span>
-                    </button>
-                    <button
-                      onClick={clearCart}
-                      className="w-full text-center text-[9px] font-bold uppercase tracking-wider text-brand-brown-850/35 hover:text-brand-orange-500 py-1 transition-colors cursor-pointer"
-                    >
-                      <RotateCcw className="w-2.5 h-2.5 inline mr-1" />
-                      Clear Cart
-                    </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -60,13 +60,16 @@ export const MyOrders: React.FC = () => {
       if (p) return matchPhone;
       if (o) return matchOrder;
 
-      // Default: match logged in user phone if any
+      // Default: match logged in user id or user phone if any
+      if (user?.id && ((ord as any).userId === user.id || (ord as any).user_id === user.id)) {
+        return true;
+      }
       if (profile?.phone) {
         return ord.phone?.includes(profile.phone.replace(/\D/g, ''));
       }
       return false;
     }).sort((a, b) => new Date(b.createdDate || '').getTime() - new Date(a.createdDate || '').getTime());
-  }, [orders, searchPhone, searchOrderNum, profile]);
+  }, [orders, searchPhone, searchOrderNum, profile, user]);
 
   // Set default selected order on load
   useEffect(() => {

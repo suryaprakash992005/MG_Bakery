@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2,
@@ -10,29 +10,38 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  Printer
+  MessageCircle
 } from 'lucide-react';
 import { useBakeryDatabase, UnifiedOrder } from '../context/DatabaseContext';
 
 export const OrderConfirmation: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { orders, settings } = useBakeryDatabase();
   const [currentOrder, setCurrentOrder] = useState<UnifiedOrder | null>(null);
+
+  // WhatsApp URL passed from Checkout
+  const whatsappUrl = searchParams.get('whatsapp') || '';
+  const orderNumber = searchParams.get('orderNumber') || '';
 
   useEffect(() => {
     if (orderId) {
       const match = orders.find(
-        o => o.orderNumber === orderId || o.id === orderId || o.orderNumber === `#${orderId}`
+        o => o.orderNumber === orderId || o.id === orderId || o.orderNumber === `#${orderId}` || o.orderNumber === orderNumber
       );
       if (match) {
         setCurrentOrder(match);
+      } else if (orders.length > 0 && orderNumber) {
+        // Try by orderNumber param
+        const byNum = orders.find(o => o.orderNumber === orderNumber);
+        if (byNum) setCurrentOrder(byNum);
+        else setCurrentOrder(orders[0]);
       } else if (orders.length > 0) {
-        // Fallback to most recent order if matching by id string
         setCurrentOrder(orders[0]);
       }
     }
-  }, [orderId, orders]);
+  }, [orderId, orders, orderNumber]);
 
   if (!currentOrder) {
     return (
@@ -82,14 +91,14 @@ export const OrderConfirmation: React.FC = () => {
           {/* Main Title & Order Number */}
           <div className="space-y-1">
             <h1 className="font-playfair text-3xl font-extrabold text-[#2C1A17]">
-              🎉 Order Confirmed!
+              🎉 Order Placed!
             </h1>
             <p className="text-xs text-[#2C1A17]/60 font-light">
-              Thank you, <strong className="text-[#2C1A17] font-semibold">{currentOrder.customerName}</strong>! Your bakery order has been received and confirmed.
+              Thank you, <strong className="text-[#2C1A17] font-semibold">{currentOrder.customerName}</strong>! Your order is saved. Please send the WhatsApp message to confirm with the bakery.
             </p>
             <div className="pt-2">
               <span className="inline-block font-mono text-sm font-bold bg-[#2A0E0A] text-[#C9A227] px-4 py-1.5 rounded-xl shadow-sm">
-                Order Number: {currentOrder.orderNumber}
+                Order: {currentOrder.orderNumber || orderNumber}
               </span>
             </div>
           </div>
@@ -172,20 +181,25 @@ export const OrderConfirmation: React.FC = () => {
 
         {/* ACTIONS */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          {/* WhatsApp button — primary CTA */}
+          {whatsappUrl && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-green-600/30 active:scale-95"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Send WhatsApp Order</span>
+            </a>
+          )}
+
           <button
-            onClick={() => navigate(`/my-orders?order=${encodeURIComponent(currentOrder.orderNumber)}`)}
+            onClick={() => navigate(`/my-orders`)}
             className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#C9A227] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-[#2A0E0A]/20 active:scale-95"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Track Live Order Status</span>
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white border border-[#2C1A17]/15 hover:bg-[#FAF6F0] text-[#2C1A17] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Receipt</span>
+            <span>View My Orders</span>
           </button>
 
           <button

@@ -56,6 +56,8 @@ export type PaymentMethod = 'razorpay' | 'cod' | 'whatsapp';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED';
 
 export type OrderStatus =
+  | 'ORDER PLACED'
+  | 'ORDER_PLACED'
   | 'PENDING PAYMENT'
   | 'PAID'
   | 'CONFIRMED'
@@ -71,16 +73,20 @@ export interface OrderItem {
   id?: string;
   productId: string;
   productName: string;
+  name?: string;
   selectedWeight: string; // '½ Kg', '1 Kg', 'Slice', 'Standard'
   quantity: number;
   unitPrice: number;
   totalPrice: number;
   image?: string;
+  customizations?: Record<string, string | undefined>;
 }
 
 export interface Order {
   id: string;
   orderNumber: string; // e.g. '#MG-100123'
+  userId?: string;
+  user_id?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -95,10 +101,13 @@ export interface Order {
   deliveryArea: string; // 'Mohanur'
   deliveryFee: number;
   subtotal: number;
+  discountAmount?: number;
+  couponCode?: string;
   totalAmount: number;
-  paymentMethod: PaymentMethod; // 'razorpay'
+  paymentMethod: PaymentMethod; // 'whatsapp' | 'cod' | 'razorpay'
   paymentStatus: PaymentStatus; // 'PENDING' | 'PAID' | 'FAILED'
   orderStatus: OrderStatus;
+  customerNotes?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   items: OrderItem[];

@@ -12,6 +12,7 @@ import { DatabaseProvider } from '../context/DatabaseContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { Orders } from './pages/Orders';
+import { Customers } from './pages/Customers';
 
 const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
@@ -50,6 +51,8 @@ const AdminRouteSwitcher: React.FC = () => {
         case '/admin/settings':
         case '/admin-settings':
           return <Settings />;
+        case '/admin/customers':
+          return <Customers />;
         default:
           return <Orders />;
       }

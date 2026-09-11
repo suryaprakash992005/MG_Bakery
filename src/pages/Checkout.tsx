@@ -9,17 +9,16 @@ import {
   Compass,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   ChevronLeft,
-  Lock,
+  MessageCircle,
   Landmark,
   Phone,
   User,
   Mail,
-  ShieldCheck,
   ArrowRight,
   Clock,
-  Building
+  Building,
+  Lock
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useBakeryDatabase } from '../context/DatabaseContext';
@@ -29,19 +28,17 @@ import {
   validateMohanurDeliveryArea,
   DeliveryAreaValidation
 } from '../utils/locationService';
-import {
-  loadRazorpayScript,
-  RAZORPAY_KEY_ID,
-  generateClientRazorpayOrderId,
-  verifyRazorpayPaymentSignature
-} from '../utils/razorpayService';
+import { generateOrderWhatsAppUrl, WhatsAppOrderItem } from '../utils/whatsappHelper';
 import { OrderType } from '../types';
 
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { cartItems, totalAmount, appliedCoupon, couponDiscount, clearCart } = useCart();
+  const { cartItems, totalAmount, couponDiscount, clearCart } = useCart();
   const { settings, addOrder } = useBakeryDatabase();
-  const { profile, savedAddresses, saveAddress } = useAuth();
+  const {
+    profile, user, savedAddresses, saveAddress,
+    setIsAuthModalOpen, setAuthModalTab, setAuthModalMessage
+  } = useAuth();
 
   // Customer Details Form State (autofilled from profile if exists)
   const [customerName, setCustomerName] = useState(profile?.name || '');
@@ -53,6 +50,8 @@ export const Checkout: React.FC = () => {
 
   // Delivery Address Form State
   const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+  const [selectedSavedAddr, setSelectedSavedAddr] = useState<CustomerAddress | null>(defaultAddr || null);
+  const [useManualAddress, setUseManualAddress] = useState(!defaultAddr);
   const [addressLine, setAddressLine] = useState(defaultAddr?.landmark || '');
   const [doorNo, setDoorNo] = useState(defaultAddr?.doorNo || '');
   const [streetArea, setStreetArea] = useState(defaultAddr?.streetArea || '');
@@ -70,7 +69,23 @@ export const Checkout: React.FC = () => {
     }
   }, [profile]);
 
+  // Sync saved addresses
+  useEffect(() => {
+    const def = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+    if (def && !selectedSavedAddr) {
+      setSelectedSavedAddr(def);
+      setUseManualAddress(false);
+      setStreetArea(def.streetArea);
+      setDoorNo(def.doorNo || '');
+      setLandmark(def.landmark || '');
+      setCity(def.city || 'Mohanur');
+      setPincode(def.pincode || '637015');
+    }
+  }, [savedAddresses]);
+
   const selectSavedAddress = (addr: CustomerAddress) => {
+    setSelectedSavedAddr(addr);
+    setUseManualAddress(false);
     setStreetArea(addr.streetArea);
     setDoorNo(addr.doorNo || '');
     setLandmark(addr.landmark || '');
@@ -94,13 +109,14 @@ export const Checkout: React.FC = () => {
     message: 'Delivery available in Mohanur'
   });
 
-  // Payment State
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  // Order Processing State
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [orderSuccess, setOrderSuccess] = useState<{ orderNumber: string; orderId: string } | null>(null);
 
   // Delivery Fee calculation
-  const deliveryFee = orderType === 'pickup' ? 0 : settings.deliveryCharge || 40;
-  const grandTotal = totalAmount + deliveryFee;
+  const deliveryFee = orderType === 'pickup' ? 0 : (settings.deliveryCharge || 40);
+  const grandTotal = totalAmount - (couponDiscount || 0) + deliveryFee;
 
   // Validate Mohanur Delivery boundary on address changes
   useEffect(() => {
@@ -133,6 +149,8 @@ export const Checkout: React.FC = () => {
 
     setLatitude(geoResult.latitude);
     setLongitude(geoResult.longitude);
+    setUseManualAddress(true);
+    setSelectedSavedAddr(null);
 
     if (geoResult.streetArea) setStreetArea(geoResult.streetArea);
     if (geoResult.city) setCity(geoResult.city);
@@ -141,701 +159,716 @@ export const Checkout: React.FC = () => {
     if (geoResult.addressLine) setAddressLine(geoResult.addressLine);
   };
 
-  // Handle Form Submission & Razorpay Online Payment Flow
-  const handlePayAndPlaceOrder = async (e: React.FormEvent) => {
+  // Handle Place Order → Supabase → WhatsApp
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPaymentError(null);
+    setOrderError(null);
 
-    // Validation
+    // 1. Require login
+    if (!user) {
+      setAuthModalMessage('Please sign in or create an account to place your order. Your cart will be preserved.');
+      setAuthModalTab('login');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    // 2. Validate customer details
     if (!customerName.trim()) {
-      setPaymentError('Please enter your full name.');
+      setOrderError('Please enter your full name.');
       return;
     }
-    if (!customerPhone.trim() || customerPhone.trim().length < 10) {
-      setPaymentError('Please enter a valid 10-digit mobile number.');
+    if (!customerPhone.trim() || customerPhone.replace(/\D/g, '').length < 10) {
+      setOrderError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
+    // 3. Validate address for delivery
     if (orderType === 'delivery') {
       if (!streetArea.trim() && !addressLine.trim()) {
-        setPaymentError('Please enter your delivery street / area address.');
+        setOrderError('Please enter your delivery street / area address.');
         return;
       }
       if (!deliveryValidation.isValid) {
-        setPaymentError('Home delivery is currently available only within Mohanur. Please switch to Pickup from Shop.');
+        setOrderError('Home delivery is currently available only within Mohanur. Please switch to Pickup from Shop or enter a Mohanur address.');
         return;
       }
     }
 
+    // 4. Validate cart
     if (cartItems.length === 0) {
-      setPaymentError('Your cart is empty.');
+      setOrderError('Your cart is empty. Please add some items first.');
       return;
     }
 
-    setIsProcessingPayment(true);
+    setIsPlacingOrder(true);
 
-    // 1. Load Razorpay SDK
-    const sdkLoaded = await loadRazorpayScript();
-    if (!sdkLoaded) {
-      setIsProcessingPayment(false);
-      setPaymentError('Failed to load Razorpay payment gateway. Please check your internet connection.');
-      return;
-    }
+    try {
+      // 5. Build address string
+      const fullFormattedAddress = orderType === 'delivery'
+        ? [doorNo, streetArea, addressLine && `Near ${addressLine}`, landmark && `Landmark: ${landmark}`, city, pincode ? `Pincode: ${pincode}` : '']
+            .filter(Boolean).join(', ')
+        : settings.storeAddress || 'M.G. Iyengar Bakery & Chats, Mohanur';
 
-    // 2. Generate Razorpay Order ID (Mock/Server)
-    const rzpOrderId = generateClientRazorpayOrderId();
-    const orderNumber = `#MG-${Math.floor(100000 + Math.random() * 900000)}`;
+      // 6. Build order number (will use Supabase sequence via DB or fallback)
+      const orderNumber = `MG-${Date.now().toString().slice(-6)}`;
 
-    const fullFormattedAddress = orderType === 'delivery'
-      ? `${doorNo ? doorNo + ', ' : ''}${streetArea}, ${addressLine ? addressLine + ', ' : ''}${landmark ? 'Near ' + landmark + ', ' : ''}${city} - ${pincode}`
-      : settings.storeAddress;
-
-    // Prepare Order Object
-    const pendingOrderData = {
-      orderNumber,
-      customerName: customerName.trim(),
-      phone: customerPhone.trim(),
-      customerEmail: customerEmail.trim(),
-      orderType,
-      deliveryAddress: fullFormattedAddress,
-      streetArea: streetArea.trim(),
-      landmark: landmark.trim(),
-      city: city.trim(),
-      pincode: pincode.trim(),
-      latitude,
-      longitude,
-      deliveryArea: 'Mohanur',
-      deliveryFee,
-      subtotal: totalAmount,
-      amount: grandTotal,
-      paymentMethod: 'razorpay' as const,
-      paymentStatus: 'PENDING' as const,
-      orderStatus: 'PENDING PAYMENT' as const,
-      razorpayOrderId: rzpOrderId,
-      items: cartItems.map(item => ({
+      // 7. Build order items with customizations snapshot
+      const orderItems = cartItems.map(item => ({
         productId: item.id,
         productName: item.name,
         name: item.name,
         selectedWeight: item.selectedWeight,
         price: item.price,
         quantity: item.quantity,
-        image: item.image
-      }))
-    };
+        image: item.image,
+        customizations: item.customizations || {},
+      }));
 
-    // 3. Configure Razorpay Standard Checkout Popup
-    const options = {
-      key: RAZORPAY_KEY_ID,
-      amount: Math.round(grandTotal * 100), // in paise
-      currency: 'INR',
-      name: settings.bakeryName || 'M.G. Iyengar Bakery & Chats',
-      description: `Order ${orderNumber} - Fresh Bakery Items`,
-      image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=200&q=80',
-      order_id: rzpOrderId,
-      prefill: {
-        name: customerName,
-        email: customerEmail || 'customer@mgiyengar.com',
-        contact: customerPhone
-      },
-      theme: {
-        color: '#2A0E0A'
-      },
-      handler: async (response: any) => {
-        setIsProcessingPayment(true);
-        const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
+      // 8. Save order to Supabase (this is the source of truth)
+      const savedOrder = await addOrder({
+        orderNumber,
+        userId: user.id,
+        customerName: customerName.trim(),
+        phone: customerPhone.trim(),
+        customerEmail: customerEmail.trim() || undefined,
+        orderType,
+        deliveryAddress: fullFormattedAddress,
+        streetArea: streetArea.trim(),
+        landmark: landmark.trim(),
+        city: city.trim(),
+        pincode: pincode.trim(),
+        latitude,
+        longitude,
+        deliveryArea: 'Mohanur',
+        deliveryFee,
+        subtotal: totalAmount,
+        amount: grandTotal,
+        paymentMethod: 'whatsapp' as any,
+        paymentStatus: 'PENDING' as any,
+        orderStatus: 'ORDER_PLACED' as any,
+        items: orderItems,
+      });
 
-        // Signature verification check
-        const isValidSignature = verifyRazorpayPaymentSignature(
-          razorpay_order_id || rzpOrderId,
-          razorpay_payment_id || `pay_${Date.now()}`,
-          razorpay_signature || 'test_sig'
-        );
-
-        if (!isValidSignature) {
-          setIsProcessingPayment(false);
-          setPaymentError('Payment verification failed. Your order has not been confirmed.');
-          return;
-        }
-
-        // Complete Order in Database
-        const confirmedOrder = await addOrder({
-          ...pendingOrderData,
-          paymentStatus: 'PAID',
-          orderStatus: orderType === 'delivery' ? 'CONFIRMED' : 'READY FOR PICKUP',
-          razorpayOrderId: razorpay_order_id || rzpOrderId,
-          razorpayPaymentId: razorpay_payment_id || `pay_${Date.now()}`
+      // 9. Save address if requested
+      if (saveThisAddress && orderType === 'delivery' && streetArea.trim()) {
+        await saveAddress({
+          label: 'Home',
+          name: customerName.trim(),
+          phone: customerPhone.trim(),
+          doorNo: doorNo.trim(),
+          streetArea: streetArea.trim(),
+          landmark: landmark.trim(),
+          city: city.trim(),
+          pincode: pincode.trim(),
+          isDefault: savedAddresses.length === 0,
         });
-
-        // Save address to address book if requested
-        if (saveThisAddress && orderType === 'delivery' && streetArea.trim()) {
-          saveAddress({
-            label: 'Home',
-            name: customerName,
-            phone: customerPhone,
-            doorNo,
-            streetArea,
-            landmark,
-            city,
-            pincode,
-          });
-        }
-
-        clearCart();
-        setIsProcessingPayment(false);
-        navigate(`/order-confirmation/${confirmedOrder.orderNumber}`);
-      },
-      modal: {
-        ondismiss: () => {
-          setIsProcessingPayment(false);
-          setPaymentError('Payment window was closed. Your cart items are preserved so you can retry payment anytime.');
-        }
       }
-    };
 
-    try {
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      console.warn('Fallback local Razorpay execution:', err);
-      // In local dev without live Razorpay SDK key: simulate successful payment verification
-      setTimeout(async () => {
-        const confirmedOrder = await addOrder({
-          ...pendingOrderData,
-          paymentStatus: 'PAID',
-          orderStatus: orderType === 'delivery' ? 'CONFIRMED' : 'READY FOR PICKUP',
-          razorpayPaymentId: `pay_test_${Date.now().toString().slice(-6)}`
-        });
-        clearCart();
-        setIsProcessingPayment(false);
-        navigate(`/order-confirmation/${confirmedOrder.orderNumber}`);
-      }, 1000);
+      // 10. Build WhatsApp message items
+      const whatsappItems: WhatsAppOrderItem[] = cartItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        selectedWeight: item.selectedWeight,
+        customizations: item.customizations,
+      }));
+
+      // 11. Generate WhatsApp URL
+      const whatsappPhone = (settings.whatsappNumber || '919345586112').replace(/[^0-9]/g, '');
+      const whatsappUrl = generateOrderWhatsAppUrl(
+        orderNumber,
+        customerName.trim(),
+        customerPhone.trim(),
+        orderType,
+        orderType === 'delivery' ? fullFormattedAddress : undefined,
+        whatsappItems,
+        totalAmount,
+        deliveryFee,
+        grandTotal,
+        whatsappPhone
+      );
+
+      // 12. Clear cart AFTER successful order save
+      clearCart();
+
+      // 13. Store success state
+      setOrderSuccess({ orderNumber, orderId: savedOrder.id });
+
+      // 14. Open WhatsApp
+      try {
+        window.open(whatsappUrl, '_blank');
+      } catch {
+        // WhatsApp couldn't be opened — order is already saved
+        console.warn('Could not open WhatsApp');
+      }
+
+      // 15. Navigate to order confirmation
+      navigate(`/order-confirmation/${savedOrder.id}?orderNumber=${encodeURIComponent(orderNumber)}&whatsapp=${encodeURIComponent(whatsappUrl)}`);
+
+    } catch (err: any) {
+      console.error('Order placement error:', err);
+      setOrderError('Failed to place your order. Please try again. If the problem persists, contact us on WhatsApp.');
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
-  if (cartItems.length === 0) {
+  // Redirect to home if cart is empty (and no success)
+  if (cartItems.length === 0 && !orderSuccess && !isPlacingOrder) {
     return (
-      <div className="min-h-screen bg-[#FAF6F0] py-20 px-4 flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 rounded-full bg-[#2A0E0A]/5 flex items-center justify-center text-[#2A0E0A] mb-4">
-          <ShoppingBag className="w-10 h-10 text-[#C9A227]" />
-        </div>
-        <h2 className="font-playfair text-2xl font-bold text-[#2A0E0A] mb-2">Your Bag is Empty</h2>
-        <p className="text-sm text-[#2A0E0A]/60 max-w-sm mb-6">
-          Add delicious cakes, puffs, cookies, and fresh bakery items to your cart before proceeding to checkout.
-        </p>
-        <button
-          onClick={() => navigate('/menu')}
-          className="px-8 py-3.5 rounded-full bg-[#2A0E0A] text-[#C9A227] font-bold text-xs hover:bg-[#401C16] transition-all cursor-pointer shadow-lg"
+      <div className="min-h-screen bg-[#FAF7F2] pt-[92px] lg:pt-[96px] pb-24 px-4 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-sm"
         >
-          Browse Our Menu
-        </button>
+          <div className="w-20 h-20 rounded-full bg-[#2A0E0A]/8 flex items-center justify-center mx-auto mb-5">
+            <ShoppingBag className="w-10 h-10 text-[#2A0E0A]/30" />
+          </div>
+          <h2 className="font-playfair text-2xl font-bold text-[#2A0E0A] mb-2">Your Cart is Empty</h2>
+          <p className="text-sm text-[#2C1A17]/60 mb-6">Add some delicious bakery items to place an order.</p>
+          <button
+            onClick={() => navigate('/menu')}
+            className="bg-[#2A0E0A] text-[#C9A227] font-bold py-3 px-8 rounded-full text-sm hover:bg-[#401C16] transition-all cursor-pointer"
+          >
+            Browse Menu
+          </button>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Header Breadcrumb */}
-        <div className="flex items-center gap-3 mb-8">
+    <div className="min-h-screen bg-[#FAF7F2] pt-[92px] lg:pt-[96px] pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* ── Page Header ──────────────────────────────────────────────────────── */}
+        <div className="py-6 flex items-center gap-4">
           <button
-            onClick={() => navigate('/menu')}
-            className="p-2 rounded-full bg-white border border-[#2C1A17]/10 hover:bg-[#FAF6F0] text-[#2C1A17] cursor-pointer transition-all"
-            aria-label="Back to menu"
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 rounded-full bg-[#2A0E0A]/8 flex items-center justify-center hover:bg-[#2A0E0A]/15 transition-all cursor-pointer"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 text-[#2A0E0A]" />
           </button>
           <div>
-            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#C9A227] uppercase tracking-widest">
-              <Sparkles className="w-3 h-3" />
-              <span>M.G. Iyengar Bakery & Chats</span>
-            </div>
-            <h1 className="font-playfair text-2xl sm:text-3xl font-extrabold text-[#2C1A17]">
-              Secure Checkout
-            </h1>
+            <h1 className="font-playfair text-2xl sm:text-3xl font-bold text-[#2A0E0A]">Checkout</h1>
+            <p className="text-xs text-[#2C1A17]/50 mt-0.5">{cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your order</p>
           </div>
         </div>
 
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Column: Details & Delivery Form */}
-          <div className="lg:col-span-7 space-y-6">
-
-            {/* 1. CUSTOMER DETAILS CARD */}
-            <div className="bg-white rounded-3xl p-6 border border-[#2C1A17]/10 shadow-sm relative overflow-hidden">
-              <div className="flex items-center gap-3 mb-5 border-b border-[#2C1A17]/5 pb-4">
-                <div className="w-9 h-9 rounded-2xl bg-[#2A0E0A] flex items-center justify-center text-[#C9A227] shadow-sm shrink-0">
-                  <User className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Customer Details</h3>
-                  <p className="text-[11px] text-[#2C1A17]/50">Enter your contact details for order notifications</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Full Name *</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Ramesh Kumar"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none transition-all"
-                    />
-                    <User className="w-4 h-4 text-[#2C1A17]/40 absolute left-3.5 top-3.5" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Mobile Number *</label>
-                  <div className="relative">
-                    <input
-                      type="tel"
-                      required
-                      placeholder="e.g. 9876543210"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none transition-all"
-                    />
-                    <Phone className="w-4 h-4 text-[#2C1A17]/40 absolute left-3.5 top-3.5" />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Email Address (Optional)</label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      placeholder="e.g. ramesh@gmail.com"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-3 pl-10 pr-4 text-xs font-semibold focus:outline-none transition-all"
-                    />
-                    <Mail className="w-4 h-4 text-[#2C1A17]/40 absolute left-3.5 top-3.5" />
-                  </div>
-                </div>
-              </div>
+        {/* ── Auth Banner (if not logged in) ───────────────────────────────────── */}
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3"
+          >
+            <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">Login required to place order</p>
+              <p className="text-xs text-amber-700/80 mt-0.5">Your cart items are saved. Sign in to continue.</p>
             </div>
-
-            {/* 2. ORDER TYPE SELECTION (Delivery vs Pickup) */}
-            <div className="bg-white rounded-3xl p-6 border border-[#2C1A17]/10 shadow-sm space-y-4">
-              <div className="flex items-center gap-3 border-b border-[#2C1A17]/5 pb-4">
-                <div className="w-9 h-9 rounded-2xl bg-[#2A0E0A] flex items-center justify-center text-[#C9A227] shadow-sm shrink-0">
-                  <Landmark className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">How would you like to receive your order?</h3>
-                  <p className="text-[11px] text-[#2C1A17]/50">Choose Home Delivery or Shop Pickup</p>
-                </div>
-              </div>
-
-              {/* Two Large Selectable Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* Option 1: Home Delivery */}
-                <button
-                  type="button"
-                  onClick={() => setOrderType('delivery')}
-                  className={`p-5 rounded-2xl border-2 text-left transition-all duration-300 cursor-pointer relative flex flex-col justify-between ${
-                    orderType === 'delivery'
-                      ? 'border-[#2A0E0A] bg-[#2A0E0A]/5 shadow-md'
-                      : 'border-[#2C1A17]/10 bg-[#FAF6F0]/40 hover:border-[#2C1A17]/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      orderType === 'delivery' ? 'bg-[#2A0E0A] text-[#C9A227]' : 'bg-[#2C1A17]/10 text-[#2C1A17]'
-                    }`}>
-                      <HomeIcon className="w-5 h-5" />
-                    </div>
-                    {orderType === 'delivery' && (
-                      <CheckCircle2 className="w-5 h-5 text-[#2A0E0A]" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-[#2C1A17]">🏠 Home Delivery</h4>
-                    <p className="text-[11px] text-[#2C1A17]/60 mt-1 font-light">
-                      Delivered straight to your doorstep (Mohanur region)
-                    </p>
-                  </div>
-                </button>
-
-                {/* Option 2: Pickup from Shop */}
-                <button
-                  type="button"
-                  onClick={() => setOrderType('pickup')}
-                  className={`p-5 rounded-2xl border-2 text-left transition-all duration-300 cursor-pointer relative flex flex-col justify-between ${
-                    orderType === 'pickup'
-                      ? 'border-[#2A0E0A] bg-[#2A0E0A]/5 shadow-md'
-                      : 'border-[#2C1A17]/10 bg-[#FAF6F0]/40 hover:border-[#2C1A17]/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      orderType === 'pickup' ? 'bg-[#2A0E0A] text-[#C9A227]' : 'bg-[#2C1A17]/10 text-[#2C1A17]'
-                    }`}>
-                      <Store className="w-5 h-5" />
-                    </div>
-                    {orderType === 'pickup' && (
-                      <CheckCircle2 className="w-5 h-5 text-[#2A0E0A]" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-[#2C1A17]">🏪 Pickup from Shop</h4>
-                    <p className="text-[11px] text-[#2C1A17]/60 mt-1 font-light">
-                      Collect directly from our Mohanur Bakery (Free Delivery)
-                    </p>
-                  </div>
-                </button>
-              </div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  setAuthModalMessage('Sign in to place your order. Your cart is safe!');
+                  setAuthModalTab('login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="text-xs font-bold text-amber-800 border border-amber-400 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all cursor-pointer"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => {
+                  setAuthModalMessage('Create an account to place your order. It only takes a minute!');
+                  setAuthModalTab('signup');
+                  setIsAuthModalOpen(true);
+                }}
+                className="text-xs font-bold text-white bg-amber-600 px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-all cursor-pointer"
+              >
+                Sign Up
+              </button>
             </div>
+          </motion.div>
+        )}
 
-            {/* 3. DYNAMIC CONTENT: DELIVERY ADDRESS vs SHOP PICKUP INFO */}
-            <AnimatePresence mode="wait">
-              {orderType === 'delivery' ? (
-                // --- HOME DELIVERY ADDRESS FORM ---
-                <motion.div
-                  key="delivery-form"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-white rounded-3xl p-6 border border-[#2C1A17]/10 shadow-sm space-y-5"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2C1A17]/5 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-2xl bg-[#2A0E0A] flex items-center justify-center text-[#C9A227] shrink-0">
-                        <MapPin className="w-4.5 h-4.5" />
-                      </div>
-                      <div>
-                        <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Delivery Address</h3>
-                        <p className="text-[11px] text-[#2C1A17]/50">Mohanur Delivery Area</p>
-                      </div>
-                    </div>
+        <form onSubmit={handlePlaceOrder}>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
 
-                    {/* Use Current Location Button */}
-                    <button
-                      type="button"
-                      onClick={handleUseCurrentLocation}
-                      disabled={isDetectingLocation}
-                      className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#2A0E0A] font-bold text-xs cursor-pointer transition-all active:scale-95 disabled:opacity-60"
-                    >
-                      <Compass className={`w-3.5 h-3.5 text-[#C9A227] ${isDetectingLocation ? 'animate-spin' : ''}`} />
-                      <span>{isDetectingLocation ? 'Detecting...' : '📍 Use Current Location'}</span>
-                    </button>
+            {/* ── LEFT COLUMN ─────────────────────────────────────────────────────── */}
+            <div className="space-y-5">
+
+              {/* ─── CUSTOMER DETAILS ──────────────────────────────────────────────── */}
+              <div className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#C9A227]" />
                   </div>
-
-                  {/* Saved Addresses Picker (if user has saved addresses) */}
-                  {savedAddresses.length > 0 && (
-                    <div className="space-y-2 pb-2">
-                      <label className="text-[10px] font-black text-[#2C1A17]/60 uppercase tracking-widest block">
-                        Saved Addresses (Click to Select)
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {savedAddresses.map(addr => {
-                          const isSelected = streetArea === addr.streetArea && doorNo === (addr.doorNo || '');
-                          return (
-                            <button
-                              key={addr.id}
-                              type="button"
-                              onClick={() => selectSavedAddress(addr)}
-                              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 max-w-full ${
-                                isSelected
-                                  ? 'bg-[#2A0E0A] text-[#C9A227] border-[#2A0E0A] shadow-sm'
-                                  : 'bg-[#FAF6F0] text-[#2C1A17]/80 border-[#2C1A17]/15 hover:border-[#C9A227]'
-                              }`}
-                            >
-                              <MapPin className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate max-w-[200px] sm:max-w-xs">{addr.label}: {addr.streetArea}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  <h2 className="font-semibold text-[#2A0E0A] text-sm">Customer Details</h2>
+                  {user && profile && (
+                    <span className="ml-auto text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full">
+                      ✓ Account synced
+                    </span>
                   )}
-
-                  {/* Location Detection Error Banner */}
-                  {locationError && (
-                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="font-medium">{locationError}</p>
-                    </div>
-                  )}
-
-                  {/* Mohanur Delivery Area Validation Status Badge */}
-                  <div className={`p-4 rounded-2xl border text-xs flex items-center justify-between ${
-                    deliveryValidation.isValid
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : 'bg-rose-50 border-rose-200 text-rose-900'
-                  }`}>
-                    <div className="flex items-center gap-2.5">
-                      {deliveryValidation.isValid ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                      )}
-                      <div>
-                        <p className="font-bold">{deliveryValidation.message}</p>
-                        {!deliveryValidation.isValid && (
-                          <p className="text-[10px] text-rose-700 mt-0.5">
-                            Home delivery is restricted to Mohanur area only.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {!deliveryValidation.isValid && (
-                      <button
-                        type="button"
-                        onClick={() => setOrderType('pickup')}
-                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-xl shrink-0 cursor-pointer shadow-sm"
-                      >
-                        Switch to Pickup
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Address Fields */}
+                </div>
+                <div className="p-5 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">House / Door Number</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Door No. 12/4B"
-                        value={doorNo}
-                        onChange={(e) => setDoorNo(e.target.value)}
-                        className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Street / Area *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Main Road, Near Bus Stand"
-                        value={streetArea}
-                        onChange={(e) => setStreetArea(e.target.value)}
-                        className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Landmark (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Opposite State Bank"
-                        value={landmark}
-                        onChange={(e) => setLandmark(e.target.value)}
-                        className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Address Line</label>
-                      <input
-                        type="text"
-                        placeholder="Full delivery location details"
-                        value={addressLine}
-                        onChange={(e) => setAddressLine(e.target.value)}
-                        className="w-full bg-[#FAF6F0]/60 border border-[#2C1A17]/15 focus:border-[#C9A227] rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">City</label>
-                      <input
-                        type="text"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full bg-[#FAF6F0] border border-[#2C1A17]/15 rounded-xl py-2.5 px-3.5 text-xs font-bold text-[#2C1A17]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-[#2C1A17]/70 uppercase tracking-wider block">Pincode</label>
-                      <input
-                        type="text"
-                        value={pincode}
-                        onChange={(e) => setPincode(e.target.value)}
-                        className="w-full bg-[#FAF6F0] border border-[#2C1A17]/15 rounded-xl py-2.5 px-3.5 text-xs font-bold text-[#2C1A17]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Save address checkbox */}
-                  <label className="flex items-center gap-2 text-xs text-[#2C1A17]/80 cursor-pointer pt-2">
-                    <input
-                      type="checkbox"
-                      checked={saveThisAddress}
-                      onChange={e => setSaveThisAddress(e.target.checked)}
-                      className="rounded border-[#2C1A17]/20 text-[#C9A227] focus:ring-[#C9A227]"
-                    />
-                    <span>Save this address to my account for faster future checkouts</span>
-                  </label>
-                </motion.div>
-              ) : (
-                // --- PICKUP FROM SHOP DISPLAY CARD ---
-                <motion.div
-                  key="pickup-card"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-white rounded-3xl p-6 border border-[#2C1A17]/10 shadow-sm space-y-4"
-                >
-                  <div className="flex items-center gap-3 border-b border-[#2C1A17]/5 pb-4">
-                    <div className="w-9 h-9 rounded-2xl bg-[#2A0E0A] flex items-center justify-center text-[#C9A227] shrink-0">
-                      <Store className="w-4.5 h-4.5" />
-                    </div>
-                    <div>
-                      <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Shop Pickup Address</h3>
-                      <p className="text-[11px] text-[#2C1A17]/50">No delivery address required for shop pickup</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#2C1A17]/10 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Building className="w-4 h-4 text-[#C9A227] shrink-0 mt-1" />
-                      <div>
-                        <h5 className="font-bold text-xs text-[#2C1A17]">{settings.bakeryName || 'M.G. Iyengar Bakery & Chats'}</h5>
-                        <p className="text-xs text-[#2C1A17]/70 mt-0.5 leading-relaxed font-light">{settings.storeAddress}</p>
+                      <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Full Name *</label>
+                      <div className="relative">
+                        <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
+                        <input
+                          type="text"
+                          required
+                          value={customerName}
+                          onChange={e => setCustomerName(e.target.value)}
+                          placeholder="Your full name"
+                          className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                        />
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-6 pt-2 border-t border-[#2C1A17]/10 text-xs text-[#2C1A17]">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-[#C9A227]" />
-                        <span>Hours: <strong>{settings.openingTime || '9:00 AM'} - {settings.closingTime || '10:00 PM'}</strong></span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-[#C9A227]" />
-                        <span>Contact: <strong>{settings.whatsappNumber}</strong></span>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Mobile Number *</label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
+                        <input
+                          type="tel"
+                          required
+                          value={customerPhone}
+                          onChange={e => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          placeholder="10-digit mobile number"
+                          className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                        />
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-          </div>
-
-          {/* Right Column: Order Summary & Online Payment */}
-          <div className="lg:col-span-5 space-y-6">
-
-            {/* ORDER SUMMARY CARD */}
-            <div className="bg-white rounded-3xl p-6 border border-[#2C1A17]/10 shadow-lg space-y-5 sticky top-24">
-              <div className="flex items-center justify-between border-b border-[#2C1A17]/5 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <ShoppingBag className="w-5 h-5 text-[#C9A227]" />
-                  <h3 className="font-playfair text-lg font-bold text-[#2C1A17]">Order Summary</h3>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Email (Optional)</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={e => setCustomerEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-[#C9A227] bg-[#2A0E0A] px-2.5 py-1 rounded-full">
-                  {cartItems.reduce((sum, item) => sum + item.quantity, 0)} Items
-                </span>
               </div>
 
-              {/* Items List */}
-              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                {cartItems.map((item) => (
-                  <div
-                    key={`${item.id}-${item.selectedWeight}`}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF6F0]/60 border border-[#2C1A17]/5"
+              {/* ─── DELIVERY METHOD ───────────────────────────────────────────────── */}
+              <div className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-[#C9A227]" />
+                  </div>
+                  <h2 className="font-semibold text-[#2A0E0A] text-sm">Delivery Method</h2>
+                </div>
+                <div className="p-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Home Delivery */}
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('delivery')}
+                      className={`relative p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        orderType === 'delivery'
+                          ? 'border-[#C9A227] bg-[#C9A227]/8'
+                          : 'border-[#2C1A17]/15 hover:border-[#C9A227]/40'
+                      }`}
+                    >
+                      {orderType === 'delivery' && (
+                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#C9A227] flex items-center justify-center">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                      <HomeIcon className={`w-7 h-7 mb-2 ${orderType === 'delivery' ? 'text-[#C9A227]' : 'text-[#2C1A17]/40'}`} />
+                      <p className="font-bold text-sm text-[#2A0E0A]">Home Delivery</p>
+                      <p className="text-[11px] text-[#2C1A17]/50 mt-0.5">Within Mohanur only</p>
+                      {deliveryFee > 0 && (
+                        <p className="text-[11px] font-bold text-[#C9A227] mt-1">+₹{deliveryFee}</p>
+                      )}
+                    </button>
+
+                    {/* Pickup */}
+                    <button
+                      type="button"
+                      onClick={() => setOrderType('pickup')}
+                      className={`relative p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        orderType === 'pickup'
+                          ? 'border-[#C9A227] bg-[#C9A227]/8'
+                          : 'border-[#2C1A17]/15 hover:border-[#C9A227]/40'
+                      }`}
+                    >
+                      {orderType === 'pickup' && (
+                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#C9A227] flex items-center justify-center">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                      <Store className={`w-7 h-7 mb-2 ${orderType === 'pickup' ? 'text-[#C9A227]' : 'text-[#2C1A17]/40'}`} />
+                      <p className="font-bold text-sm text-[#2A0E0A]">Pickup from Shop</p>
+                      <p className="text-[11px] text-[#2C1A17]/50 mt-0.5">Free pickup, no delivery fee</p>
+                      <p className="text-[11px] font-bold text-green-600 mt-1">FREE</p>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── DELIVERY ADDRESS (shown only for delivery) ─────────────────── */}
+              <AnimatePresence>
+                {orderType === 'delivery' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
+                        <Building className="w-4 h-4 text-[#C9A227]" />
+                      </div>
+                      <h2 className="font-semibold text-[#2A0E0A] text-sm">Delivery Address</h2>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                      {/* Saved Addresses (for logged-in users) */}
+                      {savedAddresses.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-bold text-[#2C1A17]/50 uppercase tracking-wider">Saved Addresses</p>
+                          <div className="space-y-2">
+                            {savedAddresses.map(addr => (
+                              <button
+                                key={addr.id}
+                                type="button"
+                                onClick={() => selectSavedAddress(addr)}
+                                className={`w-full text-left p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                                  selectedSavedAddr?.id === addr.id && !useManualAddress
+                                    ? 'border-[#C9A227] bg-[#C9A227]/8'
+                                    : 'border-[#2C1A17]/10 hover:border-[#C9A227]/30'
+                                }`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <MapPin className={`w-4 h-4 mt-0.5 shrink-0 ${selectedSavedAddr?.id === addr.id && !useManualAddress ? 'text-[#C9A227]' : 'text-[#2C1A17]/30'}`} />
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-[#2A0E0A]">{addr.label}</span>
+                                      {addr.isDefault && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-semibold">Default</span>}
+                                    </div>
+                                    <p className="text-xs text-[#2C1A17]/60 mt-0.5">
+                                      {[addr.doorNo, addr.streetArea, addr.city, addr.pincode].filter(Boolean).join(', ')}
+                                    </p>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => { setUseManualAddress(true); setSelectedSavedAddr(null); }}
+                              className={`w-full text-left p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                                useManualAddress
+                                  ? 'border-[#C9A227] bg-[#C9A227]/8'
+                                  : 'border-dashed border-[#2C1A17]/20 hover:border-[#C9A227]/40'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-[#2C1A17]/30" />
+                                <span className="text-xs font-semibold text-[#2C1A17]/60">+ Enter a new address</span>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Location Detection */}
+                      {(useManualAddress || savedAddresses.length === 0) && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isDetectingLocation}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-dashed border-[#C9A227]/50 text-[#C9A227] text-xs font-semibold hover:bg-[#C9A227]/8 transition-all disabled:opacity-60 cursor-pointer"
+                          >
+                            <Compass className={`w-4 h-4 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+                            {isDetectingLocation ? 'Detecting Location…' : '📍 Use Current Location'}
+                          </button>
+                          {locationError && (
+                            <p className="text-[11px] text-red-500 mt-1.5 px-1">{locationError}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Manual Address Fields */}
+                      {(useManualAddress || savedAddresses.length === 0) && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Door / Flat No.</label>
+                              <input
+                                type="text"
+                                value={doorNo}
+                                onChange={e => setDoorNo(e.target.value)}
+                                placeholder="e.g. 12A"
+                                className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Pincode</label>
+                              <input
+                                type="text"
+                                value={pincode}
+                                onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="637015"
+                                className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Street / Area *</label>
+                            <input
+                              type="text"
+                              required={orderType === 'delivery'}
+                              value={streetArea}
+                              onChange={e => setStreetArea(e.target.value)}
+                              placeholder="e.g. Main Street, Mohanur"
+                              className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Landmark</label>
+                              <div className="relative">
+                                <Landmark className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
+                                <input
+                                  type="text"
+                                  value={landmark}
+                                  onChange={e => setLandmark(e.target.value)}
+                                  placeholder="Near temple..."
+                                  className="w-full pl-9 pr-3 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">City</label>
+                              <input
+                                type="text"
+                                value={city}
+                                onChange={e => setCity(e.target.value)}
+                                placeholder="Mohanur"
+                                className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Save Address checkbox (logged-in only) */}
+                          {user && (
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={saveThisAddress}
+                                onChange={e => setSaveThisAddress(e.target.checked)}
+                                className="w-4 h-4 rounded accent-amber-600"
+                              />
+                              <span className="text-xs text-[#2C1A17]/60">Save this address for future orders</span>
+                            </label>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Delivery Area Validation */}
+                      <AnimatePresence>
+                        {orderType === 'delivery' && !deliveryValidation.isValid && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2"
+                          >
+                            <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-red-700">Delivery not available in this area</p>
+                              <p className="text-[11px] text-red-600/80 mt-0.5">Home delivery is available only within Mohanur. Please choose Pickup from Shop.</p>
+                            </div>
+                          </motion.div>
+                        )}
+                        {orderType === 'delivery' && deliveryValidation.isValid && (streetArea || doorNo) && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                            <p className="text-xs font-semibold text-green-700">Delivery available in {city || 'Mohanur'} ✓</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ─── PICKUP INFO (shown only for pickup) ───────────────────────── */}
+              <AnimatePresence>
+                {orderType === 'pickup' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm"
+                  >
+                    <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
+                        <Store className="w-4 h-4 text-[#C9A227]" />
+                      </div>
+                      <h2 className="font-semibold text-[#2A0E0A] text-sm">Pickup Location</h2>
+                    </div>
+                    <div className="p-5">
+                      <div className="bg-[#FAF7F2] rounded-xl p-4 space-y-2">
+                        <p className="font-bold text-[#2A0E0A] text-sm">M.G. Iyengar Bakery & Chats</p>
+                        <p className="text-xs text-[#2C1A17]/60">
+                          {settings.storeAddress || 'Mohanur Main Road, Mohanur, Namakkal, Tamil Nadu 637015'}
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Clock className="w-3.5 h-3.5 text-[#C9A227]" />
+                          <p className="text-xs text-[#2C1A17]/60">
+                            {settings.businessHours || '9:00 AM – 10:00 PM'}
+                          </p>
+                        </div>
+                        <p className="text-xs text-green-600 font-semibold">✓ No delivery charge for pickup</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+            </div>
+
+            {/* ── RIGHT COLUMN: ORDER SUMMARY ──────────────────────────────────────── */}
+            <div className="space-y-5">
+
+              {/* Order Items */}
+              <div className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4 text-[#C9A227]" />
+                  </div>
+                  <h2 className="font-semibold text-[#2A0E0A] text-sm">Order Summary</h2>
+                </div>
+                <div className="divide-y divide-[#2C1A17]/6">
+                  {cartItems.map((item, idx) => (
+                    <div key={`${item.id}-${item.selectedWeight}-${idx}`} className="px-5 py-3 flex gap-3">
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-12 h-12 rounded-xl object-cover border border-[#2C1A17]/10"
+                        className="w-12 h-12 rounded-xl object-cover shrink-0"
+                        onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=100&q=80'; }}
                       />
-                      <div>
-                        <h5 className="font-bold text-xs text-[#2C1A17] line-clamp-1">{item.name}</h5>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] font-semibold text-[#C9A227] bg-[#2A0E0A] px-1.5 py-0.5 rounded">
-                            {item.selectedWeight}
-                          </span>
-                          <span className="text-[10px] text-[#2C1A17]/60">Qty: {item.quantity}</span>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[#2A0E0A] text-xs truncate">{item.name}</p>
+                        {item.selectedWeight && item.selectedWeight !== 'Standard' && (
+                          <p className="text-[11px] text-[#2C1A17]/50">{item.selectedWeight}</p>
+                        )}
+                        {item.customizations && Object.entries(item.customizations).map(([k, v]) =>
+                          v ? <p key={k} className="text-[10px] text-[#2C1A17]/40">{k}: {v}</p> : null
+                        )}
+                        <p className="text-[11px] text-[#2C1A17]/50 mt-0.5">Qty: {item.quantity}</p>
                       </div>
+                      <p className="font-bold text-[#2A0E0A] text-sm shrink-0">
+                        ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                      </p>
                     </div>
-                    <span className="font-bold text-xs text-[#2C1A17]">
-                      ₹{item.price * item.quantity}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              {/* Price Breakdown */}
-              <div className="border-t border-[#2C1A17]/10 pt-4 space-y-2 text-xs">
-                <div className="flex justify-between text-[#2C1A17]/70">
-                  <span>Item Total</span>
-                  <span className="font-bold text-[#2C1A17]">₹{totalAmount + couponDiscount}</span>
+              {/* Price Summary */}
+              <div className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[#2C1A17]/8">
+                  <h2 className="font-semibold text-[#2A0E0A] text-sm">Price Summary</h2>
                 </div>
-
-                {appliedCoupon && couponDiscount > 0 && (
-                  <div className="flex justify-between text-green-700 bg-green-50 px-2.5 py-1.5 rounded-xl font-semibold">
-                    <span className="flex items-center gap-1">
-                      <span>🏷️ Coupon ({appliedCoupon.code})</span>
-                    </span>
-                    <span>-₹{couponDiscount}</span>
+                <div className="px-5 py-4 space-y-2.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#2C1A17]/60">Subtotal</span>
+                    <span className="font-semibold text-[#2A0E0A]">₹{totalAmount.toLocaleString('en-IN')}</span>
                   </div>
-                )}
-
-                <div className="flex justify-between text-[#2C1A17]/70">
-                  <span>Delivery Fee</span>
-                  {orderType === 'pickup' ? (
-                    <span className="font-bold text-emerald-600 uppercase">FREE (Pickup)</span>
-                  ) : (
-                    <span className="font-bold text-[#2C1A17]">₹{deliveryFee}</span>
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Coupon Discount</span>
+                      <span className="font-semibold">-₹{couponDiscount.toLocaleString('en-IN')}</span>
+                    </div>
                   )}
-                </div>
-
-                <div className="flex justify-between items-center text-sm font-bold text-[#2C1A17] pt-3 border-t border-[#2C1A17]/10">
-                  <span>Total Amount</span>
-                  <span className="font-playfair text-xl text-[#2A0E0A]">₹{grandTotal}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#2C1A17]/60">Delivery Charge</span>
+                    <span className={`font-semibold ${deliveryFee === 0 ? 'text-green-600' : 'text-[#2A0E0A]'}`}>
+                      {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
+                    </span>
+                  </div>
+                  <div className="border-t border-[#2C1A17]/10 pt-2.5 flex justify-between">
+                    <span className="font-bold text-[#2A0E0A]">Total</span>
+                    <span className="font-bold text-[#2A0E0A] text-lg">₹{grandTotal.toLocaleString('en-IN')}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Payment Error Alert */}
-              {paymentError && (
-                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <p className="font-medium leading-relaxed">{paymentError}</p>
+              {/* Payment Info */}
+              <div className="bg-[#FAF7F2] rounded-2xl border border-[#C9A227]/20 p-4">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <MessageCircle className="w-5 h-5 text-green-600" />
+                  <p className="font-bold text-[#2A0E0A] text-sm">WhatsApp Ordering</p>
                 </div>
-              )}
-
-              {/* Online Payment Method Indicator */}
-              <div className="p-3.5 rounded-2xl bg-[#FAF6F0] border border-[#C9A227]/30 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span className="font-semibold text-[#2C1A17]">Online Payment (Razorpay)</span>
-                </div>
-                <span className="text-[10px] font-bold uppercase text-[#C9A227] tracking-wider">Secured 256-bit</span>
+                <p className="text-xs text-[#2C1A17]/60 leading-relaxed">
+                  After placing your order, a pre-filled WhatsApp message will open. Review your order and press Send to confirm with the bakery. Payment is collected at delivery or pickup.
+                </p>
               </div>
 
-              {/* Pay & Place Order Button */}
-              <button
-                type="button"
-                onClick={handlePayAndPlaceOrder}
-                disabled={isProcessingPayment || (orderType === 'delivery' && !deliveryValidation.isValid)}
-                className="w-full bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] py-4 px-6 rounded-full font-bold text-xs flex items-center justify-center gap-2.5 transition-all duration-300 shadow-xl shadow-[#2A0E0A]/20 cursor-pointer disabled:opacity-50 active:scale-95"
+              {/* Error */}
+              <AnimatePresence>
+                {orderError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-700">{orderError}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* PLACE ORDER BUTTON */}
+              <motion.button
+                type="submit"
+                disabled={isPlacingOrder}
+                whileHover={{ scale: isPlacingOrder ? 1 : 1.02 }}
+                whileTap={{ scale: isPlacingOrder ? 1 : 0.97 }}
+                className="w-full bg-[#2A0E0A] hover:bg-[#401C16] disabled:opacity-60 disabled:cursor-not-allowed text-[#C9A227] font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 text-sm cursor-pointer"
               >
-                <Lock className="w-4 h-4 text-[#C9A227]" />
-                <span>{isProcessingPayment ? 'Processing Payment...' : `Pay ₹${grandTotal} & Place Order`}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                {isPlacingOrder ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                      className="w-5 h-5 rounded-full border-2 border-[#C9A227] border-t-transparent"
+                    />
+                    Saving your order…
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="w-5 h-5" />
+                    Place Order & Open WhatsApp
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </motion.button>
 
-              <p className="text-[10px] text-center text-[#2C1A17]/50 font-light">
-                By placing your order, you agree to M.G. Iyengar Bakery's terms & store policies.
+              <p className="text-center text-[11px] text-[#2C1A17]/40">
+                Your order will be saved securely before WhatsApp opens
               </p>
             </div>
-
           </div>
-
-        </div>
-
+        </form>
       </div>
     </div>
   );
