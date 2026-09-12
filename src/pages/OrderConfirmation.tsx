@@ -127,8 +127,8 @@ export const OrderConfirmation: React.FC = () => {
             </div>
 
             <div className="p-3 bg-[#FAF6F0] rounded-2xl">
-              <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Order Status</span>
-              <span className="text-xs font-bold text-[#2A0E0A] mt-0.5 block">{currentOrder.orderStatus}</span>
+              <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Order Record</span>
+              <span className="text-xs font-bold text-emerald-700 mt-0.5 block">Saved in System ✓</span>
             </div>
           </div>
         </motion.div>

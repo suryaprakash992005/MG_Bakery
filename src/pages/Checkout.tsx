@@ -12,9 +12,7 @@ import {
   ChevronLeft,
   MessageCircle,
   Landmark,
-  Phone,
   User,
-  Mail,
   ArrowRight,
   Clock,
   Building,
@@ -40,10 +38,14 @@ export const Checkout: React.FC = () => {
     setIsAuthModalOpen, setAuthModalTab, setAuthModalMessage
   } = useAuth();
 
-  // Customer Details Form State (autofilled from profile if exists)
-  const [customerName, setCustomerName] = useState(profile?.name || '');
-  const [customerPhone, setCustomerPhone] = useState(profile?.phone || '');
-  const [customerEmail, setCustomerEmail] = useState(profile?.email || '');
+  // Customer Details (automatically sourced from authenticated profile)
+  const activeName = profile?.name || profile?.full_name || (user?.user_metadata as any)?.full_name || (user?.user_metadata as any)?.name || '';
+  const activePhone = profile?.phone || (user?.user_metadata as any)?.phone || '';
+  const activeEmail = profile?.email || user?.email || '';
+
+  const [customerName, setCustomerName] = useState(activeName);
+  const [customerPhone, setCustomerPhone] = useState(activePhone);
+  const [customerEmail, setCustomerEmail] = useState(activeEmail);
 
   // Order Type State: 'delivery' | 'pickup'
   const [orderType, setOrderType] = useState<OrderType>('delivery');
@@ -60,14 +62,17 @@ export const Checkout: React.FC = () => {
   const [pincode, setPincode] = useState(defaultAddr?.pincode || '637015');
   const [saveThisAddress, setSaveThisAddress] = useState(false);
 
-  // Sync profile if it becomes available
+  // Sync profile immediately whenever profile or user loads
   useEffect(() => {
-    if (profile) {
-      if (!customerName && profile.name) setCustomerName(profile.name);
-      if (!customerPhone && profile.phone) setCustomerPhone(profile.phone);
-      if (!customerEmail && profile.email) setCustomerEmail(profile.email);
+    if (profile || user) {
+      const n = profile?.name || profile?.full_name || (user?.user_metadata as any)?.full_name || (user?.user_metadata as any)?.name || '';
+      const p = profile?.phone || (user?.user_metadata as any)?.phone || '';
+      const e = profile?.email || user?.email || '';
+      if (n && !customerName) setCustomerName(n);
+      if (p && !customerPhone) setCustomerPhone(p);
+      if (e && !customerEmail) setCustomerEmail(e);
     }
-  }, [profile]);
+  }, [profile, user, customerName, customerPhone, customerEmail]);
 
   // Sync saved addresses
   useEffect(() => {
@@ -172,13 +177,13 @@ export const Checkout: React.FC = () => {
       return;
     }
 
-    // 2. Validate customer details
-    if (!customerName.trim()) {
-      setOrderError('Please enter your full name.');
-      return;
-    }
-    if (!customerPhone.trim() || customerPhone.replace(/\D/g, '').length < 10) {
-      setOrderError('Please enter a valid 10-digit mobile number.');
+    // 2. Resolve customer details automatically from authenticated profile
+    const resolvedName = (customerName || activeName || profile?.name || profile?.full_name || (user?.user_metadata as any)?.full_name || 'Bakery Customer').trim();
+    const resolvedPhone = (customerPhone || activePhone || profile?.phone || (user?.user_metadata as any)?.phone || '').trim();
+    const resolvedEmail = (customerEmail || activeEmail || profile?.email || user.email || '').trim();
+
+    if (!resolvedPhone || resolvedPhone.replace(/\D/g, '').length < 10) {
+      setOrderError('Please provide a valid 10-digit mobile number for your order.');
       return;
     }
 
@@ -212,7 +217,7 @@ export const Checkout: React.FC = () => {
       // 6. Build order number (will use Supabase sequence via DB or fallback)
       const orderNumber = `MG-${Date.now().toString().slice(-6)}`;
 
-      // 7. Build order items with customizations snapshot
+      // 7. Build order items with customizations and unit price snapshot
       const orderItems = cartItems.map(item => ({
         productId: item.id,
         productName: item.name,
@@ -228,9 +233,9 @@ export const Checkout: React.FC = () => {
       const savedOrder = await addOrder({
         orderNumber,
         userId: user.id,
-        customerName: customerName.trim(),
-        phone: customerPhone.trim(),
-        customerEmail: customerEmail.trim() || undefined,
+        customerName: resolvedName,
+        phone: resolvedPhone,
+        customerEmail: resolvedEmail || undefined,
         orderType,
         deliveryAddress: fullFormattedAddress,
         streetArea: streetArea.trim(),
@@ -253,8 +258,8 @@ export const Checkout: React.FC = () => {
       if (saveThisAddress && orderType === 'delivery' && streetArea.trim()) {
         await saveAddress({
           label: 'Home',
-          name: customerName.trim(),
-          phone: customerPhone.trim(),
+          name: resolvedName,
+          phone: resolvedPhone,
           doorNo: doorNo.trim(),
           streetArea: streetArea.trim(),
           landmark: landmark.trim(),
@@ -277,8 +282,8 @@ export const Checkout: React.FC = () => {
       const whatsappPhone = (settings.whatsappNumber || '919345586112').replace(/[^0-9]/g, '');
       const whatsappUrl = generateOrderWhatsAppUrl(
         orderNumber,
-        customerName.trim(),
-        customerPhone.trim(),
+        resolvedName,
+        resolvedPhone,
         orderType,
         orderType === 'delivery' ? fullFormattedAddress : undefined,
         whatsappItems,
@@ -399,64 +404,87 @@ export const Checkout: React.FC = () => {
             {/* ── LEFT COLUMN ─────────────────────────────────────────────────────── */}
             <div className="space-y-5">
 
-              {/* ─── CUSTOMER DETAILS ──────────────────────────────────────────────── */}
+              {/* ─── CUSTOMER DETAILS (AUTOMATICALLY FROM PROFILE - NO REPEATED INPUTS) ─── */}
               <div className="bg-white rounded-2xl border border-[#2C1A17]/10 overflow-hidden shadow-sm">
-                <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
-                    <User className="w-4 h-4 text-[#C9A227]" />
+                <div className="px-5 py-4 border-b border-[#2C1A17]/8 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#2A0E0A] flex items-center justify-center">
+                      <User className="w-4 h-4 text-[#C9A227]" />
+                    </div>
+                    <h2 className="font-semibold text-[#2A0E0A] text-sm">Customer Information</h2>
                   </div>
-                  <h2 className="font-semibold text-[#2A0E0A] text-sm">Customer Details</h2>
-                  {user && profile && (
-                    <span className="ml-auto text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full">
-                      ✓ Account synced
+                  {user ? (
+                    <span className="text-[11px] text-green-700 font-semibold bg-green-50 border border-green-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                      Verified Profile
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-amber-700 font-semibold bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                      Account Required
                     </span>
                   )}
                 </div>
-                <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Full Name *</label>
-                      <div className="relative">
-                        <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
-                        <input
-                          type="text"
-                          required
-                          value={customerName}
-                          onChange={e => setCustomerName(e.target.value)}
-                          placeholder="Your full name"
-                          className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
-                        />
+
+                {user ? (
+                  <div className="p-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#2C1A17]/8">
+                        <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Customer Name</span>
+                        <p className="font-bold text-sm text-[#2A0E0A] mt-1 truncate">
+                          {customerName || activeName || 'Customer'}
+                        </p>
+                      </div>
+                      <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#2C1A17]/8">
+                        <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Mobile Number</span>
+                        <p className="font-bold text-sm text-[#2A0E0A] mt-1">
+                          {customerPhone || activePhone || '—'}
+                        </p>
+                      </div>
+                      <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#2C1A17]/8">
+                        <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Email</span>
+                        <p className="font-medium text-xs text-[#2A0E0A] mt-1 truncate">
+                          {customerEmail || activeEmail || user.email || '—'}
+                        </p>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Mobile Number *</label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
-                        <input
-                          type="tel"
-                          required
-                          value={customerPhone}
-                          onChange={e => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          placeholder="10-digit mobile number"
-                          className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
-                        />
-                      </div>
+                    <p className="text-[11px] text-green-700 font-medium mt-3 flex items-center gap-1.5">
+                      <span>✓ Saved customer information automatically applied.</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center space-y-3">
+                    <p className="text-sm font-semibold text-[#2A0E0A]">
+                      Sign in or create an account to proceed to checkout
+                    </p>
+                    <p className="text-xs text-[#2C1A17]/60 max-w-sm mx-auto">
+                      Your name and mobile number will be automatically saved so you never have to re-enter them again.
+                    </p>
+                    <div className="flex justify-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthModalMessage('Sign in to continue checkout with saved customer details.');
+                          setAuthModalTab('login');
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="px-5 py-2.5 rounded-xl border border-[#2A0E0A] text-[#2A0E0A] font-bold text-xs hover:bg-[#2A0E0A]/5 transition-all cursor-pointer"
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthModalMessage('Create your account once. We will never ask for your name again.');
+                          setAuthModalTab('signup');
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-[#2A0E0A] text-[#C9A227] font-bold text-xs hover:bg-[#401C16] transition-all cursor-pointer shadow-sm"
+                      >
+                        Create Account
+                      </button>
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-[#2C1A17]/60 uppercase tracking-wider">Email (Optional)</label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/30" />
-                      <input
-                        type="email"
-                        value={customerEmail}
-                        onChange={e => setCustomerEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* ─── DELIVERY METHOD ───────────────────────────────────────────────── */}

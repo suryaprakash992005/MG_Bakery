@@ -24,21 +24,17 @@ interface CustomerDetailModalProps {
 }
 
 const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, orders, onClose }) => {
-  const customerOrders = orders.filter(o => o.userId === customer.userId);
+  const custPhoneClean = (customer.phone || '').replace(/\D/g, '');
+  const customerOrders = orders.filter(o =>
+    (o.userId && o.userId === customer.userId) ||
+    (custPhoneClean && o.phone && o.phone.replace(/\D/g, '') === custPhoneClean)
+  );
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      day: '2-digit', month: 'short', year: 'numeric'
     });
-  };
-
-  const statusColor = (status: string) => {
-    if (status.includes('DELIVERED') || status.includes('Delivered') || status.includes('PICKED')) return 'bg-green-100 text-green-700';
-    if (status.includes('CANCELLED') || status.includes('Cancelled')) return 'bg-red-100 text-red-700';
-    if (status.includes('PREPARING') || status.includes('Preparing')) return 'bg-blue-100 text-blue-700';
-    if (status.includes('PLACED') || status.includes('ORDER_PLACED')) return 'bg-amber-100 text-amber-700';
-    return 'bg-gray-100 text-gray-600';
   };
 
   return (
@@ -71,7 +67,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, ord
             </div>
             <div>
               <h2 className="font-bold text-xl">{customer.name || 'Unknown Customer'}</h2>
-              <p className="text-white/70 text-sm">{customer.phone}</p>
+              <p className="text-white/80 text-sm">{customer.phone}</p>
               {customer.email && <p className="text-white/60 text-xs">{customer.email}</p>}
             </div>
           </div>
@@ -80,7 +76,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, ord
           <div className="grid grid-cols-3 gap-3 mt-5">
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold">{customer.totalOrders}</p>
-              <p className="text-xs text-white/70">Orders</p>
+              <p className="text-xs text-white/70">Total Orders</p>
             </div>
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold">₹{customer.totalSpent.toLocaleString('en-IN')}</p>
@@ -88,7 +84,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, ord
             </div>
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold">₹{Math.round(customer.avgOrderValue).toLocaleString('en-IN')}</p>
-              <p className="text-xs text-white/70">Avg Order</p>
+              <p className="text-xs text-white/70">Average Order</p>
             </div>
           </div>
         </div>
@@ -96,17 +92,19 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, ord
         {/* Content */}
         <div className="p-6 space-y-5">
           {/* Customer Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3 bg-[#FAF7F2] p-4 rounded-xl border border-[#2C1A17]/6">
             <div>
-              <p className="text-xs font-bold text-[#2C1A17]/50 uppercase tracking-wider mb-1">Member Since</p>
-              <p className="text-sm text-[#2A0E0A]">{formatDate(customer.registeredAt).split(',')[0]}</p>
+              <p className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider mb-1">Registration Date</p>
+              <p className="text-xs font-semibold text-[#2A0E0A]">{formatDate(customer.registeredAt)}</p>
             </div>
-            {customer.lastOrderAt && (
-              <div>
-                <p className="text-xs font-bold text-[#2C1A17]/50 uppercase tracking-wider mb-1">Last Order</p>
-                <p className="text-sm text-[#2A0E0A]">{formatDate(customer.lastOrderAt).split(',')[0]}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider mb-1">First Order</p>
+              <p className="text-xs font-semibold text-[#2A0E0A]">{customer.firstOrderAt ? formatDate(customer.firstOrderAt) : '—'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider mb-1">Last Order</p>
+              <p className="text-xs font-semibold text-[#2A0E0A]">{customer.lastOrderAt ? formatDate(customer.lastOrderAt) : '—'}</p>
+            </div>
           </div>
 
           {/* Order History */}
@@ -115,24 +113,29 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, ord
             {customerOrders.length === 0 ? (
               <div className="bg-[#FAF7F2] rounded-xl p-6 text-center">
                 <ShoppingBag className="w-8 h-8 text-[#2C1A17]/20 mx-auto mb-2" />
-                <p className="text-xs text-[#2C1A17]/50">No orders found in current session</p>
-                <p className="text-[11px] text-[#2C1A17]/40">Orders are loaded from Supabase</p>
+                <p className="text-xs text-[#2C1A17]/50">No previous orders recorded for this customer yet</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {customerOrders.map(order => (
-                  <div key={order.id} className="bg-[#FAF7F2] rounded-xl p-3">
+                  <div key={order.id} className="bg-[#FAF7F2] rounded-xl p-3.5 border border-[#2C1A17]/6">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-[#2A0E0A]">{order.orderNumber}</span>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor(order.orderStatus)}`}>
-                          {order.orderStatus.replace('_', ' ')}
+                        <span className="font-bold text-xs text-[#2A0E0A]">#{order.orderNumber || order.id?.slice(0, 8)}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          order.orderType === 'pickup' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {order.orderType === 'pickup' ? 'Pickup' : 'Home Delivery'}
                         </span>
                       </div>
                       <span className="font-bold text-sm text-[#2A0E0A]">₹{order.amount.toLocaleString('en-IN')}</span>
                     </div>
-                    <p className="text-[11px] text-[#2C1A17]/50">{order.orderedProduct || '—'}</p>
-                    <p className="text-[10px] text-[#2C1A17]/40 mt-0.5">{order.createdDate} • {order.orderType}</p>
+                    <p className="text-[11px] text-[#2C1A17]/60">
+                      {order.orderedProduct || (order.items?.map(i => `${i.quantity}x ${i.productName || i.name}`).join(', ')) || 'Bakery Items'}
+                    </p>
+                    <p className="text-[10px] text-[#2C1A17]/40 mt-1">
+                      {order.createdDate} • {order.orderType === 'pickup' ? 'Shop Pickup' : (order.deliveryAddress || 'Mohanur')}
+                    </p>
                   </div>
                 ))}
               </div>

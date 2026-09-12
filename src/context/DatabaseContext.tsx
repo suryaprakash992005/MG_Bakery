@@ -1013,18 +1013,38 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         data.forEach((row: any) => {
           if (row.id) seenCustomerIds.current.add(row.id);
         });
-        const mapped: UnifiedCustomer[] = data.map((row: any) => ({
-          userId: row.id,
-          name: row.full_name || row.name || 'Bakery Customer',
-          phone: row.phone || '',
-          email: row.email || '',
-          registeredAt: row.created_at || new Date().toISOString(),
-          totalOrders: Number(row.total_orders || 0),
-          totalSpent: Number(row.total_spent || 0),
-          avgOrderValue: Number(row.total_orders ? (Number(row.total_spent || 0) / Number(row.total_orders)) : 0),
-          lastOrderAt: row.last_order_at || undefined,
-          firstOrderAt: row.first_order_at || undefined,
-        }));
+
+        // Correlate with orders to dynamically compute orders, spending & avg value
+        const mapped: UnifiedCustomer[] = data.map((row: any) => {
+          const custPhone = (row.phone || '').replace(/\D/g, '');
+          const customerOrders = orders.filter(o =>
+            (o.userId && o.userId === row.id) ||
+            (custPhone && o.phone && o.phone.replace(/\D/g, '') === custPhone)
+          );
+
+          const totalOrders = customerOrders.length || Number(row.total_orders || 0);
+          const totalSpent = customerOrders.reduce((sum, o) => sum + (o.amount || 0), 0) || Number(row.total_spent || 0);
+          const avgOrderValue = totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0;
+
+          const sortedOrders = [...customerOrders].sort((a, b) =>
+            new Date(a.createdDate || '').getTime() - new Date(b.createdDate || '').getTime()
+          );
+          const firstOrderAt = sortedOrders.length > 0 ? sortedOrders[0].createdDate : (row.first_order_at || undefined);
+          const lastOrderAt = sortedOrders.length > 0 ? sortedOrders[sortedOrders.length - 1].createdDate : (row.last_order_at || undefined);
+
+          return {
+            userId: row.id,
+            name: row.full_name || row.name || 'Bakery Customer',
+            phone: row.phone || '',
+            email: row.email || '',
+            registeredAt: row.created_at || new Date().toISOString(),
+            totalOrders,
+            totalSpent,
+            avgOrderValue,
+            lastOrderAt,
+            firstOrderAt,
+          };
+        });
         setCustomers(mapped);
       }
     } catch (err) { console.warn('fetchCustomers error:', err); }
@@ -1112,6 +1132,29 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updated = [newOrder, ...orders];
     setOrders(updated);
     syncToLocal('admin_orders', updated);
+
+    // Update customer spending statistics in memory immediately
+    if (newOrder.userId || newOrder.phone) {
+      const pClean = (newOrder.phone || '').replace(/\D/g, '');
+      setCustomers(prev => prev.map(c => {
+        const matches = (newOrder.userId && c.userId === newOrder.userId) ||
+          (pClean && c.phone && c.phone.replace(/\D/g, '') === pClean);
+        if (matches) {
+          const newTotalOrders = c.totalOrders + 1;
+          const newTotalSpent = c.totalSpent + (newOrder.amount || 0);
+          return {
+            ...c,
+            totalOrders: newTotalOrders,
+            totalSpent: newTotalSpent,
+            avgOrderValue: Math.round(newTotalSpent / newTotalOrders),
+            lastOrderAt: newOrder.createdDate,
+            firstOrderAt: c.firstOrderAt || newOrder.createdDate,
+          };
+        }
+        return c;
+      }));
+    }
+
     addHistoryLog(`New Order: ${newOrder.orderNumber}`, `Customer: ${newOrder.customerName} | ₹${newOrder.amount} | ${newOrder.orderType}`);
     return newOrder;
   };

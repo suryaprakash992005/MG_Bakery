@@ -61,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
       onClick: () => navigate('/wishlist')
     },
     {
-      label: 'My Orders & Tracking',
+      label: 'My Orders',
       ariaLabel: 'Go to My Orders',
       link: '#my-orders',
       onClick: () => navigate('/my-orders')

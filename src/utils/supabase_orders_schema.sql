@@ -1,11 +1,13 @@
 -- ========================================================
--- M.G. IYENGAR BAKERY & CHATS - ORDERS & PAYMENTS SCHEMA
+-- M.G. IYENGAR BAKERY & CHATS - SIMPLIFIED SUPABASE SCHEMA
+-- Run this in the Supabase SQL Editor: Dashboard -> SQL Editor -> New query -> Run
 -- ========================================================
 
--- 1. Create `orders` table
+-- 1. Create `orders` table (clean historical transaction records)
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_number TEXT UNIQUE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     customer_name TEXT NOT NULL,
     customer_phone TEXT NOT NULL,
     customer_email TEXT,
@@ -18,19 +20,22 @@ CREATE TABLE IF NOT EXISTS public.orders (
     latitude NUMERIC,
     longitude NUMERIC,
     delivery_area TEXT DEFAULT 'Mohanur',
-    delivery_fee NUMERIC DEFAULT 40,
+    delivery_fee NUMERIC DEFAULT 0,
     subtotal NUMERIC NOT NULL DEFAULT 0,
     total_amount NUMERIC NOT NULL DEFAULT 0,
-    payment_method TEXT NOT NULL DEFAULT 'razorpay',
-    payment_status TEXT NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'PAID', 'FAILED'
-    order_status TEXT NOT NULL DEFAULT 'CONFIRMED', -- 'PENDING PAYMENT', 'PAID', 'CONFIRMED', 'PREPARING', 'READY', 'OUT FOR DELIVERY', 'DELIVERED', 'READY FOR PICKUP', 'PICKED UP', 'CANCELLED'
-    razorpay_order_id TEXT,
-    razorpay_payment_id TEXT,
+    payment_method TEXT NOT NULL DEFAULT 'whatsapp',
+    payment_status TEXT NOT NULL DEFAULT 'PENDING',
+    order_status TEXT NOT NULL DEFAULT 'ORDER_PLACED',
+    whatsapp_opened_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Create `order_items` table
+-- Ensure user_id and columns exist if table was already created earlier
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS whatsapp_opened_at TIMESTAMPTZ;
+
+-- 2. Create `order_items` table (preserves price & customization snapshot)
 CREATE TABLE IF NOT EXISTS public.order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -39,25 +44,36 @@ CREATE TABLE IF NOT EXISTS public.order_items (
     quantity INTEGER NOT NULL DEFAULT 1,
     unit_price NUMERIC NOT NULL DEFAULT 0,
     total_price NUMERIC NOT NULL DEFAULT 0,
-    selected_options JSONB DEFAULT '{}'::jsonb,
+    selected_weight TEXT DEFAULT 'Standard',
+    customizations JSONB DEFAULT '{}'::jsonb,
+    product_snapshot JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Enable RLS (Row Level Security) and allow public insert & select
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS selected_weight TEXT DEFAULT 'Standard';
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS customizations JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS product_snapshot JSONB DEFAULT '{}'::jsonb;
+
+-- 3. Row Level Security (RLS)
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow anonymous order placement" ON public.orders
+DROP POLICY IF EXISTS "Allow order insert" ON public.orders;
+CREATE POLICY "Allow order insert" ON public.orders
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow public reading of orders" ON public.orders
+DROP POLICY IF EXISTS "Allow reading orders" ON public.orders;
+CREATE POLICY "Allow reading orders" ON public.orders
     FOR SELECT USING (true);
 
-CREATE POLICY "Allow public order updates" ON public.orders
+DROP POLICY IF EXISTS "Allow order updates" ON public.orders;
+CREATE POLICY "Allow order updates" ON public.orders
     FOR UPDATE USING (true);
 
-CREATE POLICY "Allow anonymous order item placement" ON public.order_items
+DROP POLICY IF EXISTS "Allow order items insert" ON public.order_items;
+CREATE POLICY "Allow order items insert" ON public.order_items
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Allow public reading of order items" ON public.order_items
+DROP POLICY IF EXISTS "Allow reading order items" ON public.order_items;
+CREATE POLICY "Allow reading order items" ON public.order_items
     FOR SELECT USING (true);

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingBag, Search, Phone, Clock, CheckCircle2,
+  ShoppingBag, Search, Phone, Clock,
   ArrowRight, RotateCcw, MessageCircle, FileText,
-  MapPin, Sparkles, ChevronRight, Package
+  MapPin, Sparkles, ChevronRight, Package, Store, Home as HomeIcon
 } from 'lucide-react';
 import { useBakeryDatabase, UnifiedOrder } from '../context/DatabaseContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,28 +11,8 @@ import { useCart } from '../context/CartContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-// ─── Status Pipeline Steps ────────────────────────────────────────────────────
-
-const ORDER_STAGES = [
-  { key: 'CONFIRMED', label: 'Order Confirmed', desc: 'Bakery received your order' },
-  { key: 'PREPARING', label: 'Baking & Preparing', desc: 'Fresh in the oven' },
-  { key: 'READY', label: 'Quality Packed', desc: 'Ready & sanitized' },
-  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery / Ready', desc: 'On the way to you' },
-  { key: 'DELIVERED', label: 'Delivered / Picked Up', desc: 'Enjoy your fresh treats!' },
-];
-
-const getStageIndex = (status?: string): number => {
-  if (!status) return 0;
-  const s = status.toUpperCase();
-  if (['DELIVERED', 'PICKED UP'].includes(s)) return 4;
-  if (['OUT FOR DELIVERY', 'OUT_FOR_DELIVERY', 'READY FOR PICKUP'].includes(s)) return 3;
-  if (['READY'].includes(s)) return 2;
-  if (['PREPARING'].includes(s)) return 1;
-  return 0; // CONFIRMED or PENDING
-};
-
 export const MyOrders: React.FC = () => {
-  const { orders, products } = useBakeryDatabase();
+  const { orders, products, settings } = useBakeryDatabase();
   const { profile, user, setIsAuthModalOpen } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -93,8 +73,9 @@ export const MyOrders: React.FC = () => {
   };
 
   const getWhatsAppSupportLink = (order: UnifiedOrder) => {
-    const msg = `Hello M.G. Iyengar Bakery, I need help with my Order #${order.orderNumber || order.id?.slice(0, 8)} (${order.customerName}).`;
-    return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(msg)}`;
+    const phone = (settings?.whatsappNumber || WHATSAPP_PHONE_NUMBER).replace(/[^0-9]/g, '');
+    const msg = `Hello M.G. Iyengar Bakery, I have a question regarding my Order #${order.orderNumber || order.id?.slice(0, 8)} (${order.customerName}).`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -106,13 +87,13 @@ export const MyOrders: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-1.5 bg-[#C9A227]/15 text-[#2A0E0A] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
               <Package className="w-3.5 h-3.5 text-[#C9A227]" />
-              <span>Customer Order Hub</span>
+              <span>Order History</span>
             </div>
             <h1 className="font-playfair text-3xl sm:text-4xl font-bold text-[#2A0E0A]">
-              My Orders & Live Tracking
+              My Orders
             </h1>
             <p className="text-sm text-[#2C1A17]/60 mt-1">
-              Track live baking status, view receipts, and re-order your favorite bakery items.
+              Your previous bakery orders, digital invoices, and order receipts.
             </p>
           </div>
 
@@ -121,7 +102,7 @@ export const MyOrders: React.FC = () => {
               onClick={() => setIsAuthModalOpen(true)}
               className="self-start md:self-auto flex items-center gap-2 px-5 py-2.5 bg-white border border-[#2C1A17]/15 hover:border-[#C9A227] text-[#2A0E0A] text-xs font-bold rounded-full shadow-sm cursor-pointer transition-all"
             >
-              <span>Sign In for Auto-Saved Orders</span>
+              <span>Sign In to View All Orders</span>
               <ArrowRight className="w-3.5 h-3.5 text-[#C9A227]" />
             </button>
           )}
@@ -174,12 +155,12 @@ export const MyOrders: React.FC = () => {
               <ShoppingBag className="w-8 h-8" />
             </div>
             <h3 className="font-playfair text-xl font-bold text-[#2A0E0A]">
-              {searchPhone || searchOrderNum ? 'No Orders Found' : 'Enter Your Phone Number to View Orders'}
+              {searchPhone || searchOrderNum ? 'No Orders Found' : 'No Previous Orders Found'}
             </h3>
             <p className="text-xs text-[#2C1A17]/60 max-w-sm mx-auto">
               {searchPhone || searchOrderNum
                 ? 'We could not find any orders matching those details. Please verify your phone or order number.'
-                : 'Enter the mobile number used when placing your bakery order to track live progress and download invoices.'}
+                : 'When you place an order, your complete order history and receipts will be listed here.'}
             </p>
             <button
               onClick={() => navigate('/menu')}
@@ -195,13 +176,12 @@ export const MyOrders: React.FC = () => {
             {/* Left Column: Orders List (5 cols) */}
             <div className="lg:col-span-5 space-y-3">
               <h2 className="text-xs font-black uppercase tracking-widest text-[#2C1A17]/60 px-1">
-                Found {matchingOrders.length} Order{matchingOrders.length !== 1 ? 's' : ''}
+                Previous Orders ({matchingOrders.length})
               </h2>
 
               <div className="space-y-3">
                 {matchingOrders.map(order => {
                   const isSelected = selectedOrder?.id === order.id;
-                  const stageIdx = getStageIndex(order.orderStatus);
 
                   return (
                     <motion.div
@@ -220,17 +200,27 @@ export const MyOrders: React.FC = () => {
                             <span className="font-bold text-sm text-[#2A0E0A]">
                               #{order.orderNumber || order.id?.slice(0, 8)}
                             </span>
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
                               order.orderType === 'pickup' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                             }`}>
-                              {order.orderType || 'Delivery'}
+                              {order.orderType === 'pickup' ? (
+                                <>
+                                  <Store className="w-3 h-3" />
+                                  <span>Pickup</span>
+                                </>
+                              ) : (
+                                <>
+                                  <HomeIcon className="w-3 h-3" />
+                                  <span>Delivery</span>
+                                </>
+                              )}
                             </span>
                           </div>
                           <p className="text-[11px] text-[#2C1A17]/50 mt-1 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {order.createdDate
                               ? new Date(order.createdDate).toLocaleDateString('en-IN', {
-                                  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                  day: 'numeric', month: 'short', year: 'numeric'
                                 })
                               : 'Recent'}
                           </p>
@@ -240,12 +230,8 @@ export const MyOrders: React.FC = () => {
                           <p className="text-sm font-black text-[#2A0E0A]">
                             ₹{order.amount?.toLocaleString('en-IN')}
                           </p>
-                          <span className={`inline-block text-[9px] font-bold uppercase px-2 py-0.5 rounded-full mt-1 ${
-                            stageIdx === 4
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {order.orderStatus || 'Confirmed'}
+                          <span className="text-[10px] text-green-700 font-semibold bg-green-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                            Saved Receipt ✓
                           </span>
                         </div>
                       </div>
@@ -263,7 +249,7 @@ export const MyOrders: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Selected Order Details & Live Stepper (7 cols) */}
+            {/* Right Column: Selected Order Details (7 cols) */}
             {selectedOrder && (
               <div className="lg:col-span-7 space-y-6">
                 <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-[#2C1A17]/10 space-y-6">
@@ -272,13 +258,13 @@ export const MyOrders: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2C1A17]/10 pb-5">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A227]">
-                        Active Live Tracking
+                        Order Receipt Details
                       </span>
                       <h2 className="font-playfair text-xl sm:text-2xl font-bold text-[#2A0E0A]">
                         Order #{selectedOrder.orderNumber || selectedOrder.id?.slice(0, 8)}
                       </h2>
                       <p className="text-xs text-[#2C1A17]/55 mt-0.5">
-                        Recipient: <strong>{selectedOrder.customerName}</strong> ({selectedOrder.phone})
+                        Customer: <strong>{selectedOrder.customerName}</strong> • {selectedOrder.phone}
                       </p>
                     </div>
 
@@ -288,7 +274,7 @@ export const MyOrders: React.FC = () => {
                         className="flex items-center gap-1.5 px-3.5 py-2 bg-[#FAF7F2] hover:bg-[#F3EDE2] border border-[#2C1A17]/15 rounded-xl text-xs font-bold text-[#2A0E0A] cursor-pointer transition-all"
                       >
                         <FileText className="w-3.5 h-3.5 text-[#C9A227]" />
-                        <span>Bill / Receipt</span>
+                        <span>Tax Invoice</span>
                       </button>
 
                       <a
@@ -303,81 +289,79 @@ export const MyOrders: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Live Progress Stepper */}
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-[#2C1A17]/60">
-                      Live Order Status
-                    </h3>
+                  {/* Summary Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 bg-[#FAF7F2] rounded-2xl">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Order Type</span>
+                      <span className="text-xs font-bold text-[#2A0E0A] mt-0.5 block capitalize">
+                        {selectedOrder.orderType === 'pickup' ? 'Shop Pickup' : 'Home Delivery'}
+                      </span>
+                    </div>
 
-                    <div className="relative pl-8 space-y-6 before:absolute before:left-[9px] before:top-3 before:bottom-3 before:w-[2px] before:bg-[#2C1A17]/15">
-                      {ORDER_STAGES.map((stg, idx) => {
-                        const currentStageIdx = getStageIndex(selectedOrder.orderStatus);
-                        const isDone = idx <= currentStageIdx;
-                        const isCurrent = idx === currentStageIdx;
+                    <div className="p-3 bg-[#FAF7F2] rounded-2xl">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Order Date</span>
+                      <span className="text-xs font-bold text-[#2A0E0A] mt-0.5 block">
+                        {selectedOrder.createdDate || 'Recent'}
+                      </span>
+                    </div>
 
-                        return (
-                          <div key={stg.key} className="relative flex items-start gap-3.5">
-                            {/* Dot / Icon */}
-                            <div
-                              className={`absolute -left-8 top-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                                isDone
-                                  ? 'bg-[#C9A227] text-[#2A0E0A] ring-4 ring-[#C9A227]/20 shadow-sm'
-                                  : 'bg-[#FAF7F2] border-2 border-[#2C1A17]/20 text-transparent'
-                              }`}
-                            >
-                              {isDone && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
-                            </div>
+                    <div className="p-3 bg-[#FAF7F2] rounded-2xl">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Delivery Fee</span>
+                      <span className="text-xs font-bold text-green-700 mt-0.5 block">
+                        {selectedOrder.deliveryFee > 0 ? `₹${selectedOrder.deliveryFee}` : 'FREE'}
+                      </span>
+                    </div>
 
-                            <div className="pl-1">
-                              <p className={`text-xs font-bold ${isCurrent ? 'text-[#2A0E0A] text-sm' : isDone ? 'text-[#2A0E0A]' : 'text-[#2C1A17]/40'}`}>
-                                {stg.label}
-                                {isCurrent && (
-                                  <span className="ml-2 text-[9px] font-black uppercase tracking-wider bg-[#C9A227] text-[#2A0E0A] px-2 py-0.5 rounded-full">
-                                    Current
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-[11px] text-[#2C1A17]/50 mt-0.5">
-                                {stg.desc}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="p-3 bg-[#FAF7F2] rounded-2xl">
+                      <span className="text-[10px] font-bold text-[#2C1A17]/50 uppercase tracking-wider block">Total Amount</span>
+                      <span className="text-xs font-black text-[#2A0E0A] mt-0.5 block">
+                        ₹{selectedOrder.amount?.toLocaleString('en-IN')}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Ordered Items List */}
+                  {/* Ordered Items List with Price Snapshot */}
                   <div className="space-y-3 pt-2 border-t border-[#2C1A17]/10">
                     <h3 className="text-xs font-black uppercase tracking-widest text-[#2C1A17]/60">
-                      Items in this Order
+                      Ordered Products & Quantities
                     </h3>
 
                     <div className="space-y-2.5">
                       {selectedOrder.items?.map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 bg-[#FAF7F2] rounded-2xl border border-[#2C1A17]/8 text-xs"
+                          className="flex items-center justify-between p-3.5 bg-[#FAF7F2] rounded-2xl border border-[#2C1A17]/8 text-xs"
                         >
                           <div className="flex items-center gap-3">
                             {item.image && (
                               <img
                                 src={item.image}
                                 alt={item.productName || item.name}
-                                className="w-10 h-10 rounded-xl object-cover"
+                                className="w-11 h-11 rounded-xl object-cover"
                               />
                             )}
                             <div>
                               <p className="font-bold text-[#2A0E0A]">
                                 {item.productName || item.name}
                               </p>
-                              <p className="text-[10px] text-[#2C1A17]/50">
-                                Size: {item.selectedWeight} • Qty: {item.quantity}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] text-[#2C1A17]/60">
+                                  Size: {item.selectedWeight}
+                                </span>
+                                <span className="text-[10px] text-[#2C1A17]/60">
+                                  • Qty: {item.quantity}
+                                </span>
+                                <span className="text-[10px] font-semibold text-[#C9A227]">
+                                  • ₹{item.price} each
+                                </span>
+                              </div>
+                              {item.customizations && Object.entries(item.customizations).map(([k, v]) =>
+                                v ? <p key={k} className="text-[10px] text-[#2C1A17]/40 mt-0.5">{k}: {v}</p> : null
+                              )}
                             </div>
                           </div>
 
-                          <span className="font-black text-[#2A0E0A]">
+                          <span className="font-black text-[#2A0E0A] text-sm shrink-0">
                             ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                           </span>
                         </div>
@@ -389,11 +373,11 @@ export const MyOrders: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#2C1A17]/8 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-[#2A0E0A]">
                       <MapPin className="w-4 h-4 text-[#C9A227]" />
-                      <span>{selectedOrder.orderType === 'pickup' ? 'Pickup Location' : 'Delivery Address'}</span>
+                      <span>{selectedOrder.orderType === 'pickup' ? 'Shop Pickup Location' : 'Delivery Address'}</span>
                     </div>
                     <p className="text-xs text-[#2C1A17]/70 pl-6 leading-relaxed">
                       {selectedOrder.orderType === 'pickup'
-                        ? 'M.G. Iyengar Bakery & Chats, Main Road, Mohanur, Namakkal - 637015'
+                        ? (settings?.storeAddress || 'M.G. Iyengar Bakery & Chats, Main Road, Mohanur, Namakkal - 637015')
                         : `${selectedOrder.deliveryAddress || ''} ${selectedOrder.streetArea || ''}, ${selectedOrder.city || 'Mohanur'} - ${selectedOrder.pincode || '637015'}`}
                     </p>
                   </div>
@@ -444,9 +428,9 @@ export const MyOrders: React.FC = () => {
                 <h3 className="font-playfair text-xl font-bold text-[#2A0E0A]">
                   M.G. Iyengar Bakery & Chats
                 </h3>
-                <p className="text-[10px] text-[#2C1A17]/60">Mohanur, Namakkal • Phone: +91 {WHATSAPP_PHONE_NUMBER}</p>
+                <p className="text-[10px] text-[#2C1A17]/60">Mohanur, Namakkal • WhatsApp: +91 {settings?.whatsappNumber || WHATSAPP_PHONE_NUMBER}</p>
                 <p className="text-xs font-bold text-[#C9A227] mt-1">
-                  Tax Invoice / Digital Receipt
+                  Order Invoice & Receipt
                 </p>
               </div>
 
@@ -458,9 +442,9 @@ export const MyOrders: React.FC = () => {
                   <p><strong>Phone:</strong> {selectedOrder.phone}</p>
                 </div>
                 <div className="text-right">
-                  <p><strong>Date:</strong> {new Date(selectedOrder.createdDate).toLocaleDateString('en-IN')}</p>
-                  <p><strong>Payment:</strong> {selectedOrder.paymentMethod || 'Online'} ({selectedOrder.paymentStatus})</p>
-                  <p><strong>Type:</strong> {selectedOrder.orderType?.toUpperCase()}</p>
+                  <p><strong>Date:</strong> {selectedOrder.createdDate ? new Date(selectedOrder.createdDate).toLocaleDateString('en-IN') : 'Recent'}</p>
+                  <p><strong>Method:</strong> WhatsApp Order</p>
+                  <p><strong>Type:</strong> {selectedOrder.orderType === 'pickup' ? 'PICKUP' : 'HOME DELIVERY'}</p>
                 </div>
               </div>
 
@@ -492,7 +476,7 @@ export const MyOrders: React.FC = () => {
                   </div>
                 )}
                 <div className="flex justify-between font-black text-sm text-[#2A0E0A] pt-1 border-t border-[#2C1A17]/10">
-                  <span>Total Amount Paid:</span>
+                  <span>Total Amount:</span>
                   <span className="text-[#C9A227]">₹{selectedOrder.amount?.toLocaleString('en-IN')}</span>
                 </div>
               </div>
