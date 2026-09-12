@@ -352,6 +352,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('Profile upsert warning:', profileErr);
         }
 
+        // Broadcast to Realtime channel so Admin Panel receives instant notification without refresh
+        try {
+          const broadcastPayload = {
+            userId: data.user.id,
+            name,
+            phone,
+            email,
+            registeredAt: new Date().toISOString(),
+          };
+          const channel = supabase.channel('admin-customer-events');
+          if (channel.state === 'joined') {
+            channel.send({
+              type: 'broadcast',
+              event: 'new_customer',
+              payload: broadcastPayload,
+            });
+          } else {
+            channel.subscribe((status) => {
+              if (status === 'SUBSCRIBED') {
+                channel.send({
+                  type: 'broadcast',
+                  event: 'new_customer',
+                  payload: broadcastPayload,
+                });
+              }
+            });
+          }
+        } catch (rtErr) {
+          console.warn('Realtime broadcast notice:', rtErr);
+        }
+
         // If session was returned immediately (auto-confirm enabled)
         if (data.session) {
           setUser(data.user);

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminRouter } from '../hooks/useAdminRouter';
 import { supabase } from '../../utils/supabase';
+import { useBakeryDatabase } from '../../context/DatabaseContext';
 import {
   Cake,
   Image as ImageIcon,
@@ -30,6 +32,33 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [adminEmail, setAdminEmail] = useState('admin@mgiyengar.com');
+  const { newCustomerAlert, dismissNewCustomerAlert } = useBakeryDatabase();
+
+  useEffect(() => {
+    // Play alert chime when a new customer registers
+    if (newCustomerAlert) {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(659.25, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        }
+      } catch (e) {
+        // Non-blocking if audio context cannot be initialized
+      }
+    }
+  }, [newCustomerAlert]);
 
   useEffect(() => {
     // Retrieve email from Supabase session
@@ -252,6 +281,87 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           </div>
         </main>
       </div>
+
+      {/* 🔔 INSTANT NEW CUSTOMER NOTIFICATION TOAST */}
+      <AnimatePresence>
+        {newCustomerAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className="fixed top-5 right-5 z-[9999] max-w-sm w-full bg-white rounded-2xl shadow-[0_20px_50px_rgba(42,14,10,0.25)] border-2 border-[#C9A227] overflow-hidden"
+          >
+            {/* Alert Header */}
+            <div className="bg-gradient-to-r from-[#2A0E0A] via-[#401C16] to-[#2A0E0A] text-[#C9A227] px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl animate-bounce">🔔</span>
+                <span className="font-playfair font-bold text-sm tracking-wider uppercase">NEW CUSTOMER</span>
+              </div>
+              <button
+                onClick={dismissNewCustomerAlert}
+                className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors border-none"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Alert Body */}
+            <div className="p-4 space-y-3">
+              <p className="text-xs font-semibold text-[#2C1A17]/70">
+                New customer registered:
+              </p>
+
+              <div className="bg-[#FAF7F2] rounded-xl p-3.5 space-y-2 border border-[#2C1A17]/8">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[#2C1A17]/50 uppercase tracking-wider">Full Name</span>
+                  <span className="text-sm font-bold text-[#2A0E0A]">{newCustomerAlert.name}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[#2C1A17]/50 uppercase tracking-wider">Mobile</span>
+                  <span className="text-sm font-semibold text-[#2A0E0A]">{newCustomerAlert.phone || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[#2C1A17]/50 uppercase tracking-wider">Email</span>
+                  <span className="text-xs font-medium text-[#2C1A17]/80 truncate max-w-[190px]">{newCustomerAlert.email || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[#2C1A17]/50 uppercase tracking-wider">Registration Date</span>
+                  <span className="text-xs text-[#2C1A17]/70">
+                    {new Date(newCustomerAlert.registeredAt).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => {
+                    navigate('/admin/customers');
+                    dismissNewCustomerAlert();
+                  }}
+                  className="flex-1 bg-[#2A0E0A] text-[#C9A227] py-2 px-3 rounded-xl text-xs font-bold hover:bg-[#401C16] transition-colors cursor-pointer text-center border-none"
+                >
+                  View in Customer List →
+                </button>
+                <button
+                  onClick={dismissNewCustomerAlert}
+                  className="px-3 py-2 text-xs font-medium text-[#2C1A17]/60 hover:text-[#2C1A17] bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer border-none"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

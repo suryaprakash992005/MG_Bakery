@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { CATEGORIES as DEFAULT_CATEGORIES } from '../data';
 import { INITIAL_ORDERS, INITIAL_SETTINGS } from '../admin/utils/mockData';
 import { supabase } from '../utils/supabase';
@@ -287,6 +287,52 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<UnifiedSettings>(INITIAL_SETTINGS as any);
   const [history, setHistory] = useState<UnifiedHistoryLog[]>([]);
   const [offers, setOffers] = useState<UnifiedOffer[]>([]);
+  const [newCustomerAlert, setNewCustomerAlert] = useState<CustomerNotification | null>(null);
+  const seenCustomerIds = useRef<Set<string>>(new Set());
+
+  const dismissNewCustomerAlert = () => {
+    setNewCustomerAlert(null);
+  };
+
+  const handleNewCustomer = (customerData: {
+    userId: string;
+    name: string;
+    phone: string;
+    email?: string;
+    registeredAt?: string;
+  }) => {
+    if (!customerData.userId) return;
+    if (seenCustomerIds.current.has(customerData.userId)) return;
+    seenCustomerIds.current.add(customerData.userId);
+
+    const registeredAt = customerData.registeredAt || new Date().toISOString();
+    const newCustomerObj: UnifiedCustomer = {
+      userId: customerData.userId,
+      name: customerData.name || 'Bakery Customer',
+      phone: customerData.phone || '',
+      email: customerData.email || '',
+      registeredAt,
+      totalOrders: 0,
+      totalSpent: 0,
+      avgOrderValue: 0,
+    };
+
+    // Immediately prepend new customer to customer list so Admin Panel updates instantly
+    setCustomers(prev => {
+      if (prev.some(c => c.userId === newCustomerObj.userId)) return prev;
+      return [newCustomerObj, ...prev];
+    });
+
+    // Trigger instant alert notification with all customer information
+    setNewCustomerAlert({
+      id: `alert-${Date.now()}`,
+      userId: customerData.userId,
+      name: customerData.name || 'Bakery Customer',
+      phone: customerData.phone || '',
+      email: customerData.email || '',
+      registeredAt,
+    });
+  };
 
   const fetchSupabaseProducts = async () => {
     try {
@@ -579,6 +625,46 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setOffers(initial);
       localStorage.setItem('admin_offers', JSON.stringify(initial));
     }
+  }, []);
+
+  // Supabase Realtime subscription for instant new customer registration
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-customer-events')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profiles' },
+        (payload: any) => {
+          const row = payload.new;
+          if (row) {
+            handleNewCustomer({
+              userId: row.id,
+              name: row.full_name || row.name || 'Bakery Customer',
+              phone: row.phone || '',
+              email: row.email || '',
+              registeredAt: row.created_at || new Date().toISOString(),
+            });
+          }
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'new_customer' },
+        (payload: any) => {
+          if (payload?.payload) {
+            handleNewCustomer(payload.payload);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[Supabase Realtime] Subscribed to admin-customer-events channel');
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Save utility
@@ -919,6 +1005,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .order('created_at', { ascending: false });
 
       if (!error && data) {
+        data.forEach((row: any) => {
+          if (row.id) seenCustomerIds.current.add(row.id);
+        });
         const mapped: UnifiedCustomer[] = data.map((row: any) => ({
           userId: row.id,
           name: row.full_name || row.name || 'Bakery Customer',
@@ -1334,6 +1423,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addHistoryLog,
         clearHistory,
         fetchCustomers,
+        newCustomerAlert,
+        dismissNewCustomerAlert,
       }}
     >
       {children}

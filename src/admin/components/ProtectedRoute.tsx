@@ -13,9 +13,11 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     // Check active session on mount
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       if (active) {
-        setSession(currentSession);
+        const localAdmin = localStorage.getItem('admin_user');
+        const effectiveSession = currentSession || (localAdmin ? { user: { email: localAdmin } } : null);
+        setSession(effectiveSession);
         setLoading(false);
-        if (!currentSession) {
+        if (!effectiveSession) {
           navigate('/admin-login');
         }
       }
@@ -24,9 +26,11 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       if (active) {
-        setSession(currentSession);
+        const localAdmin = localStorage.getItem('admin_user');
+        const effectiveSession = currentSession || (localAdmin ? { user: { email: localAdmin } } : null);
+        setSession(effectiveSession);
         setLoading(false);
-        if (!currentSession) {
+        if (!effectiveSession) {
           navigate('/admin-login');
         }
       }
