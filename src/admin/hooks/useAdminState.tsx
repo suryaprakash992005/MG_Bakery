@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminProduct, AdminOrder, CustomCakeOrder, AdminCustomer, BakerySettings } from '../types';
 import { useBakeryDatabase } from '../../context/DatabaseContext';
 import {
-  INITIAL_CUSTOM_ORDERS,
-  INITIAL_CUSTOMERS
+  INITIAL_CUSTOM_ORDERS
 } from '../utils/mockData';
 
 interface AdminStateContextType {
@@ -65,10 +64,10 @@ export const AdminStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem('admin_custom_orders', JSON.stringify(INITIAL_CUSTOM_ORDERS));
     }
 
-    if (localCustomers) setCustomers(JSON.parse(localCustomers));
-    else {
-      setCustomers(INITIAL_CUSTOMERS);
-      localStorage.setItem('admin_customers', JSON.stringify(INITIAL_CUSTOMERS));
+    if (localCustomers) {
+      try {
+        setCustomers(JSON.parse(localCustomers));
+      } catch {}
     }
   }, []);
 

@@ -50,6 +50,7 @@ export interface UnifiedOrder {
   customerName: string;
   phone: string;
   customerEmail?: string;
+  email?: string;
   orderType: 'delivery' | 'pickup';
   deliveryAddress?: string;
   streetArea?: string;
@@ -258,7 +259,14 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [gallery, setGallery] = useState<UnifiedGalleryItem[]>([]);
   const [categories, setCategories] = useState<UnifiedCategory[]>([]);
   const [orders, setOrders] = useState<UnifiedOrder[]>([]);
-  const [customers, setCustomers] = useState<UnifiedCustomer[]>([]);
+  const [customers, setCustomers] = useState<UnifiedCustomer[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin_customers');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [banners, setBanners] = useState<UnifiedBanner[]>([]);
   const [heroVideos, setHeroVideos] = useState<UnifiedHeroVideo[]>(() => {
     try {
@@ -301,9 +309,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     email?: string;
     registeredAt?: string;
   }) => {
-    if (!customerData.userId) return;
-    if (seenCustomerIds.current.has(customerData.userId)) return;
-    seenCustomerIds.current.add(customerData.userId);
+    if (!customerData.userId && !customerData.phone) return;
+    if (customerData.userId && seenCustomerIds.current.has(customerData.userId)) return;
+    if (customerData.userId) seenCustomerIds.current.add(customerData.userId);
 
     const registeredAt = customerData.registeredAt || new Date().toISOString();
     const newCustomerObj: UnifiedCustomer = {
@@ -317,10 +325,17 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       avgOrderValue: 0,
     };
 
-    // Immediately prepend new customer to customer list so Admin Panel updates instantly
+    // Immediately prepend new customer to customer list so Admin Panel updates instantly and persists across refresh
     setCustomers(prev => {
-      if (prev.some(c => c.userId === newCustomerObj.userId)) return prev;
-      return [newCustomerObj, ...prev];
+      const cleanP = (newCustomerObj.phone || '').replace(/\D/g, '');
+      if (prev.some(c => c.userId === newCustomerObj.userId || (cleanP && c.phone && c.phone.replace(/\D/g, '') === cleanP))) {
+        return prev;
+      }
+      const updated = [newCustomerObj, ...prev];
+      try {
+        localStorage.setItem('admin_customers', JSON.stringify(updated));
+      } catch {}
+      return updated;
     });
 
     // Trigger instant alert notification with all customer information
@@ -1004,49 +1019,144 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchCustomers = async () => {
     try {
-      const { data, error } = await supabase
+      // 1. Read existing cached customers from localStorage
+      let cached: UnifiedCustomer[] = [];
+      try {
+        const saved = localStorage.getItem('admin_customers');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) cached = parsed;
+        }
+      } catch {}
+
+      // 2. Fetch profiles from Supabase
+      const { data: dbProfiles, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        data.forEach((row: any) => {
-          if (row.id) seenCustomerIds.current.add(row.id);
-        });
+      if (error) {
+        console.warn('Supabase fetch profiles warning:', error.message);
+      }
 
-        // Correlate with orders to dynamically compute orders, spending & avg value
-        const mapped: UnifiedCustomer[] = data.map((row: any) => {
-          const custPhone = (row.phone || '').replace(/\D/g, '');
-          const customerOrders = orders.filter(o =>
-            (o.userId && o.userId === row.id) ||
-            (custPhone && o.phone && o.phone.replace(/\D/g, '') === custPhone)
-          );
+      // Customer map keyed by unique identifiers (uid, phone, email)
+      const customerMap = new Map<string, UnifiedCustomer>();
+      const getCleanPhone = (phone?: string) => (phone || '').replace(/\D/g, '');
 
-          const totalOrders = customerOrders.length || Number(row.total_orders || 0);
-          const totalSpent = customerOrders.reduce((sum, o) => sum + (o.amount || 0), 0) || Number(row.total_spent || 0);
-          const avgOrderValue = totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0;
+      const mergeIntoMap = (cust: Partial<UnifiedCustomer> & { userId?: string; phone?: string; email?: string; name?: string; registeredAt?: string }) => {
+        const uid = cust.userId;
+        const phone = cust.phone || '';
+        const cleanPhone = getCleanPhone(phone);
+        const email = (cust.email || '').trim().toLowerCase();
 
-          const sortedOrders = [...customerOrders].sort((a, b) =>
-            new Date(a.createdDate || '').getTime() - new Date(b.createdDate || '').getTime()
-          );
-          const firstOrderAt = sortedOrders.length > 0 ? sortedOrders[0].createdDate : (row.first_order_at || undefined);
-          const lastOrderAt = sortedOrders.length > 0 ? sortedOrders[sortedOrders.length - 1].createdDate : (row.last_order_at || undefined);
+        // Search for existing entry in map
+        let existing: UnifiedCustomer | undefined;
+        if (uid && customerMap.has(`uid:${uid}`)) {
+          existing = customerMap.get(`uid:${uid}`);
+        } else if (cleanPhone && customerMap.has(`phone:${cleanPhone}`)) {
+          existing = customerMap.get(`phone:${cleanPhone}`);
+        } else if (email && customerMap.has(`email:${email}`)) {
+          existing = customerMap.get(`email:${email}`);
+        }
 
-          return {
+        const merged: UnifiedCustomer = {
+          userId: uid || existing?.userId || `cust-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: cust.name && cust.name !== 'Bakery Customer' ? cust.name : (existing?.name || cust.name || 'Bakery Customer'),
+          phone: phone || existing?.phone || '',
+          email: email || existing?.email || '',
+          registeredAt: cust.registeredAt || existing?.registeredAt || new Date().toISOString(),
+          totalOrders: existing?.totalOrders || 0,
+          totalSpent: existing?.totalSpent || 0,
+          avgOrderValue: existing?.avgOrderValue || 0,
+          firstOrderAt: existing?.firstOrderAt,
+          lastOrderAt: existing?.lastOrderAt,
+        };
+
+        if (uid) seenCustomerIds.current.add(uid);
+
+        // Map by all identifiers
+        if (merged.userId) customerMap.set(`uid:${merged.userId}`, merged);
+        if (cleanPhone) customerMap.set(`phone:${cleanPhone}`, merged);
+        if (email) customerMap.set(`email:${email}`, merged);
+      };
+
+      // Merge current state, localStorage cache, Supabase profiles, and orders
+      customers.forEach(c => mergeIntoMap(c));
+      cached.forEach(c => mergeIntoMap(c));
+
+      if (dbProfiles && Array.isArray(dbProfiles)) {
+        dbProfiles.forEach((row: any) => {
+          mergeIntoMap({
             userId: row.id,
             name: row.full_name || row.name || 'Bakery Customer',
             phone: row.phone || '',
             email: row.email || '',
-            registeredAt: row.created_at || new Date().toISOString(),
-            totalOrders,
-            totalSpent,
-            avgOrderValue,
-            lastOrderAt,
-            firstOrderAt,
-          };
+            registeredAt: row.created_at,
+          });
         });
-        setCustomers(mapped);
       }
+
+      orders.forEach(o => {
+        if (o.customerName || o.phone || o.userId) {
+          mergeIntoMap({
+            userId: o.userId,
+            name: o.customerName,
+            phone: o.phone,
+            email: o.email || o.customerEmail || '',
+            registeredAt: o.createdDate,
+          });
+        }
+      });
+
+      // Deduplicate unique customer objects
+      const uniqueCustomers = Array.from(new Set(customerMap.values()));
+
+      // Correlate with current orders to compute dynamic statistics
+      const finalized: UnifiedCustomer[] = uniqueCustomers.map(c => {
+        const cleanP = getCleanPhone(c.phone);
+        const emailLower = (c.email || '').toLowerCase().trim();
+
+        const custOrders = orders.filter(o => {
+          const orderEmail = (o.email || o.customerEmail || '').toLowerCase().trim();
+          const matchUid = c.userId && o.userId && o.userId === c.userId;
+          const matchPhone = cleanP && o.phone && getCleanPhone(o.phone) === cleanP;
+          const matchEmail = emailLower && orderEmail && orderEmail === emailLower;
+          return matchUid || matchPhone || matchEmail;
+        });
+
+        const totalOrders = custOrders.length > 0 ? custOrders.length : (c.totalOrders || 0);
+        const totalSpent = custOrders.length > 0
+          ? custOrders.reduce((sum, o) => sum + (o.amount || 0), 0)
+          : (c.totalSpent || 0);
+        const avgOrderValue = totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0;
+
+        const sorted = [...custOrders].sort((a, b) =>
+          new Date(a.createdDate || '').getTime() - new Date(b.createdDate || '').getTime()
+        );
+        const firstOrderAt = sorted.length > 0 ? sorted[0].createdDate : c.firstOrderAt;
+        const lastOrderAt = sorted.length > 0 ? sorted[sorted.length - 1].createdDate : c.lastOrderAt;
+
+        return {
+          ...c,
+          totalOrders,
+          totalSpent,
+          avgOrderValue,
+          firstOrderAt,
+          lastOrderAt,
+        };
+      });
+
+      // Sort newest registration or order first
+      finalized.sort((a, b) => {
+        const timeA = new Date(a.registeredAt || 0).getTime();
+        const timeB = new Date(b.registeredAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      setCustomers(finalized);
+      try {
+        localStorage.setItem('admin_customers', JSON.stringify(finalized));
+      } catch {}
     } catch (err) { console.warn('fetchCustomers error:', err); }
   };
 

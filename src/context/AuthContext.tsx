@@ -137,38 +137,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userId: string,
     data: { full_name: string; phone: string; email?: string }
   ): Promise<{ data: CustomerProfile | null; error: string | null }> => {
-    const baseRow = {
+    const baseRow: Record<string, any> = {
       id: userId,
       full_name: data.full_name,
       phone: data.phone,
       email: data.email || '',
-    };
-
-    // Attempt with currency and updated_at
-    const fullRow = {
-      ...baseRow,
-      currency: 'INR',
       updated_at: new Date().toISOString(),
     };
 
     let res = await supabase
       .from('profiles')
-      .upsert([fullRow], { onConflict: 'id' })
+      .upsert([baseRow], { onConflict: 'id' })
       .select()
       .maybeSingle();
 
-    // Fallback if PostgREST schema cache does not have currency or updated_at (PGRST204)
+    // Fallback if updated_at or another column is not present
     if (res.error && (res.error.code === 'PGRST204' || res.error.message?.includes('does not exist'))) {
+      const minRow = {
+        id: userId,
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email || '',
+      };
       res = await supabase
         .from('profiles')
-        .upsert([baseRow], { onConflict: 'id' })
+        .upsert([minRow], { onConflict: 'id' })
         .select()
         .maybeSingle();
     }
 
     if (res.error) {
-      console.error('Error upserting profile in Supabase:', res.error);
-      return { data: null, error: 'Failed to save customer profile to database' };
+      console.warn('Notice upserting profile in Supabase:', res.error.message);
     }
 
     const saved = res.data;
@@ -351,7 +350,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             created_at: new Date().toISOString(),
           };
 
-          // Broadcast to Realtime channel so Admin Panel receives instant notification
+          // Broadcast to Realtime channel and sync to local admin customer cache
           try {
             const broadcastPayload = {
               userId: fallbackId,
@@ -360,6 +359,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email,
               registeredAt: fallbackProfile.created_at,
             };
+
+            // Save to local cache immediately
+            try {
+              const saved = localStorage.getItem('admin_customers');
+              const list = saved ? JSON.parse(saved) : [];
+              const cleanPhone = (phone || '').replace(/\D/g, '');
+              const exists = list.some((c: any) =>
+                (fallbackId && c.userId === fallbackId) ||
+                (cleanPhone && c.phone && c.phone.replace(/\D/g, '') === cleanPhone) ||
+                (email && c.email && c.email.toLowerCase() === email.toLowerCase())
+              );
+              if (!exists) {
+                list.unshift({
+                  userId: fallbackId,
+                  name,
+                  phone,
+                  email,
+                  registeredAt: broadcastPayload.registeredAt,
+                  totalOrders: 0,
+                  totalSpent: 0,
+                  avgOrderValue: 0,
+                });
+                localStorage.setItem('admin_customers', JSON.stringify(list));
+              }
+            } catch {}
+
             const channel = supabase.channel('admin-customer-events');
             if (channel.state === 'joined') {
               channel.send({
@@ -408,7 +433,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('Profile upsert warning:', profileErr);
         }
 
-        // Broadcast to Realtime channel so Admin Panel receives instant notification without refresh
+        // Broadcast to Realtime channel and sync to local admin customer cache
         try {
           const broadcastPayload = {
             userId: data.user.id,
@@ -417,6 +442,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email,
             registeredAt: new Date().toISOString(),
           };
+
+          // Save to local cache immediately
+          try {
+            const saved = localStorage.getItem('admin_customers');
+            const list = saved ? JSON.parse(saved) : [];
+            const cleanPhone = (phone || '').replace(/\D/g, '');
+            const exists = list.some((c: any) =>
+              (data.user?.id && c.userId === data.user.id) ||
+              (cleanPhone && c.phone && c.phone.replace(/\D/g, '') === cleanPhone) ||
+              (email && c.email && c.email.toLowerCase() === email.toLowerCase())
+            );
+            if (!exists) {
+              list.unshift({
+                userId: data.user.id,
+                name,
+                phone,
+                email,
+                registeredAt: broadcastPayload.registeredAt,
+                totalOrders: 0,
+                totalSpent: 0,
+                avgOrderValue: 0,
+              });
+              localStorage.setItem('admin_customers', JSON.stringify(list));
+            }
+          } catch {}
+
           const channel = supabase.channel('admin-customer-events');
           if (channel.state === 'joined') {
             channel.send({
