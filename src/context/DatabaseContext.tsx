@@ -176,6 +176,15 @@ export interface UnifiedOffer {
   description: string;
 }
 
+export interface CustomerNotification {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  email?: string;
+  registeredAt: string;
+}
+
 interface DatabaseContextType {
   products: UnifiedProduct[];
   gallery: UnifiedGalleryItem[];
@@ -238,6 +247,8 @@ interface DatabaseContextType {
 
   // Customer Operations
   fetchCustomers: () => Promise<void>;
+  newCustomerAlert: CustomerNotification | null;
+  dismissNewCustomerAlert: () => void;
 }
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
@@ -526,6 +537,9 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // 6. Load Settings from Supabase
     fetchSettings();
+
+    // 7. Load Customers from Supabase (profiles table)
+    fetchCustomers();
 
     // 9. Load Orders from Supabase (primary source of truth)
     // Async — will update state when loaded
@@ -900,16 +914,22 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchCustomers = async () => {
     try {
       const { data, error } = await supabase
-        .from('customer_stats')
+        .from('profiles')
         .select('*')
-        .order('total_spent', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (!error && data) {
         const mapped: UnifiedCustomer[] = data.map((row: any) => ({
-          userId: row.user_id, name: row.name || '', phone: row.phone || '', email: row.email || '',
-          registeredAt: row.registered_at || '', totalOrders: Number(row.total_orders || 0),
-          totalSpent: Number(row.total_spent || 0), avgOrderValue: Number(row.avg_order_value || 0),
-          lastOrderAt: row.last_order_at || undefined, firstOrderAt: row.first_order_at || undefined,
+          userId: row.id,
+          name: row.full_name || row.name || 'Bakery Customer',
+          phone: row.phone || '',
+          email: row.email || '',
+          registeredAt: row.created_at || new Date().toISOString(),
+          totalOrders: Number(row.total_orders || 0),
+          totalSpent: Number(row.total_spent || 0),
+          avgOrderValue: Number(row.total_orders ? (Number(row.total_spent || 0) / Number(row.total_orders)) : 0),
+          lastOrderAt: row.last_order_at || undefined,
+          firstOrderAt: row.first_order_at || undefined,
         }));
         setCustomers(mapped);
       }
