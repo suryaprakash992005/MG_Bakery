@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { CATEGORIES as DEFAULT_CATEGORIES } from '../data';
-import { INITIAL_ORDERS, INITIAL_SETTINGS } from '../admin/utils/mockData';
+import { INITIAL_SETTINGS } from '../admin/utils/mockData';
 import { supabase } from '../utils/supabase';
 
 export interface UnifiedProduct {
@@ -112,6 +112,44 @@ export interface UnifiedCustomer {
   lastOrderAt?: string;
   firstOrderAt?: string;
 }
+
+export const MOCK_CUSTOMER_NAMES = new Set([
+  'Rajesh Kumar',
+  'Priya Hari',
+  'Ananth Krishnan',
+  'Sivagami Sundaram',
+  'Murugan Thangavel',
+  'Deepa Subramaniam',
+  'Karthikeyan K',
+  'Suresh Raina',
+  'Meena Srinivasan'
+]);
+
+export const isMockCustomer = (c: any): boolean => {
+  if (!c) return false;
+  if (typeof c.userId === 'string' && (c.userId.startsWith('C-') || c.userId.startsWith('mock-'))) return true;
+  if (typeof (c as any).id === 'string' && ((c as any).id.startsWith('C-') || (c as any).id.startsWith('mock-'))) return true;
+  if (c.name && MOCK_CUSTOMER_NAMES.has(c.name.trim())) {
+    const p10 = (c.phone || '').replace(/\D/g, '').slice(-10);
+    if (!p10 || ['9845012345', '9043255677', '9444098765', '8870144556', '9994033221', '7373066889', '9488011223', '9789044332', '9655088776'].includes(p10)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const isMockOrder = (o: any): boolean => {
+  if (!o) return false;
+  if (typeof o.id === 'string' && (o.id.startsWith('ORD-20') || o.id.startsWith('mock-'))) return true;
+  if (typeof o.orderNumber === 'string' && (o.orderNumber.includes('203') || o.orderNumber.includes('202'))) return true;
+  if (o.customerName && MOCK_CUSTOMER_NAMES.has(o.customerName.trim())) {
+    const p10 = (o.phone || '').replace(/\D/g, '').slice(-10);
+    if (!p10 || ['9845012345', '9043255677', '9444098765', '8870144556', '9994033221', '7373066889', '9488011223', '9789044332', '9655088776'].includes(p10)) {
+      return true;
+    }
+  }
+  return false;
+};
 
 export interface UnifiedHeroVideo {
   id: string;
@@ -258,11 +296,30 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [products, setProducts] = useState<UnifiedProduct[]>([]);
   const [gallery, setGallery] = useState<UnifiedGalleryItem[]>([]);
   const [categories, setCategories] = useState<UnifiedCategory[]>([]);
-  const [orders, setOrders] = useState<UnifiedOrder[]>([]);
+  const [orders, setOrders] = useState<UnifiedOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(o => !isMockOrder(o));
+        }
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
   const [customers, setCustomers] = useState<UnifiedCustomer[]>(() => {
     try {
       const saved = localStorage.getItem('admin_customers');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(c => !isMockCustomer(c));
+        }
+      }
+      return [];
     } catch {
       return [];
     }
@@ -309,14 +366,19 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     email?: string;
     registeredAt?: string;
   }) => {
-    if (!customerData.userId && !customerData.phone) return;
+    if (!customerData.userId && !customerData.phone && !customerData.email) return;
     if (customerData.userId && seenCustomerIds.current.has(customerData.userId)) return;
+
+    const cleanPhone = (customerData.phone || '').replace(/\D/g, '');
+    const p10 = cleanPhone.slice(-10);
+    const emailLower = (customerData.email || '').trim().toLowerCase();
+
     if (customerData.userId) seenCustomerIds.current.add(customerData.userId);
 
     const registeredAt = customerData.registeredAt || new Date().toISOString();
     const newCustomerObj: UnifiedCustomer = {
-      userId: customerData.userId,
-      name: customerData.name || 'Bakery Customer',
+      userId: customerData.userId || (p10 ? `cust_${p10}` : `cust_${Date.now()}`),
+      name: customerData.name && customerData.name !== 'Bakery Customer' ? customerData.name : 'Bakery Customer',
       phone: customerData.phone || '',
       email: customerData.email || '',
       registeredAt,
@@ -325,13 +387,17 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       avgOrderValue: 0,
     };
 
-    // Immediately prepend new customer to customer list so Admin Panel updates instantly and persists across refresh
+    // Immediately update customer list while strictly preventing duplicates and removing mocks
     setCustomers(prev => {
-      const cleanP = (newCustomerObj.phone || '').replace(/\D/g, '');
-      if (prev.some(c => c.userId === newCustomerObj.userId || (cleanP && c.phone && c.phone.replace(/\D/g, '') === cleanP))) {
-        return prev;
+      const alreadyExists = prev.some(c =>
+        (newCustomerObj.userId && c.userId === newCustomerObj.userId) ||
+        (p10 && p10.length === 10 && (c.phone || '').replace(/\D/g, '').slice(-10) === p10) ||
+        (emailLower && (c.email || '').trim().toLowerCase() === emailLower)
+      );
+      if (alreadyExists) {
+        return prev.filter(c => !isMockCustomer(c));
       }
-      const updated = [newCustomerObj, ...prev];
+      const updated = [newCustomerObj, ...prev.filter(c => !isMockCustomer(c))];
       try {
         localStorage.setItem('admin_customers', JSON.stringify(updated));
       } catch {}
@@ -342,7 +408,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setNewCustomerAlert({
       id: `alert-${Date.now()}`,
       userId: customerData.userId,
-      name: customerData.name || 'Bakery Customer',
+      name: newCustomerObj.name,
       phone: customerData.phone || '',
       email: customerData.email || '',
       registeredAt,
@@ -558,39 +624,21 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       localStorage.setItem('admin_categories', JSON.stringify(initial));
     }
 
-    // 4. Load Orders
+    // 4. Load Orders (Purge any mock orders; real orders only)
     const localOrders = localStorage.getItem('admin_orders');
     if (localOrders) {
-      setOrders(JSON.parse(localOrders));
+      try {
+        const parsed = JSON.parse(localOrders);
+        const valid = Array.isArray(parsed) ? parsed.filter(o => !isMockOrder(o)) : [];
+        setOrders(valid);
+        localStorage.setItem('admin_orders', JSON.stringify(valid));
+      } catch {
+        setOrders([]);
+        localStorage.setItem('admin_orders', JSON.stringify([]));
+      }
     } else {
-      const initial: UnifiedOrder[] = INITIAL_ORDERS.map((o) => ({
-        id: o.id,
-        orderNumber: `#MG-${o.id.slice(-6)}`,
-        customerName: o.customerName,
-        phone: o.phone,
-        orderType: 'delivery',
-        deliveryAddress: o.deliveryAddress,
-        deliveryFee: 40,
-        subtotal: o.amount,
-        orderedProduct: o.orderedProduct,
-        amount: o.amount,
-        paymentMethod: o.paymentMethod,
-        paymentStatus: o.paymentStatus as any,
-        orderStatus: o.orderStatus as any,
-        createdDate: o.createdDate,
-        items: [
-          {
-            id: `item-${Date.now()}`,
-            name: o.orderedProduct,
-            productName: o.orderedProduct,
-            selectedWeight: 'Standard',
-            price: o.amount / o.quantity,
-            quantity: o.quantity
-          }
-        ]
-      }));
-      setOrders(initial);
-      localStorage.setItem('admin_orders', JSON.stringify(initial));
+      setOrders([]);
+      localStorage.setItem('admin_orders', JSON.stringify([]));
     }
 
     // 5. Load Banners from Supabase
@@ -1019,122 +1067,154 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchCustomers = async () => {
     try {
-      // 1. Read existing cached customers from localStorage
+      // 1. Read existing cached customers from localStorage (filter out any mock accounts)
       let cached: UnifiedCustomer[] = [];
       try {
         const saved = localStorage.getItem('admin_customers');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) cached = parsed;
+          if (Array.isArray(parsed)) cached = parsed.filter(c => !isMockCustomer(c));
         }
       } catch {}
 
-      // 2. Fetch profiles from Supabase
-      const { data: dbProfiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // 2. Read registered accounts from localStorage (mg_customer_accounts)
+      let localAccounts: any[] = [];
+      try {
+        const savedAccs = localStorage.getItem('mg_customer_accounts');
+        if (savedAccs) {
+          const parsed = JSON.parse(savedAccs);
+          if (Array.isArray(parsed)) localAccounts = parsed;
+        }
+      } catch {}
 
-      if (error) {
-        console.warn('Supabase fetch profiles warning:', error.message);
+      // 3. Fetch profiles from Supabase
+      let dbProfiles: any[] = [];
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data) dbProfiles = data;
+      } catch (e) {
+        console.warn('Supabase fetch profiles warning:', e);
       }
 
-      // Customer map keyed by unique identifiers (uid, phone, email)
+      // Customer map keyed by canonical identifiers (uid, 10-digit phone, lowercase email)
       const customerMap = new Map<string, UnifiedCustomer>();
-      const getCleanPhone = (phone?: string) => (phone || '').replace(/\D/g, '');
+      const getP10 = (phone?: string) => (phone || '').replace(/\D/g, '').slice(-10);
 
-      const mergeIntoMap = (cust: Partial<UnifiedCustomer> & { userId?: string; phone?: string; email?: string; name?: string; registeredAt?: string }) => {
+      const mergeIntoMap = (cust: {
+        userId?: string;
+        name?: string;
+        phone?: string;
+        email?: string;
+        registeredAt?: string;
+        totalOrders?: number;
+        totalSpent?: number;
+        avgOrderValue?: number;
+      }) => {
+        if (isMockCustomer(cust)) return;
+
         const uid = cust.userId;
-        const phone = cust.phone || '';
-        const cleanPhone = getCleanPhone(phone);
+        const phone = (cust.phone || '').trim();
+        const p10 = getP10(phone);
         const email = (cust.email || '').trim().toLowerCase();
 
         // Search for existing entry in map
         let existing: UnifiedCustomer | undefined;
         if (uid && customerMap.has(`uid:${uid}`)) {
           existing = customerMap.get(`uid:${uid}`);
-        } else if (cleanPhone && customerMap.has(`phone:${cleanPhone}`)) {
-          existing = customerMap.get(`phone:${cleanPhone}`);
+        } else if (p10 && p10.length === 10 && customerMap.has(`phone:${p10}`)) {
+          existing = customerMap.get(`phone:${p10}`);
         } else if (email && customerMap.has(`email:${email}`)) {
           existing = customerMap.get(`email:${email}`);
         }
 
+        // Determine best name
+        let resolvedName = cust.name?.trim() || '';
+        if (!resolvedName || resolvedName === 'Bakery Customer') {
+          resolvedName = existing?.name && existing.name !== 'Bakery Customer' ? existing.name : (resolvedName || 'Bakery Customer');
+        }
+
         const merged: UnifiedCustomer = {
-          userId: uid || existing?.userId || `cust-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          name: cust.name && cust.name !== 'Bakery Customer' ? cust.name : (existing?.name || cust.name || 'Bakery Customer'),
+          userId: uid || existing?.userId || (p10 ? `cust_${p10}` : `cust_${Date.now()}`),
+          name: resolvedName,
           phone: phone || existing?.phone || '',
           email: email || existing?.email || '',
           registeredAt: cust.registeredAt || existing?.registeredAt || new Date().toISOString(),
-          totalOrders: existing?.totalOrders || 0,
-          totalSpent: existing?.totalSpent || 0,
-          avgOrderValue: existing?.avgOrderValue || 0,
+          totalOrders: existing?.totalOrders || cust.totalOrders || 0,
+          totalSpent: existing?.totalSpent || cust.totalSpent || 0,
+          avgOrderValue: existing?.avgOrderValue || cust.avgOrderValue || 0,
           firstOrderAt: existing?.firstOrderAt,
           lastOrderAt: existing?.lastOrderAt,
         };
 
-        if (uid) seenCustomerIds.current.add(uid);
+        if (merged.userId) seenCustomerIds.current.add(merged.userId);
 
-        // Map by all identifiers
+        // Map by all identifiers so future lookups find this exact object
         if (merged.userId) customerMap.set(`uid:${merged.userId}`, merged);
-        if (cleanPhone) customerMap.set(`phone:${cleanPhone}`, merged);
+        if (p10 && p10.length === 10) customerMap.set(`phone:${p10}`, merged);
         if (email) customerMap.set(`email:${email}`, merged);
       };
 
-      // Merge current state, localStorage cache, Supabase profiles, and orders
-      customers.forEach(c => mergeIntoMap(c));
+      // Ingest profiles from Supabase first
+      dbProfiles.forEach(row => {
+        mergeIntoMap({
+          userId: row.id,
+          name: row.full_name || row.name || 'Bakery Customer',
+          phone: row.phone || '',
+          email: row.email || '',
+          registeredAt: row.created_at,
+        });
+      });
+
+      // Ingest registered customer accounts
+      localAccounts.forEach(acc => {
+        mergeIntoMap({
+          userId: acc.id,
+          name: acc.name,
+          phone: acc.phone,
+          email: acc.email,
+          registeredAt: acc.registeredAt,
+        });
+      });
+
+      // Ingest cached customers
       cached.forEach(c => mergeIntoMap(c));
 
-      if (dbProfiles && Array.isArray(dbProfiles)) {
-        dbProfiles.forEach((row: any) => {
-          mergeIntoMap({
-            userId: row.id,
-            name: row.full_name || row.name || 'Bakery Customer',
-            phone: row.phone || '',
-            email: row.email || '',
-            registeredAt: row.created_at,
-          });
-        });
-      }
-
-      orders.forEach(o => {
-        if (o.customerName || o.phone || o.userId) {
-          mergeIntoMap({
-            userId: o.userId,
-            name: o.customerName,
-            phone: o.phone,
-            email: o.email || o.customerEmail || '',
-            registeredAt: o.createdDate,
-          });
-        }
-      });
+      // Note: We DO NOT synthesize customers from orders!
+      // This guarantees zero duplicate rows.
 
       // Deduplicate unique customer objects
       const uniqueCustomers = Array.from(new Set(customerMap.values()));
 
-      // Correlate with current orders to compute dynamic statistics
-      const finalized: UnifiedCustomer[] = uniqueCustomers.map(c => {
-        const cleanP = getCleanPhone(c.phone);
-        const emailLower = (c.email || '').toLowerCase().trim();
+      // Compute statistics from actual non-mock orders
+      const realOrders = orders.filter(o => !isMockOrder(o));
 
-        const custOrders = orders.filter(o => {
-          const orderEmail = (o.email || o.customerEmail || '').toLowerCase().trim();
-          const matchUid = c.userId && o.userId && o.userId === c.userId;
-          const matchPhone = cleanP && o.phone && getCleanPhone(o.phone) === cleanP;
-          const matchEmail = emailLower && orderEmail && orderEmail === emailLower;
+      const finalized: UnifiedCustomer[] = uniqueCustomers.map(c => {
+        const cPhone10 = getP10(c.phone);
+        const cEmailLower = (c.email || '').toLowerCase().trim();
+
+        const custOrders = realOrders.filter(o => {
+          const ordPhone10 = getP10(o.phone);
+          const ordEmailLower = (o.customerEmail || o.email || '').toLowerCase().trim();
+
+          const matchUid = Boolean(c.userId && o.userId && o.userId === c.userId);
+          const matchPhone = Boolean(cPhone10 && cPhone10.length === 10 && ordPhone10 === cPhone10);
+          const matchEmail = Boolean(cEmailLower && ordEmailLower && ordEmailLower === cEmailLower);
+
           return matchUid || matchPhone || matchEmail;
         });
 
-        const totalOrders = custOrders.length > 0 ? custOrders.length : (c.totalOrders || 0);
-        const totalSpent = custOrders.length > 0
-          ? custOrders.reduce((sum, o) => sum + (o.amount || 0), 0)
-          : (c.totalSpent || 0);
+        const totalOrders = custOrders.length;
+        const totalSpent = custOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
         const avgOrderValue = totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0;
 
         const sorted = [...custOrders].sort((a, b) =>
           new Date(a.createdDate || '').getTime() - new Date(b.createdDate || '').getTime()
         );
-        const firstOrderAt = sorted.length > 0 ? sorted[0].createdDate : c.firstOrderAt;
-        const lastOrderAt = sorted.length > 0 ? sorted[sorted.length - 1].createdDate : c.lastOrderAt;
+        const firstOrderAt = sorted.length > 0 ? sorted[0].createdDate : undefined;
+        const lastOrderAt = sorted.length > 0 ? sorted[sorted.length - 1].createdDate : undefined;
 
         return {
           ...c,
@@ -1146,7 +1226,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
       });
 
-      // Sort newest registration or order first
+      // Sort newest registration first
       finalized.sort((a, b) => {
         const timeA = new Date(a.registeredAt || 0).getTime();
         const timeB = new Date(b.registeredAt || 0).getTime();
@@ -1239,30 +1319,39 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.warn('Notice syncing order to Supabase:', err);
     }
 
-    const updated = [newOrder, ...orders];
+    const updated = [newOrder, ...orders.filter(o => !isMockOrder(o))];
     setOrders(updated);
     syncToLocal('admin_orders', updated);
 
     // Update customer spending statistics in memory immediately
     if (newOrder.userId || newOrder.phone) {
-      const pClean = (newOrder.phone || '').replace(/\D/g, '');
-      setCustomers(prev => prev.map(c => {
-        const matches = (newOrder.userId && c.userId === newOrder.userId) ||
-          (pClean && c.phone && c.phone.replace(/\D/g, '') === pClean);
-        if (matches) {
-          const newTotalOrders = c.totalOrders + 1;
-          const newTotalSpent = c.totalSpent + (newOrder.amount || 0);
-          return {
-            ...c,
-            totalOrders: newTotalOrders,
-            totalSpent: newTotalSpent,
-            avgOrderValue: Math.round(newTotalSpent / newTotalOrders),
-            lastOrderAt: newOrder.createdDate,
-            firstOrderAt: c.firstOrderAt || newOrder.createdDate,
-          };
-        }
-        return c;
-      }));
+      const pClean = (newOrder.phone || '').replace(/\D/g, '').slice(-10);
+      setCustomers(prev => {
+        const next = prev.map(c => {
+          const cPhone10 = (c.phone || '').replace(/\D/g, '').slice(-10);
+          const matches = Boolean(
+            (newOrder.userId && c.userId === newOrder.userId) ||
+            (pClean && pClean.length === 10 && cPhone10 === pClean)
+          );
+          if (matches) {
+            const newTotalOrders = c.totalOrders + 1;
+            const newTotalSpent = c.totalSpent + (newOrder.amount || 0);
+            return {
+              ...c,
+              totalOrders: newTotalOrders,
+              totalSpent: newTotalSpent,
+              avgOrderValue: Math.round(newTotalSpent / newTotalOrders),
+              lastOrderAt: newOrder.createdDate,
+              firstOrderAt: c.firstOrderAt || newOrder.createdDate,
+            };
+          }
+          return c;
+        });
+        try {
+          localStorage.setItem('admin_customers', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
     }
 
     addHistoryLog(`New Order: ${newOrder.orderNumber}`, `Customer: ${newOrder.customerName} | ₹${newOrder.amount} | ${newOrder.orderType}`);

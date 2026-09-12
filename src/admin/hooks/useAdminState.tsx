@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminProduct, AdminOrder, CustomCakeOrder, AdminCustomer, BakerySettings } from '../types';
-import { useBakeryDatabase } from '../../context/DatabaseContext';
+import { useBakeryDatabase, isMockCustomer } from '../../context/DatabaseContext';
 import {
   INITIAL_CUSTOM_ORDERS
 } from '../utils/mockData';
@@ -66,7 +66,10 @@ export const AdminStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     if (localCustomers) {
       try {
-        setCustomers(JSON.parse(localCustomers));
+        const parsed = JSON.parse(localCustomers);
+        if (Array.isArray(parsed)) {
+          setCustomers(parsed.filter((c: any) => !isMockCustomer(c)));
+        }
       } catch {}
     }
   }, []);

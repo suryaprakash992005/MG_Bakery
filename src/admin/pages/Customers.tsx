@@ -15,7 +15,7 @@ import {
   ChevronRight,
   RefreshCw
 } from 'lucide-react';
-import { useBakeryDatabase, UnifiedCustomer, UnifiedOrder } from '../../context/DatabaseContext';
+import { useBakeryDatabase, UnifiedCustomer, UnifiedOrder, isMockCustomer } from '../../context/DatabaseContext';
 
 interface CustomerDetailModalProps {
   customer: UnifiedCustomer;
@@ -163,7 +163,9 @@ export const Customers: React.FC = () => {
     loadData();
   }, []);
 
-  const filtered = customers.filter(c => {
+  const validCustomers = customers.filter(c => !isMockCustomer(c));
+
+  const filtered = validCustomers.filter(c => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -174,15 +176,15 @@ export const Customers: React.FC = () => {
   });
 
   // Stats
-  const totalCustomers = customers.length;
-  const thisMonth = customers.filter(c => {
+  const totalCustomers = validCustomers.length;
+  const thisMonth = validCustomers.filter(c => {
     if (!c.registeredAt) return false;
     const d = new Date(c.registeredAt);
     const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
-  const returning = customers.filter(c => c.totalOrders > 1).length;
-  const topSpender = customers[0];
+  const returning = validCustomers.filter(c => c.totalOrders > 1).length;
+  const topSpender = validCustomers[0];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 min-h-screen bg-[#FAF6F0]">
@@ -275,7 +277,7 @@ export const Customers: React.FC = () => {
           <div className="divide-y divide-[#2C1A17]/6">
             {filtered.map((customer, idx) => (
               <motion.div
-                key={customer.userId}
+                key={customer.userId || customer.phone || `cust-${idx}`}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}

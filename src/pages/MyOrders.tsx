@@ -5,7 +5,7 @@ import {
   ArrowRight, RotateCcw, MessageCircle, FileText,
   MapPin, Sparkles, ChevronRight, Package, Store, Home as HomeIcon
 } from 'lucide-react';
-import { useBakeryDatabase, UnifiedOrder } from '../context/DatabaseContext';
+import { useBakeryDatabase, UnifiedOrder, isMockOrder } from '../context/DatabaseContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -18,7 +18,7 @@ export const MyOrders: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const initialSearchPhone = searchParams.get('phone') || profile?.phone || '';
+  const initialSearchPhone = searchParams.get('phone') || '';
   const initialSearchOrder = searchParams.get('order') || '';
 
   const [searchPhone, setSearchPhone] = useState(initialSearchPhone);
@@ -29,24 +29,44 @@ export const MyOrders: React.FC = () => {
 
   // Filter orders matching current phone or user
   const matchingOrders = useMemo(() => {
-    const p = searchPhone.trim().replace(/\D/g, '');
+    const pRaw = searchPhone.trim();
+    const pDigits = pRaw.replace(/\D/g, '');
+    const p10 = pDigits.slice(-10);
     const o = searchOrderNum.trim().toLowerCase();
 
-    return orders.filter(ord => {
-      const matchPhone = p ? ord.phone?.includes(p) : false;
-      const matchOrder = o ? ord.orderNumber?.toLowerCase().includes(o) || ord.id?.toLowerCase().includes(o) : false;
+    // Clean user phone (10 digits)
+    const userPhone10 = profile?.phone ? profile.phone.replace(/\D/g, '').slice(-10) : '';
+    const userEmailLower = (user?.email || profile?.email || '').toLowerCase().trim();
 
-      if (p && o) return matchPhone && matchOrder;
-      if (p) return matchPhone;
+    // Filter out any mock orders completely
+    const validOrders = orders.filter(ord => !isMockOrder(ord));
+
+    return validOrders.filter(ord => {
+      const ordPhone10 = ord.phone ? ord.phone.replace(/\D/g, '').slice(-10) : '';
+      const ordEmailLower = (ord.customerEmail || ord.email || '').toLowerCase().trim();
+      const ordNumLower = (ord.orderNumber || '').toLowerCase();
+      const ordIdLower = (ord.id || '').toLowerCase();
+
+      // If user typed an order number
+      const matchOrder = o ? ordNumLower.includes(o) || ordIdLower.includes(o) : false;
+      // If user typed a search phone
+      const matchSearchPhone = p10 ? (ordPhone10 === p10 || (pDigits.length >= 4 && ordPhone10.includes(pDigits))) : false;
+
+      // When search inputs are provided:
+      if (p10 && o) return matchSearchPhone && matchOrder;
+      if (p10) return matchSearchPhone;
       if (o) return matchOrder;
 
-      // Default: match logged in user id or user phone if any
-      if (user?.id && ((ord as any).userId === user.id || (ord as any).user_id === user.id)) {
-        return true;
+      // Default when no search query is typed:
+      // If customer is logged in, ONLY show orders that strictly belong to this customer
+      if (user?.id) {
+        const matchUid = Boolean(ord.userId && (ord.userId === user.id || (ord as any).user_id === user.id));
+        const matchPhone = Boolean(userPhone10 && userPhone10.length === 10 && ordPhone10 === userPhone10);
+        const matchEmail = Boolean(userEmailLower && ordEmailLower && ordEmailLower === userEmailLower);
+        return matchUid || matchPhone || matchEmail;
       }
-      if (profile?.phone) {
-        return ord.phone?.includes(profile.phone.replace(/\D/g, ''));
-      }
+
+      // Guest not logged in and no search filter:
       return false;
     }).sort((a, b) => new Date(b.createdDate || '').getTime() - new Date(a.createdDate || '').getTime());
   }, [orders, searchPhone, searchOrderNum, profile, user]);
@@ -137,9 +157,7 @@ export const MyOrders: React.FC = () => {
             </div>
 
             <button
-              onClick={() => {
-                if (profile?.phone) setSearchPhone(profile.phone);
-              }}
+              type="button"
               className="bg-[#2A0E0A] hover:bg-[#401C16] text-[#C9A227] font-bold py-3 px-6 rounded-2xl text-xs cursor-pointer transition-all flex items-center justify-center gap-2"
             >
               <Search className="w-4 h-4" />
