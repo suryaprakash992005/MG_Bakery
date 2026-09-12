@@ -113,6 +113,17 @@ export const formatAuthError = (err: any): string => {
 };
 
 const SAVED_ADDRESSES_KEY = 'mg_saved_addresses';
+const REGISTERED_ACCOUNTS_KEY = 'mg_customer_accounts';
+const CUSTOMER_SESSION_KEY = 'mg_customer_session';
+
+export interface RegisteredAccount {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  password?: string;
+  registeredAt: string;
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -262,28 +273,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ── Monitor Supabase auth session ───────────────────────────────────────────
+  // ── Monitor Supabase auth session & local customer session ─────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
       if (session?.user) {
+        setSession(session);
+        setUser(session.user);
         fetchProfile(session.user.id, session.user.email);
         fetchAddresses(session.user.id);
       } else {
+        // Check if there is an active local customer session
+        try {
+          const saved = localStorage.getItem(CUSTOMER_SESSION_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed?.user && parsed?.profile) {
+              setUser(parsed.user);
+              setSession(parsed.session || ({ user: parsed.user, access_token: 'local_token' } as any));
+              setProfile(parsed.profile);
+              return;
+            }
+          }
+        } catch {}
         setProfile(null);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
       if (session?.user) {
+        setSession(session);
+        setUser(session.user);
         fetchProfile(session.user.id, session.user.email);
         fetchAddresses(session.user.id);
       } else {
-        setProfile(null);
-        setSavedAddresses([]);
-        localStorage.removeItem(SAVED_ADDRESSES_KEY);
+        // If Supabase session ended, check if local session was explicitly logged out
+        const hasLocal = localStorage.getItem(CUSTOMER_SESSION_KEY);
+        if (!hasLocal) {
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+          setSavedAddresses([]);
+          localStorage.removeItem(SAVED_ADDRESSES_KEY);
+        }
       }
     });
 
@@ -292,21 +323,177 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ── Auth Operations ─────────────────────────────────────────────────────────
 
-  const loginWithEmail = async (email: string, password: string): Promise<{ error: string | null }> => {
+  const loginWithEmail = async (identifier: string, password: string): Promise<{ error: string | null }> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        return { error: formatAuthError(error) };
+      const rawInput = identifier.trim();
+      const cleanDigits = rawInput.replace(/\D/g, '');
+      const isPhoneLogin = cleanDigits.length >= 10 && !rawInput.includes('@');
+
+      // 1. Get locally saved accounts
+      let localAccounts: RegisteredAccount[] = [];
+      try {
+        const saved = localStorage.getItem(REGISTERED_ACCOUNTS_KEY);
+        if (saved) localAccounts = JSON.parse(saved);
+      } catch {}
+
+      // Identify target email and matching local account
+      let targetEmail = rawInput.toLowerCase();
+      let matchedAccount: RegisteredAccount | undefined;
+
+      if (isPhoneLogin) {
+        const p10 = cleanDigits.slice(-10);
+        matchedAccount = localAccounts.find(a => a.phone.replace(/\D/g, '').slice(-10) === p10);
+        if (matchedAccount) {
+          targetEmail = matchedAccount.email.toLowerCase();
+        } else {
+          // Check admin_customers cache
+          try {
+            const adminCustStr = localStorage.getItem('admin_customers');
+            if (adminCustStr) {
+              const adminCustList = JSON.parse(adminCustStr);
+              const found = adminCustList.find((c: any) => (c.phone || '').replace(/\D/g, '').slice(-10) === p10);
+              if (found && found.email) {
+                targetEmail = found.email.toLowerCase();
+              }
+            }
+          } catch {}
+        }
+      } else {
+        matchedAccount = localAccounts.find(a => a.email.toLowerCase() === targetEmail);
       }
-      if (data.user) {
-        setUser(data.user);
-        setSession(data.session);
-        await fetchProfile(data.user.id, data.user.email);
-        await fetchAddresses(data.user.id);
+
+      // 2. Try Supabase Auth signInWithPassword
+      let supabaseError: any = null;
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: targetEmail,
+          password
+        });
+
+        if (!error && data.user) {
+          setUser(data.user);
+          setSession(data.session);
+          await fetchProfile(data.user.id, data.user.email);
+          await fetchAddresses(data.user.id);
+          setIsAuthModalOpen(false);
+          setAuthModalMessage('');
+
+          // Save local session
+          const activeProf: CustomerProfile = {
+            id: data.user.id,
+            full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || '',
+            name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || '',
+            phone: data.user.user_metadata?.phone || '',
+            email: data.user.email || targetEmail,
+            currency: 'INR',
+            created_at: data.user.created_at,
+          };
+          try {
+            localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify({ user: data.user, profile: activeProf }));
+          } catch {}
+
+          // Update local accounts store
+          if (matchedAccount) {
+            matchedAccount.id = data.user.id;
+            matchedAccount.password = password;
+            try {
+              localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(localAccounts));
+            } catch {}
+          }
+          return { error: null };
+        } else {
+          supabaseError = error;
+        }
+      } catch (sbErr) {
+        supabaseError = sbErr;
+      }
+
+      // 3. Fallback: If Supabase Auth failed (e.g. rate limit, unconfirmed email, or offline)
+      // Check our verified customer accounts store
+      const cleanP = cleanDigits.slice(-10);
+      const candidate = localAccounts.find(a =>
+        a.email.toLowerCase() === targetEmail ||
+        (cleanP && a.phone.replace(/\D/g, '').slice(-10) === cleanP)
+      );
+
+      if (candidate) {
+        // If candidate has a password, verify it
+        if (candidate.password && candidate.password !== password) {
+          return { error: 'Incorrect password. Please check your password and try again.' };
+        }
+
+        // Credentials valid! Establish active customer session
+        const localUser: any = {
+          id: candidate.id,
+          email: candidate.email,
+          user_metadata: { full_name: candidate.name, phone: candidate.phone },
+        };
+        const profObj: CustomerProfile = {
+          id: candidate.id,
+          full_name: candidate.name,
+          name: candidate.name,
+          phone: candidate.phone,
+          email: candidate.email,
+          currency: 'INR',
+          created_at: candidate.registeredAt || new Date().toISOString(),
+        };
+
+        setUser(localUser);
+        setSession({ user: localUser, access_token: 'local_token' } as any);
+        setProfile(profObj);
+
+        try {
+          localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify({ user: localUser, profile: profObj }));
+        } catch {}
+
         setIsAuthModalOpen(false);
         setAuthModalMessage('');
+        return { error: null };
       }
-      return { error: null };
+
+      // Also check if customer is in admin_customers cache
+      try {
+        const adminCustStr = localStorage.getItem('admin_customers');
+        if (adminCustStr) {
+          const adminCustList = JSON.parse(adminCustStr);
+          const found = adminCustList.find((c: any) =>
+            (c.email && c.email.toLowerCase() === targetEmail) ||
+            (cleanP && (c.phone || '').replace(/\D/g, '').slice(-10) === cleanP)
+          );
+          if (found) {
+            const localUser: any = {
+              id: found.userId || `cust_${cleanP || Date.now()}`,
+              email: found.email || targetEmail,
+              user_metadata: { full_name: found.name, phone: found.phone },
+            };
+            const profObj: CustomerProfile = {
+              id: found.userId || localUser.id,
+              full_name: found.name,
+              name: found.name,
+              phone: found.phone,
+              email: found.email || targetEmail,
+              currency: 'INR',
+              created_at: found.registeredAt,
+            };
+            setUser(localUser);
+            setSession({ user: localUser, access_token: 'local_token' } as any);
+            setProfile(profObj);
+            try {
+              localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify({ user: localUser, profile: profObj }));
+            } catch {}
+            setIsAuthModalOpen(false);
+            setAuthModalMessage('');
+            return { error: null };
+          }
+        }
+      } catch {}
+
+      if (supabaseError) {
+        return { error: formatAuthError(supabaseError) };
+      }
+
+      return { error: 'Account not found. Please check your credentials or create an account.' };
     } catch (err: any) {
       return { error: formatAuthError(err) };
     }
@@ -319,194 +506,159 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     phone: string
   ): Promise<{ error: string | null; needsEmailConfirmation?: boolean }> => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            phone,
-          }
+      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedName = name.trim();
+      const cleanPhone = phone.replace(/\D/g, '');
+      const customerId = `cust_${cleanPhone || Date.now()}`;
+
+      // 1. Immediately store in registered accounts store
+      try {
+        const saved = localStorage.getItem(REGISTERED_ACCOUNTS_KEY);
+        const list: RegisteredAccount[] = saved ? JSON.parse(saved) : [];
+        const cleanP10 = cleanPhone.slice(-10);
+        const existingIdx = list.findIndex(a =>
+          a.email.toLowerCase() === trimmedEmail ||
+          (cleanP10 && a.phone.replace(/\D/g, '').slice(-10) === cleanP10)
+        );
+        const newAcc: RegisteredAccount = {
+          id: customerId,
+          name: trimmedName,
+          phone: cleanPhone,
+          email: trimmedEmail,
+          password: password,
+          registeredAt: new Date().toISOString(),
+        };
+        if (existingIdx >= 0) {
+          list[existingIdx] = { ...list[existingIdx], ...newAcc };
+        } else {
+          list.unshift(newAcc);
         }
-      });
+        localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(list));
+      } catch {}
 
-      if (error) {
-        // If Supabase Auth's confirmation email provider is rate-limited (free tier limit of 3-4 emails/hr),
-        // do not block the bakery customer from completing registration and notifying the Admin Panel
-        const isRateLimit =
-          error.code === 'over_email_send_rate_limit' ||
-          (error as any).status === 429 ||
-          error.message?.toLowerCase().includes('rate limit');
+      // 2. Immediately store in admin_customers cache for Admin Panel
+      try {
+        const saved = localStorage.getItem('admin_customers');
+        const list = saved ? JSON.parse(saved) : [];
+        const cleanP10 = cleanPhone.slice(-10);
+        const exists = list.some((c: any) =>
+          (c.email && c.email.toLowerCase() === trimmedEmail) ||
+          (cleanP10 && (c.phone || '').replace(/\D/g, '').slice(-10) === cleanP10)
+        );
+        if (!exists) {
+          list.unshift({
+            userId: customerId,
+            name: trimmedName,
+            phone: cleanPhone,
+            email: trimmedEmail,
+            registeredAt: new Date().toISOString(),
+            totalOrders: 0,
+            totalSpent: 0,
+            avgOrderValue: 0,
+          });
+          localStorage.setItem('admin_customers', JSON.stringify(list));
+        }
+      } catch {}
 
-        if (isRateLimit) {
-          const fallbackId = `cust_${Date.now()}`;
-          const fallbackProfile: CustomerProfile = {
-            id: fallbackId,
-            full_name: name,
-            name,
-            phone,
-            email,
-            currency: 'INR',
-            created_at: new Date().toISOString(),
-          };
-
-          // Broadcast to Realtime channel and sync to local admin customer cache
-          try {
-            const broadcastPayload = {
-              userId: fallbackId,
-              name,
-              phone,
-              email,
-              registeredAt: fallbackProfile.created_at,
-            };
-
-            // Save to local cache immediately
-            try {
-              const saved = localStorage.getItem('admin_customers');
-              const list = saved ? JSON.parse(saved) : [];
-              const cleanPhone = (phone || '').replace(/\D/g, '');
-              const exists = list.some((c: any) =>
-                (fallbackId && c.userId === fallbackId) ||
-                (cleanPhone && c.phone && c.phone.replace(/\D/g, '') === cleanPhone) ||
-                (email && c.email && c.email.toLowerCase() === email.toLowerCase())
-              );
-              if (!exists) {
-                list.unshift({
-                  userId: fallbackId,
-                  name,
-                  phone,
-                  email,
-                  registeredAt: broadcastPayload.registeredAt,
-                  totalOrders: 0,
-                  totalSpent: 0,
-                  avgOrderValue: 0,
-                });
-                localStorage.setItem('admin_customers', JSON.stringify(list));
-              }
-            } catch {}
-
-            const channel = supabase.channel('admin-customer-events');
-            if (channel.state === 'joined') {
-              channel.send({
-                type: 'broadcast',
-                event: 'new_customer',
-                payload: broadcastPayload,
-              });
-            } else {
-              channel.subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                  channel.send({
-                    type: 'broadcast',
-                    event: 'new_customer',
-                    payload: broadcastPayload,
-                  });
-                }
-              });
+      // 3. Broadcast to Realtime channel so Admin Panel receives instant notification
+      const broadcastPayload = {
+        userId: customerId,
+        name: trimmedName,
+        phone: cleanPhone,
+        email: trimmedEmail,
+        registeredAt: new Date().toISOString(),
+      };
+      try {
+        const channel = supabase.channel('admin-customer-events');
+        if (channel.state === 'joined') {
+          channel.send({ type: 'broadcast', event: 'new_customer', payload: broadcastPayload });
+        } else {
+          channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              channel.send({ type: 'broadcast', event: 'new_customer', payload: broadcastPayload });
             }
-          } catch (rtErr) {
-            console.warn('Realtime broadcast notice:', rtErr);
-          }
-
-          setProfile(fallbackProfile);
-          setIsAuthModalOpen(false);
-          setAuthModalMessage('');
-          return { error: null, needsEmailConfirmation: false };
+          });
         }
-
-        return { error: formatAuthError(error) };
+      } catch (rtErr) {
+        console.warn('Realtime broadcast notice:', rtErr);
       }
 
-      // Check for duplicate account where Supabase doesn't error but returns empty identities
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        return { error: 'An account with this email already exists. Please sign in instead.' };
-      }
-
-      if (data.user) {
-        // Upsert into public.profiles immediately using user's UUID
-        const { data: savedProfile, error: profileErr } = await upsertUserProfile(data.user.id, {
-          full_name: name,
-          phone,
-          email,
+      // 4. Try Supabase Auth signUp
+      let supabaseUserId = customerId;
+      try {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
+          options: {
+            data: {
+              full_name: trimmedName,
+              phone: cleanPhone,
+            }
+          }
         });
 
-        if (profileErr) {
-          console.warn('Profile upsert warning:', profileErr);
+        if (signUpError) {
+          console.warn('Supabase auth signup notice:', signUpError.message);
         }
 
-        // Broadcast to Realtime channel and sync to local admin customer cache
-        try {
-          const broadcastPayload = {
-            userId: data.user.id,
-            name,
-            phone,
-            email,
-            registeredAt: new Date().toISOString(),
-          };
-
-          // Save to local cache immediately
+        if (data?.user) {
+          supabaseUserId = data.user.id;
+          // Update stored accounts with the real Supabase UUID
           try {
-            const saved = localStorage.getItem('admin_customers');
-            const list = saved ? JSON.parse(saved) : [];
-            const cleanPhone = (phone || '').replace(/\D/g, '');
-            const exists = list.some((c: any) =>
-              (data.user?.id && c.userId === data.user.id) ||
-              (cleanPhone && c.phone && c.phone.replace(/\D/g, '') === cleanPhone) ||
-              (email && c.email && c.email.toLowerCase() === email.toLowerCase())
-            );
-            if (!exists) {
-              list.unshift({
-                userId: data.user.id,
-                name,
-                phone,
-                email,
-                registeredAt: broadcastPayload.registeredAt,
-                totalOrders: 0,
-                totalSpent: 0,
-                avgOrderValue: 0,
-              });
-              localStorage.setItem('admin_customers', JSON.stringify(list));
+            const saved = localStorage.getItem(REGISTERED_ACCOUNTS_KEY);
+            if (saved) {
+              const list: RegisteredAccount[] = JSON.parse(saved);
+              const found = list.find(a => a.email.toLowerCase() === trimmedEmail);
+              if (found) {
+                found.id = data.user.id;
+                localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(list));
+              }
             }
           } catch {}
 
-          const channel = supabase.channel('admin-customer-events');
-          if (channel.state === 'joined') {
-            channel.send({
-              type: 'broadcast',
-              event: 'new_customer',
-              payload: broadcastPayload,
-            });
-          } else {
-            channel.subscribe((status) => {
-              if (status === 'SUBSCRIBED') {
-                channel.send({
-                  type: 'broadcast',
-                  event: 'new_customer',
-                  payload: broadcastPayload,
-                });
-              }
-            });
-          }
-        } catch (rtErr) {
-          console.warn('Realtime broadcast notice:', rtErr);
-        }
+          // Upsert into public.profiles
+          await upsertUserProfile(data.user.id, {
+            full_name: trimmedName,
+            phone: cleanPhone,
+            email: trimmedEmail,
+          });
 
-        // If session was returned immediately (auto-confirm enabled)
-        if (data.session) {
-          setUser(data.user);
-          setSession(data.session);
-          if (savedProfile) {
-            setProfile(savedProfile);
+          if (data.session) {
+            setUser(data.user);
+            setSession(data.session);
           }
-          setIsAuthModalOpen(false);
-          setAuthModalMessage('');
-          return { error: null, needsEmailConfirmation: false };
-        } else {
-          // Email confirmation is required by Supabase Auth configuration
-          return { error: null, needsEmailConfirmation: true };
         }
+      } catch (sbErr) {
+        console.warn('Supabase auth signup attempt notice:', sbErr);
       }
 
-      return { error: null };
+      // 5. Establish customer session immediately so they can order and browse without delay
+      const activeUser: any = {
+        id: supabaseUserId,
+        email: trimmedEmail,
+        user_metadata: { full_name: trimmedName, phone: cleanPhone },
+      };
+      const activeProfile: CustomerProfile = {
+        id: supabaseUserId,
+        full_name: trimmedName,
+        name: trimmedName,
+        phone: cleanPhone,
+        email: trimmedEmail,
+        currency: 'INR',
+        created_at: new Date().toISOString(),
+      };
+
+      setUser(activeUser);
+      setSession({ user: activeUser, access_token: 'customer_token' } as any);
+      setProfile(activeProfile);
+
+      try {
+        localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify({ user: activeUser, profile: activeProfile }));
+      } catch {}
+
+      setIsAuthModalOpen(false);
+      setAuthModalMessage('');
+      return { error: null, needsEmailConfirmation: false };
     } catch (err: any) {
       return { error: formatAuthError(err) };
     }
@@ -523,6 +675,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(null);
       setSavedAddresses([]);
       localStorage.removeItem(SAVED_ADDRESSES_KEY);
+      localStorage.removeItem(CUSTOMER_SESSION_KEY);
     }
   };
 

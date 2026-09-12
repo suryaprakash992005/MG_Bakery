@@ -39,13 +39,18 @@ export const AuthModal: React.FC = () => {
     e.preventDefault();
     if (loading) return;
 
-    if (!email.trim() || !password) {
-      setError('Please fill in both email and password');
+    const val = email.trim();
+    if (!val || !password) {
+      setError('Please fill in both mobile number / email and password');
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setError('Please enter a valid email address');
+
+    const cleanDigits = val.replace(/\D/g, '');
+    const isPhone = cleanDigits.length >= 10;
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+    if (!isPhone && !isEmail) {
+      setError('Please enter a valid 10-digit mobile number or email address');
       return;
     }
 
@@ -227,15 +232,15 @@ export const AuthModal: React.FC = () => {
               {authModalTab === 'login' && (
                 <form onSubmit={handleLogin} className="space-y-3.5">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-[#2C1A17]/70 uppercase tracking-wider">Email</label>
+                    <label className="text-[11px] font-bold text-[#2C1A17]/70 uppercase tracking-wider">Mobile Number or Email</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C1A17]/40" />
                       <input
-                        type="email"
+                        type="text"
                         required
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        placeholder="you@example.com"
+                        placeholder="9876543210 or you@example.com"
                         className="w-full pl-10 pr-3.5 py-2.5 bg-[#FAF7F2] border border-[#2C1A17]/15 rounded-xl text-sm focus:outline-none focus:border-[#C9A227] transition-all"
                       />
                     </div>
