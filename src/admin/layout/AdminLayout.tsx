@@ -16,8 +16,6 @@ import {
   Coffee,
   Globe,
   Video,
-  ShoppingBag,
-  LayoutDashboard,
   Users
 } from 'lucide-react';
 
@@ -70,8 +68,6 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigationItems: SidebarItem[] = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Customer Orders', path: '/admin/orders', icon: ShoppingBag },
     { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Products', path: '/admin/products', icon: Cake },
     { name: 'Gallery Manager', path: '/admin/gallery-manager', icon: ImageIcon },

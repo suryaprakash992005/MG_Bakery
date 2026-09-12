@@ -17,9 +17,16 @@ const AdminRouteSwitcher: React.FC = () => {
   const { currentPath, navigate } = useAdminRouter();
 
   useEffect(() => {
-    // Redirect /admin or /admin/ to dashboard
-    if (currentPath === '/admin' || currentPath === '/admin/' || currentPath === '/admin-dashboard') {
-      navigate('/admin/dashboard');
+    // Redirect /admin, /admin/, or old dashboard/orders to customers
+    if (
+      currentPath === '/admin' ||
+      currentPath === '/admin/' ||
+      currentPath === '/admin-dashboard' ||
+      currentPath === '/admin/dashboard' ||
+      currentPath === '/admin/orders' ||
+      currentPath === '/admin-orders'
+    ) {
+      navigate('/admin/customers');
     }
   }, [currentPath, navigate]);
 
@@ -53,7 +60,7 @@ const AdminRouteSwitcher: React.FC = () => {
         case '/admin/customers':
           return <Customers />;
         default:
-          return <Orders />;
+          return <Customers />;
       }
     };
 
