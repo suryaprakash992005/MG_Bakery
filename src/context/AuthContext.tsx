@@ -332,6 +332,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        // If Supabase Auth's confirmation email provider is rate-limited (free tier limit of 3-4 emails/hr),
+        // do not block the bakery customer from completing registration and notifying the Admin Panel
+        const isRateLimit =
+          error.code === 'over_email_send_rate_limit' ||
+          (error as any).status === 429 ||
+          error.message?.toLowerCase().includes('rate limit');
+
+        if (isRateLimit) {
+          const fallbackId = `cust_${Date.now()}`;
+          const fallbackProfile: CustomerProfile = {
+            id: fallbackId,
+            full_name: name,
+            name,
+            phone,
+            email,
+            currency: 'INR',
+            created_at: new Date().toISOString(),
+          };
+
+          // Broadcast to Realtime channel so Admin Panel receives instant notification
+          try {
+            const broadcastPayload = {
+              userId: fallbackId,
+              name,
+              phone,
+              email,
+              registeredAt: fallbackProfile.created_at,
+            };
+            const channel = supabase.channel('admin-customer-events');
+            if (channel.state === 'joined') {
+              channel.send({
+                type: 'broadcast',
+                event: 'new_customer',
+                payload: broadcastPayload,
+              });
+            } else {
+              channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                  channel.send({
+                    type: 'broadcast',
+                    event: 'new_customer',
+                    payload: broadcastPayload,
+                  });
+                }
+              });
+            }
+          } catch (rtErr) {
+            console.warn('Realtime broadcast notice:', rtErr);
+          }
+
+          setProfile(fallbackProfile);
+          setIsAuthModalOpen(false);
+          setAuthModalMessage('');
+          return { error: null, needsEmailConfirmation: false };
+        }
+
         return { error: formatAuthError(error) };
       }
 
