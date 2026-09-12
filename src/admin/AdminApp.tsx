@@ -8,7 +8,6 @@ import { Products } from './pages/Products';
 import { GalleryManager } from './pages/GalleryManager';
 import { VideoManager } from './pages/VideoManager';
 import { Settings } from './pages/Settings';
-import { DatabaseProvider } from '../context/DatabaseContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { Orders } from './pages/Orders';
@@ -70,12 +69,10 @@ const AdminRouteSwitcher: React.FC = () => {
 
 export const AdminApp: React.FC = () => {
   return (
-    <DatabaseProvider>
-      <AdminRouterProvider>
-        <AdminStateProvider>
-          <AdminRouteSwitcher />
-        </AdminStateProvider>
-      </AdminRouterProvider>
-    </DatabaseProvider>
+    <AdminRouterProvider>
+      <AdminStateProvider>
+        <AdminRouteSwitcher />
+      </AdminStateProvider>
+    </AdminRouterProvider>
   );
 };

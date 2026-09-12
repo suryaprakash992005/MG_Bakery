@@ -629,6 +629,11 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Supabase Realtime subscription for instant new customer registration
   useEffect(() => {
+    const existing = supabase.getChannels().find((c: any) => c.topic === 'realtime:admin-customer-events');
+    if (existing) {
+      supabase.removeChannel(existing);
+    }
+
     const channel = supabase
       .channel('admin-customer-events')
       .on(
