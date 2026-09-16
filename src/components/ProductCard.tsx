@@ -97,6 +97,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     setTimeout(() => setAdded(false), 2000);
   };
 
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (product.status === 'Out of Stock') {
+      triggerShake();
+      return;
+    }
+
+    const card = (e.currentTarget as HTMLElement).closest('.group') || (e.currentTarget as HTMLElement).closest('.flex-col');
+    const imgElement = card?.querySelector('img') as HTMLImageElement;
+    if (imgElement) {
+      const startRect = imgElement.getBoundingClientRect();
+      import('../utils/animationHelper').then(({ triggerFlyToCart }) => {
+        triggerFlyToCart(startRect, imgElement.src);
+      });
+    }
+
+    addToCart(product, isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard', 1);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
   const whatsappLink = `https://wa.me/${settings?.whatsappNumber?.replace(/[^0-9]/g, '') || WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(
     `Hello ${settings?.bakeryName || 'M.G. Iyengar Bakery'}, I would like to order "${product.name}"${
       isCakeWithMultiPrice ? ` size: ${getTierLabel(selectedTier)}` : ''
@@ -297,21 +318,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               )}
             </div>
 
-            <div className="mt-2.5 pt-2 border-t border-brand-cream-100/60">
-              {/* Cake Tier Selector */}
+            <div className="mt-2 pt-2 border-t border-brand-cream-100/60 flex flex-col gap-2">
+              {/* Cake Tier Selector (compact pills) */}
               {isCakeWithMultiPrice && (
                 <div 
-                  className="flex flex-wrap items-center gap-1 mb-2"
+                  className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5"
                   onClick={(e) => e.stopPropagation()} // Prevent opening details modal when selecting weight
                 >
                   {Object.keys(product.price as object).map((tier) => (
                     <button
                       key={tier}
                       onClick={() => setSelectedTier(tier)}
-                      className={`text-[9px] font-semibold px-2 py-0.5 rounded-full transition-all border cursor-pointer ${
+                      className={`text-[9px] font-semibold px-2 py-0.5 rounded-full transition-all border shrink-0 cursor-pointer ${
                         selectedTier === tier
-                          ? 'bg-[#C9A227] text-[#2A0E0A] border-[#C9A227] shadow-2xs'
-                          : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
+                          ? 'bg-[#C9A227] text-[#2A0E0A] border-[#C9A227] shadow-2xs font-bold'
+                          : 'bg-[#FAF7F2] text-[#2A0E0A]/70 border-[#2C1A17]/10 hover:border-[#C9A227]/40'
                       }`}
                     >
                       {getTierLabel(tier)}
@@ -320,23 +341,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </div>
               )}
 
-              {/* Pricing & Add to Cart Action */}
-              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-                <div className="min-w-0">
-                  <span className="text-[8px] sm:text-[9px] text-[#2A0E0A]/40 block font-semibold uppercase tracking-wider leading-none">
-                    Price
+              {/* Pricing & Add Action: Clean, prominent, never overlapping */}
+              <div className="flex items-center justify-between gap-1.5">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[8px] sm:text-[9px] text-[#2A0E0A]/50 block font-medium uppercase tracking-wider leading-none">
+                    {isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Price'}
                   </span>
-                  <span className="text-xs sm:text-sm font-bold text-[#2A0E0A] mt-0.5 block truncate">
+                  <span className="text-sm sm:text-base font-extrabold text-[#2A0E0A] font-playfair leading-tight mt-0.5 truncate">
                     ₹{getPriceDisplay()}
                   </span>
                 </div>
 
                 <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-                  <AddToCartButton
-                    product={product}
-                    selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
-                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold"
-                  />
+                  {product.status === 'Out of Stock' ? (
+                    <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">
+                      Sold Out
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handleQuickAdd}
+                      className={`h-7 sm:h-8 px-2.5 sm:px-3 rounded-full text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-90 ${
+                        added
+                          ? 'bg-[#C9A227] text-[#2A0E0A]'
+                          : 'bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2]'
+                      }`}
+                      aria-label={`Add ${product.name} to cart`}
+                    >
+                      {added ? (
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      ) : (
+                        <ShoppingBag className="w-3 h-3" />
+                      )}
+                      <span>{added ? 'Added' : 'Add'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

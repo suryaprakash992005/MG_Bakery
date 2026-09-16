@@ -154,7 +154,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
   return (
     <div className="pt-0 snap-y-container">
       {/* 1. Hero Section - Unified Responsive View (Single Background Video for 0ms Instant Laptop Playback) */}
-      <section className="relative min-h-dvh-locked h-screen snap-start-section overflow-hidden bg-[#2A0E0A] flex items-center justify-center">
+      <section className="relative min-h-[58vh] sm:min-h-[72vh] lg:min-h-dvh-locked lg:h-screen snap-start-section overflow-hidden bg-[#2A0E0A] flex items-center justify-center">
 
         {/* ── Single Full-bleed Video Background ─────────────────── */}
         <div className="absolute inset-0 z-0">
@@ -204,15 +204,15 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         </div>
 
         {/* ── Unified Hero Content Wrapper ────────────────────────── */}
-        <div className="relative w-full h-full flex items-center justify-center text-center px-4 sm:px-6 lg:px-8 z-10 pt-16 lg:pt-0">
-          <div className="max-w-4xl text-white space-y-5 lg:space-y-7">
+        <div className="relative w-full h-full flex items-center justify-center text-center px-4 sm:px-6 lg:px-8 z-10 pt-16 pb-8 sm:pt-20 lg:pt-0">
+          <div className="max-w-4xl text-white space-y-3.5 sm:space-y-5 lg:space-y-7">
             
             {/* Badge */}
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-1.5 lg:gap-2 bg-[#C9A227]/25 border border-[#C9A227]/40 px-4 lg:px-5 py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase"
+              className="inline-flex items-center gap-1.5 lg:gap-2 bg-[#C9A227]/25 border border-[#C9A227]/40 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-xs font-semibold text-[#FAF7F2] tracking-widest uppercase"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
               <span>The Artisan Bakery of Mohanur</span>
@@ -223,7 +223,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35, duration: 0.7 }}
-              className="font-playfair text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-lg"
+              className="font-playfair text-2xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-lg"
             >
               Freshly Baked Happiness
             </motion.h1>
@@ -233,7 +233,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.7 }}
-              className="text-sm sm:text-base lg:text-lg text-white/95 font-light leading-relaxed max-w-xl lg:max-w-2xl mx-auto"
+              className="text-xs sm:text-base lg:text-lg text-white/95 font-light leading-relaxed max-w-xl lg:max-w-2xl mx-auto line-clamp-2 sm:line-clamp-none"
             >
               Discover delicious cream cakes, flaky hot puffs, traditional cookies, fresh milk bread, and authentic chat specialties. Handcrafted with love, baked fresh daily.
             </motion.p>
@@ -243,18 +243,21 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.65, duration: 0.7 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-3 lg:pt-2"
+              className="flex flex-row items-center justify-center gap-2 sm:gap-4 pt-1 sm:pt-2"
             >
               <button
                 onClick={() => setCurrentPage('menu')}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/25 cursor-pointer text-sm animate-pulse"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-2.5 sm:py-3.5 rounded-full bg-[#C9A227] text-[#2A0E0A] font-bold tracking-wide hover:bg-white hover:text-[#2A0E0A] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 shadow-lg shadow-black/25 cursor-pointer text-xs sm:text-sm animate-pulse"
               >
                 <span>Explore Menu</span>
-                <ArrowRight className="w-4 h-4 hidden sm:block" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden xs:block" />
               </button>
               <button
-                onClick={() => setCurrentPage('menu')}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 text-white font-semibold hover:bg-white/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 cursor-pointer text-sm"
+                onClick={() => {
+                  const url = `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent("Hello M.G. Iyengar Bakery, I'd like to place an order.")}`;
+                  window.open(url, '_blank');
+                }}
+                className="flex-1 sm:flex-initial px-3.5 sm:px-8 py-2.5 sm:py-3.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/30 text-white font-semibold hover:bg-white/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 cursor-pointer text-xs sm:text-sm whitespace-nowrap"
               >
                 Order on WhatsApp
               </button>
@@ -265,13 +268,13 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 2. Featured Categories Section */}
-      <section className="py-20 bg-white snap-start-section">
+      <section className="py-10 sm:py-16 lg:py-20 bg-white snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-16">
+            <h2 className="luxury-heading-center text-2xl sm:text-4xl font-bold">
               Explore Our Categories
             </h2>
-            <p className="text-sm text-brand-brown-800/60 font-light mt-4">
+            <p className="text-xs sm:text-sm text-brand-brown-800/60 font-light mt-2 sm:mt-4">
               From celebration cakes to spicy hot puffs, browse through our categories of freshly prepared delights.
             </p>
           </div>
@@ -295,20 +298,20 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
       </section>
 
       {/* 3. Best Sellers Section */}
-      <section className="py-20 bg-brand-cream-50/30 snap-start-section">
+      <section className="py-10 sm:py-16 lg:py-20 bg-brand-cream-50/30 snap-start-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-end justify-between mb-16 gap-6">
+          <div className="flex flex-col sm:flex-row items-end justify-between mb-8 sm:mb-16 gap-4 sm:gap-6">
             <div className="max-w-xl">
-              <h2 className="luxury-heading text-3xl sm:text-4xl font-bold">
+              <h2 className="luxury-heading text-2xl sm:text-4xl font-bold">
                 Our Best Sellers
               </h2>
-              <p className="text-sm text-brand-brown-800/60 font-light mt-4">
+              <p className="text-xs sm:text-sm text-brand-brown-800/60 font-light mt-2 sm:mt-4">
                 Local favorites that have earned their place in our hearts. Handcrafted with traditional expertise.
               </p>
             </div>
             <button
               onClick={() => setCurrentPage('menu')}
-              className="text-sm font-semibold text-brand-brown-950 hover:text-brand-gold-700 transition-colors flex items-center gap-1 group whitespace-nowrap"
+              className="text-xs sm:text-sm font-semibold text-brand-brown-950 hover:text-brand-gold-700 transition-colors flex items-center gap-1 group whitespace-nowrap"
             >
               <span>View All Menu</span>
               <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />

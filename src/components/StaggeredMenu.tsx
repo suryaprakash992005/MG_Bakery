@@ -2,7 +2,6 @@ import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { Coffee } from 'lucide-react';
 import './StaggeredMenu.css';
-import { CartIcon } from './CartIcon';
 
 export interface StaggeredMenuItem {
   label: string;
@@ -427,10 +426,9 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           </button>
         </div>
         <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 pointer-events-auto">
-          <CartIcon isMobile={true} />
           <button
             ref={toggleBtnRef}
-            className="sm-toggle min-h-[44px]"
+            className="sm-toggle min-h-[40px]"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls="staggered-menu-panel"
