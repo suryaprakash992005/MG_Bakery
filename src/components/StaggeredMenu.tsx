@@ -411,26 +411,26 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
                 homeItem.onClick();
               }
             }}
-            className="flex items-center gap-2 group text-left sm-logo-btn cursor-pointer"
+            className="flex items-center gap-2 group text-left sm-logo-btn cursor-pointer min-h-[44px]"
           >
-            <div className="w-10 h-10 rounded-full bg-brand-brown-950 flex items-center justify-center text-brand-gold-850 group-hover:scale-105 transition-all duration-300">
-              <Coffee className="w-5 h-5 sm-coffee-icon" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-brand-brown-950 flex items-center justify-center text-brand-gold-850 group-hover:scale-105 transition-all duration-300 shrink-0">
+              <Coffee className="w-4 h-4 sm:w-5 sm:h-5 sm-coffee-icon" />
             </div>
             <div>
-              <span className="block font-playfair font-bold text-base sm:text-lg text-brand-brown-950 tracking-wide leading-tight sm-logo-text-title transition-all duration-300">
+              <span className="block font-playfair font-bold text-xs xs:text-sm sm:text-base text-brand-brown-950 tracking-wide leading-tight sm-logo-text-title transition-all duration-300">
                 M.G. Iyengar
               </span>
-              <span className="block text-[10px] sm:text-xs font-medium text-brand-gold-700 tracking-widest uppercase sm-logo-text-subtitle transition-all duration-300">
+              <span className="block text-[8px] xs:text-[9px] sm:text-xs font-medium text-brand-gold-700 tracking-widest uppercase sm-logo-text-subtitle transition-all duration-300">
                 Bakery & Chats
               </span>
             </div>
           </button>
         </div>
-        <div className="flex items-center gap-3 pointer-events-auto">
+        <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 pointer-events-auto">
           <CartIcon isMobile={true} />
           <button
             ref={toggleBtnRef}
-            className="sm-toggle"
+            className="sm-toggle min-h-[44px]"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls="staggered-menu-panel"

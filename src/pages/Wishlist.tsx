@@ -108,8 +108,9 @@ const WishlistCard: React.FC<WishlistCardProps> = ({ item }) => {
         {/* Remove Button */}
         <button
           onClick={() => removeFromWishlist(item.id)}
-          className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#2A0E0A] hover:bg-red-50 hover:text-red-500 transition-all shadow-md cursor-pointer opacity-0 group-hover:opacity-100"
+          className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#2A0E0A] hover:bg-red-50 hover:text-red-500 transition-all shadow-md cursor-pointer opacity-100 lg:opacity-0 lg:group-hover:opacity-100 active:scale-90"
           title="Remove from wishlist"
+          aria-label="Remove from wishlist"
         >
           <Heart className="w-4 h-4 fill-[#C9A227] text-[#C9A227]" />
         </button>
@@ -191,11 +192,11 @@ export const Wishlist: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FAF6F0] pt-24 pb-28 lg:pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
 
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-4 h-4 text-[#C9A227]" />
@@ -214,7 +215,7 @@ export const Wishlist: React.FC = () => {
           </div>
 
           {wishlistItems.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
                 onClick={clearWishlist}
                 className="text-xs font-bold text-[#2C1A17]/50 hover:text-red-500 transition-colors cursor-pointer px-3 py-2 rounded-full hover:bg-red-50 border border-transparent hover:border-red-100"

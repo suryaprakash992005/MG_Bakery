@@ -26,7 +26,7 @@ export const CartIcon: React.FC<CartIconProps> = ({ className = '', isMobile = f
     <button
       id="cart-icon-target"
       onClick={() => setIsCartOpen(true)}
-      className={`relative p-2.5 rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center cursor-pointer pointer-events-auto ${
+      className={`relative p-2.5 min-w-[44px] min-h-[44px] rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center cursor-pointer pointer-events-auto ${
         isShaking ? 'animate-shake' : ''
       } ${
         isMobile

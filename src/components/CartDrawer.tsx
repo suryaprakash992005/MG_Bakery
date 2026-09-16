@@ -128,7 +128,7 @@ export const CartDrawer: React.FC = () => {
             animate="open"
             exit="closed"
             variants={drawerVariants}
-            className="fixed top-0 right-0 bottom-0 h-full w-[92vw] sm:w-[88vw] max-w-[430px] bg-gradient-to-b from-[#FFFDFB] via-[#FCFAF7] to-[#FAF8F5] shadow-2xl z-[101] flex flex-col border-l border-brand-gold-250/20 rounded-l-[2rem] md:rounded-l-[2.5rem] overflow-hidden"
+            className="fixed top-0 right-0 bottom-0 h-full w-full sm:w-[88vw] max-w-[430px] bg-gradient-to-b from-[#FFFDFB] via-[#FCFAF7] to-[#FAF8F5] shadow-2xl z-[101] flex flex-col border-l border-brand-gold-250/20 rounded-l-none sm:rounded-l-[2rem] md:rounded-l-[2.5rem] overflow-hidden"
           >
             {/* ── Header ── */}
             <div className="p-5 border-b border-brand-cream-100 bg-white flex items-center justify-between shrink-0">
@@ -309,7 +309,12 @@ export const CartDrawer: React.FC = () => {
 
             {/* ── Footer: Summary + Actions ── */}
             {cartItems.length > 0 && (
-              <div className="p-5 border-t border-brand-cream-100 bg-white space-y-3.5 shadow-2xl shrink-0">
+              <div
+                className="p-4 sm:p-5 border-t border-brand-cream-100 bg-white space-y-3.5 shadow-2xl shrink-0"
+                style={{
+                  paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
+                }}
+              >
 
                 {/* Clean & Elegant Bill Summary Card */}
                 <div className="bg-[#FAF7F2] rounded-2xl p-3.5 border border-[#2C1A17]/8 space-y-2.5">

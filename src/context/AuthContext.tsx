@@ -179,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (res.error) {
       console.warn('Notice upserting profile in Supabase:', res.error.message);
+      return { data: null, error: res.error.message };
     }
 
     const saved = res.data;
@@ -206,11 +207,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
 
       if (!error && data) {
+        let resolvedFullName = data.full_name || '';
+        let resolvedPhone = data.phone || '';
+
+        // Auto-heal: If database row has empty full_name or phone, recover them from auth user metadata
+        if (!resolvedFullName || !resolvedPhone) {
+          try {
+            const { data: authData } = await supabase.auth.getUser();
+            const meta = authData?.user?.user_metadata || {};
+            const metaName = meta.full_name || meta.name || '';
+            const metaPhone = meta.phone || '';
+
+            if ((!resolvedFullName && metaName) || (!resolvedPhone && metaPhone)) {
+              resolvedFullName = resolvedFullName || metaName;
+              resolvedPhone = resolvedPhone || metaPhone;
+              await upsertUserProfile(userId, {
+                full_name: resolvedFullName,
+                phone: resolvedPhone,
+                email: data.email || userEmail || authData?.user?.email || '',
+              });
+            }
+          } catch {}
+        }
+
         const profileObj: CustomerProfile = {
           id: data.id,
-          full_name: data.full_name || '',
-          name: data.full_name || '',
-          phone: data.phone || '',
+          full_name: resolvedFullName,
+          name: resolvedFullName,
+          phone: resolvedPhone,
           email: data.email || userEmail || '',
           currency: data.currency || 'INR',
           created_at: data.created_at,
@@ -583,82 +607,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Realtime broadcast notice:', rtErr);
       }
 
-      // 4. Try Supabase Auth signUp
-      let supabaseUserId = customerId;
-      try {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: trimmedEmail,
-          password,
-          options: {
-            data: {
-              full_name: trimmedName,
-              phone: cleanPhone,
-            }
-          }
-        });
-
-        if (signUpError) {
-          console.warn('Supabase auth signup notice:', signUpError.message);
-        }
-
-        if (data?.user) {
-          supabaseUserId = data.user.id;
-          // Update stored accounts with the real Supabase UUID
-          try {
-            const saved = localStorage.getItem(REGISTERED_ACCOUNTS_KEY);
-            if (saved) {
-              const list: RegisteredAccount[] = JSON.parse(saved);
-              const found = list.find(a => a.email.toLowerCase() === trimmedEmail);
-              if (found) {
-                found.id = data.user.id;
-                localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(list));
-              }
-            }
-          } catch {}
-
-          // Upsert into public.profiles
-          await upsertUserProfile(data.user.id, {
+      // 4. Supabase Auth signUp
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          data: {
             full_name: trimmedName,
             phone: cleanPhone,
-            email: trimmedEmail,
-          });
-
-          if (data.session) {
-            setUser(data.user);
-            setSession(data.session);
           }
         }
-      } catch (sbErr) {
-        console.warn('Supabase auth signup attempt notice:', sbErr);
+      });
+
+      if (signUpError) {
+        return { error: formatAuthError(signUpError) };
       }
 
-      // 5. Establish customer session immediately so they can order and browse without delay
-      const activeUser: any = {
-        id: supabaseUserId,
-        email: trimmedEmail,
-        user_metadata: { full_name: trimmedName, phone: cleanPhone },
-      };
-      const activeProfile: CustomerProfile = {
-        id: supabaseUserId,
-        full_name: trimmedName,
-        name: trimmedName,
-        phone: cleanPhone,
-        email: trimmedEmail,
-        currency: 'INR',
-        created_at: new Date().toISOString(),
-      };
+      if (!data?.user) {
+        return { error: 'Unable to create user account. Please try again.' };
+      }
 
-      setUser(activeUser);
-      setSession({ user: activeUser, access_token: 'customer_token' } as any);
-      setProfile(activeProfile);
+      const supabaseUserId = data.user.id;
 
+      // Update stored accounts with the real Supabase UUID
       try {
-        localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify({ user: activeUser, profile: activeProfile }));
+        const saved = localStorage.getItem(REGISTERED_ACCOUNTS_KEY);
+        if (saved) {
+          const list: RegisteredAccount[] = JSON.parse(saved);
+          const found = list.find(a => a.email.toLowerCase() === trimmedEmail);
+          if (found) {
+            found.id = data.user.id;
+            localStorage.setItem(REGISTERED_ACCOUNTS_KEY, JSON.stringify(list));
+          }
+        }
       } catch {}
 
-      setIsAuthModalOpen(false);
-      setAuthModalMessage('');
-      return { error: null, needsEmailConfirmation: false };
+      let effectiveSession = data.session;
+
+      // If no session was returned, try signing in immediately with credentials
+      // (in case Supabase project has email confirmation disabled or permits sign-in)
+      if (!effectiveSession) {
+        try {
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email: trimmedEmail,
+            password
+          });
+          if (signInData?.session) {
+            effectiveSession = signInData.session;
+          }
+        } catch {}
+      }
+
+      if (effectiveSession) {
+        // Authenticated session established! Set user & session on client
+        setUser(effectiveSession.user);
+        setSession(effectiveSession);
+
+        // Explicitly upsert profile using the active authenticated session (satisfies auth.uid() = id)
+        const { data: profileData, error: profileErr } = await upsertUserProfile(supabaseUserId, {
+          full_name: trimmedName,
+          phone: cleanPhone,
+          email: trimmedEmail,
+        });
+
+        if (profileErr) {
+          console.warn('Profile creation notice after signup:', profileErr);
+        }
+
+        const activeProfile: CustomerProfile = profileData || {
+          id: supabaseUserId,
+          full_name: trimmedName,
+          name: trimmedName,
+          phone: cleanPhone,
+          email: trimmedEmail,
+          currency: 'INR',
+          created_at: new Date().toISOString(),
+        };
+        setProfile(activeProfile);
+
+        try {
+          localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify({ user: effectiveSession.user, profile: activeProfile }));
+        } catch {}
+
+        setIsAuthModalOpen(false);
+        setAuthModalMessage('');
+        return { error: null, needsEmailConfirmation: false };
+      } else {
+        // Session is null -> Email confirmation is required by Supabase Auth!
+        // Return needsEmailConfirmation: true so UI notifies the customer to verify their inbox.
+        setIsAuthModalOpen(false);
+        setAuthModalMessage('');
+        return { error: null, needsEmailConfirmation: true };
+      }
     } catch (err: any) {
       return { error: formatAuthError(err) };
     }

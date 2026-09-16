@@ -240,7 +240,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <motion.div
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsOpen(true)}
-          className="flex flex-col h-full w-full justify-between bg-white rounded-[25px] overflow-hidden border border-brand-cream-100/50 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer select-none group animate-fade-in-up"
+          className="flex flex-col h-full w-full justify-between bg-white rounded-2xl sm:rounded-[25px] overflow-hidden border border-brand-cream-100/60 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer select-none group"
         >
           {/* Product Image Container */}
           <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream-100/30">
@@ -253,66 +253,64 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
             {product.status === 'Out of Stock' && (
               <div className="absolute inset-0 bg-[#2A0E0A]/60 backdrop-blur-[1px] flex items-center justify-center z-10">
-                <span className="text-white font-playfair border-2 border-brand-gold-800/80 px-4 py-1.5 rounded-full text-xs uppercase tracking-widest font-bold bg-[#2A0E0A]/50">
+                <span className="text-white font-playfair border border-brand-gold-800/80 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold bg-[#2A0E0A]/60">
                   Sold Out
                 </span>
               </div>
             )}
 
-            {/* Floating Badges */}
-            <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2 justify-between items-start pointer-events-none">
-              <div className="flex flex-col gap-1.5">
-                {product.isBestSeller && (
-                  <span className="bg-[#C9A227] text-[#2A0E0A] text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                    Best Seller
-                  </span>
-                )}
-                {product.tags?.slice(0, 1).map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="bg-[#2A0E0A]/90 text-white text-[9px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-xs"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
+            {/* Floating Badges (Left) */}
+            <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none z-10">
+              {product.isBestSeller && (
+                <span className="bg-[#C9A227] text-[#2A0E0A] text-[8px] sm:text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                  Best Seller
+                </span>
+              )}
               {product.isEggless && (
-                <span 
-                  className="bg-green-50 text-green-700 border border-green-200 text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm backdrop-blur-xs"
-                >
+                <span className="bg-green-50 text-green-700 border border-green-200 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-xs backdrop-blur-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-600 block"></span>
                   EGGLESS
                 </span>
               )}
             </div>
+
+            {/* Wishlist Button (Right) */}
+            <button
+              onClick={handleWishlistToggle}
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-brand-brown-950 shadow-sm cursor-pointer pointer-events-auto z-10 transition-transform active:scale-90"
+              aria-label="Toggle Wishlist"
+            >
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#C9A227] text-[#C9A227]' : 'text-brand-brown-800/70'}`} />
+            </button>
           </div>
 
           {/* Content Section */}
-          <div className="p-6 flex flex-col flex-grow justify-between">
+          <div className="p-2.5 sm:p-3.5 flex flex-col flex-grow justify-between">
             <div>
-              <h3 className="font-playfair text-lg font-bold text-brand-brown-950 group-hover:text-brand-gold-850 transition-colors duration-300">
+              <h3 className="font-playfair text-xs sm:text-sm font-bold text-brand-brown-950 line-clamp-2 leading-snug group-hover:text-brand-gold-850 transition-colors duration-300">
                 {product.name}
               </h3>
-              <p className="text-xs text-brand-brown-800/60 font-light mt-2 line-clamp-2 leading-relaxed">
-                {product.description}
-              </p>
+              {product.description && (
+                <p className="text-[10px] sm:text-[11px] text-brand-brown-800/60 font-light mt-1 line-clamp-1 leading-tight hidden xs:block">
+                  {product.description}
+                </p>
+              )}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-brand-cream-100/50">
+            <div className="mt-2.5 pt-2 border-t border-brand-cream-100/60">
               {/* Cake Tier Selector */}
               {isCakeWithMultiPrice && (
                 <div 
-                  className="flex flex-wrap items-center gap-1.5 mb-4"
+                  className="flex flex-wrap items-center gap-1 mb-2"
                   onClick={(e) => e.stopPropagation()} // Prevent opening details modal when selecting weight
                 >
                   {Object.keys(product.price as object).map((tier) => (
                     <button
                       key={tier}
                       onClick={() => setSelectedTier(tier)}
-                      className={`text-[10px] font-semibold px-3 py-1 rounded-full transition-all border cursor-pointer ${
+                      className={`text-[9px] font-semibold px-2 py-0.5 rounded-full transition-all border cursor-pointer ${
                         selectedTier === tier
-                          ? 'bg-[#C9A227] text-[#2A0E0A] border-[#C9A227] shadow-sm'
+                          ? 'bg-[#C9A227] text-[#2A0E0A] border-[#C9A227] shadow-2xs'
                           : 'bg-brand-cream-50 text-brand-brown-800/70 border-brand-cream-100 hover:border-brand-cream-200'
                       }`}
                     >
@@ -323,21 +321,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               )}
 
               {/* Pricing & Add to Cart Action */}
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <span className="text-[10px] text-[#2A0E0A]/40 block font-semibold uppercase tracking-wider">
+              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                <div className="min-w-0">
+                  <span className="text-[8px] sm:text-[9px] text-[#2A0E0A]/40 block font-semibold uppercase tracking-wider leading-none">
                     Price
                   </span>
-                  <span className="text-lg font-bold text-[#2A0E0A] mt-0.5 block">
+                  <span className="text-xs sm:text-sm font-bold text-[#2A0E0A] mt-0.5 block truncate">
                     ₹{getPriceDisplay()}
                   </span>
                 </div>
 
-                <div onClick={(e) => e.stopPropagation()}>
+                <div onClick={(e) => e.stopPropagation()} className="shrink-0">
                   <AddToCartButton
                     product={product}
                     selectedWeight={isCakeWithMultiPrice ? getTierLabel(selectedTier) : 'Standard'}
-                    className="px-4 py-2.5 rounded-full text-[11px] font-bold"
+                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold"
                   />
                 </div>
               </div>

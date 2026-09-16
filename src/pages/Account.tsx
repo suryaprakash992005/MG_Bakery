@@ -18,6 +18,7 @@ export const Account: React.FC = () => {
     logout,
     setIsAuthModalOpen,
     setAuthModalTab,
+    updateProfile,
     updateGuestProfile,
     saveAddress,
     removeAddress,
@@ -37,10 +38,16 @@ export const Account: React.FC = () => {
   }, [orders, user, profile]);
 
   // Profile Edit State
-  const [name, setName] = useState(profile?.name || '');
+  const [name, setName] = useState(profile?.name || profile?.full_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
   const [email, setEmail] = useState(profile?.email || '');
   const [isSaved, setIsSaved] = useState(false);
+
+  React.useEffect(() => {
+    if ((profile?.name || profile?.full_name) && !name) setName(profile.name || profile.full_name || '');
+    if (profile?.phone && !phone) setPhone(profile.phone);
+    if (profile?.email && !email) setEmail(profile.email);
+  }, [profile]);
 
   // New Address Form State
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -51,9 +58,13 @@ export const Account: React.FC = () => {
   const [addrCity, setAddrCity] = useState('Mohanur');
   const [addrPincode, setAddrPincode] = useState('637015');
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateGuestProfile({ name, phone, email });
+    if (user?.id) {
+      await updateProfile({ full_name: name, phone, email });
+    } else {
+      updateGuestProfile({ name, phone, email });
+    }
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
   };

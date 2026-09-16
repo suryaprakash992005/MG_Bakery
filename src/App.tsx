@@ -19,6 +19,7 @@ import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
 import { CartDrawer } from './components/CartDrawer';
 import { FloatingCartButton } from './components/FloatingCartButton';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { AuthModal } from './components/AuthModal';
 import { DatabaseProvider } from './context/DatabaseContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -98,7 +99,7 @@ const AppContent: React.FC = () => {
       <FloatingCartButton />
 
       {/* Main Content */}
-      <main className="flex-grow">
+      <main className="flex-grow pb-16 lg:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -143,6 +144,9 @@ const AppContent: React.FC = () => {
 
       {/* Footer */}
       <Footer setCurrentPage={handleNavClick} />
+
+      {/* Mobile Bottom Navigation (Fixed on mobile & tablet, hidden on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 };

@@ -223,7 +223,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35, duration: 0.7 }}
-              className="font-playfair text-4xl sm:text-6xl xl:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-lg"
+              className="font-playfair text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white leading-tight drop-shadow-lg"
             >
               Freshly Baked Happiness
             </motion.h1>
@@ -315,7 +315,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
             {bestSellers.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

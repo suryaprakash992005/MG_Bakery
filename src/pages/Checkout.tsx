@@ -344,7 +344,7 @@ export const Checkout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] pt-[92px] lg:pt-[96px] pb-24">
+    <div className="min-h-screen bg-[#FAF7F2] pt-[92px] lg:pt-[96px] pb-32 lg:pb-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ── Page Header ──────────────────────────────────────────────────────── */}
@@ -366,14 +366,16 @@ export const Checkout: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3"
+            className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
           >
-            <Lock className="w-5 h-5 text-amber-600 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">Login required to place order</p>
-              <p className="text-xs text-amber-700/80 mt-0.5">Your cart items are saved. Sign in to continue.</p>
+            <div className="flex items-center gap-3">
+              <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Login required to place order</p>
+                <p className="text-xs text-amber-700/80 mt-0.5">Your cart items are saved. Sign in to continue.</p>
+              </div>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 self-end sm:self-auto shrink-0">
               <button
                 onClick={() => {
                   setAuthModalMessage('Sign in to place your order. Your cart is safe!');

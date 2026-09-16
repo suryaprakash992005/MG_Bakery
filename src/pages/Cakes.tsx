@@ -78,7 +78,7 @@ export const Cakes: React.FC = () => {
   });
 
   return (
-    <div className="pt-28 pb-20 min-h-screen bg-brand-cream-50/10">
+    <div className="pt-28 pb-28 lg:pb-20 min-h-screen bg-brand-cream-50/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Banner Section */}
@@ -150,7 +150,7 @@ export const Cakes: React.FC = () => {
 
         {/* Product Grid */}
         {filteredCakes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
             {filteredCakes.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

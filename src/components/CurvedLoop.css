@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  overflow: visible;
+  overflow: hidden;
   height: 120px;
 }
 
@@ -11,7 +11,7 @@
   user-select: none;
   width: 100%;
   aspect-ratio: 100 / 12;
-  overflow: visible;
+  overflow: hidden;
   display: block;
   font-size: 3rem;
   fill: #2C1717;

@@ -646,7 +646,7 @@ export const ProductDetail: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF6F0] pt-20 pb-28 lg:pb-16">
+    <div className="min-h-screen bg-[#FAF6F0] pt-20 pb-36 lg:pb-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Breadcrumb */}
@@ -718,6 +718,23 @@ export const ProductDetail: React.FC = () => {
               </div>
             </div>
 
+            {/* Price */}
+            <div className="flex items-end gap-3 pt-1">
+              <motion.span
+                key={currentPrice}
+                initial={{ scale: 0.9, opacity: 0.5 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-3xl sm:text-4xl font-black text-[#2A0E0A] font-playfair"
+              >
+                ₹{totalPrice}
+              </motion.span>
+              {quantity > 1 && (
+                <span className="text-sm text-[#2C1A17]/50 mb-1.5">
+                  ₹{currentPrice} × {quantity}
+                </span>
+              )}
+            </div>
+
             {/* Description */}
             <div>
               <p className={`text-sm text-[#2C1A17]/70 leading-relaxed font-light ${!showDescExpanded ? 'line-clamp-3' : ''}`}>
@@ -731,23 +748,6 @@ export const ProductDetail: React.FC = () => {
                   {showDescExpanded ? 'Show less' : 'Read more'}
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDescExpanded ? 'rotate-180' : ''}`} />
                 </button>
-              )}
-            </div>
-
-            {/* Price */}
-            <div className="flex items-end gap-3">
-              <motion.span
-                key={currentPrice}
-                initial={{ scale: 0.9, opacity: 0.5 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-4xl font-black text-[#2A0E0A] font-playfair"
-              >
-                ₹{totalPrice}
-              </motion.span>
-              {quantity > 1 && (
-                <span className="text-sm text-[#2C1A17]/50 mb-1.5">
-                  ₹{currentPrice} × {quantity}
-                </span>
               )}
             </div>
 
@@ -878,21 +878,21 @@ export const ProductDetail: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                     {/* Add to Cart */}
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       onClick={handleAddToCart}
-                      className={`flex items-center justify-center gap-2 py-4 px-5 rounded-full text-sm font-bold transition-all cursor-pointer shadow-lg ${
+                      className={`flex items-center justify-center gap-1.5 sm:gap-2 py-3.5 sm:py-4 px-2.5 sm:px-5 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-lg ${
                         addedToCart
                           ? 'bg-[#C9A227] text-[#2A0E0A]'
                           : 'bg-white border-2 border-[#2A0E0A] text-[#2A0E0A] hover:bg-[#FAF6F0]'
                       }`}
                     >
                       {addedToCart ? (
-                        <><CheckCircle className="w-4 h-4" /> Added!</>
+                        <><CheckCircle className="w-4 h-4 shrink-0" /> Added!</>
                       ) : (
-                        <><ShoppingBag className="w-4 h-4" /> Add to Cart</>
+                        <><ShoppingBag className="w-4 h-4 shrink-0" /> Add to Cart</>
                       )}
                     </motion.button>
 
@@ -900,35 +900,35 @@ export const ProductDetail: React.FC = () => {
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       onClick={handleBuyNow}
-                      className="flex items-center justify-center gap-2 py-4 px-5 rounded-full text-sm font-bold bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] transition-all cursor-pointer shadow-xl shadow-[#2A0E0A]/20"
+                      className="flex items-center justify-center gap-1.5 sm:gap-2 py-3.5 sm:py-4 px-2.5 sm:px-5 rounded-full text-xs sm:text-sm font-bold bg-[#2A0E0A] hover:bg-[#401C16] text-[#FAF7F2] hover:text-[#C9A227] transition-all cursor-pointer shadow-xl shadow-[#2A0E0A]/20"
                     >
-                      <Zap className="w-4 h-4 text-[#C9A227]" />
+                      <Zap className="w-4 h-4 text-[#C9A227] shrink-0" />
                       Buy Now
                     </motion.button>
                   </div>
 
                   {/* Wishlist + WhatsApp row */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                     <button
                       onClick={handleWishlistToggle}
-                      className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-xs font-bold border-2 transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-1.5 sm:gap-2 py-3 px-2 sm:px-4 rounded-full text-[11px] sm:text-xs font-bold border-2 transition-all cursor-pointer ${
                         isInWish
                           ? 'border-[#C9A227] bg-[#C9A227]/10 text-[#2A0E0A]'
                           : 'border-[#2C1A17]/15 text-[#2C1A17]/70 hover:border-[#C9A227]/40'
                       }`}
                     >
-                      <Heart className={`w-4 h-4 ${isInWish ? 'fill-[#C9A227] text-[#C9A227]' : ''}`} />
-                      {isInWish ? '♥ Wishlisted' : '♡ Wishlist'}
+                      <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isInWish ? 'fill-[#C9A227] text-[#C9A227]' : ''}`} />
+                      <span className="truncate">{isInWish ? '♥ Wishlisted' : '♡ Wishlist'}</span>
                     </button>
 
                     <a
                       href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 py-3 px-4 rounded-full text-xs font-bold border-2 border-[#2C1A17]/15 text-[#2C1A17]/70 hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer"
+                      className="flex items-center justify-center gap-1.5 sm:gap-2 py-3 px-2 sm:px-4 rounded-full text-[11px] sm:text-xs font-bold border-2 border-[#2C1A17]/15 text-[#2C1A17]/70 hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-all cursor-pointer"
                     >
-                      <Phone className="w-4 h-4" />
-                      Order on WhatsApp
+                      <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span className="truncate">Order on WhatsApp</span>
                     </a>
                   </div>
                 </>

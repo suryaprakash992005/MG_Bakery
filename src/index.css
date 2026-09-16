@@ -80,10 +80,19 @@
   html {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+    max-width: 100%;
   }
   body {
     @apply bg-brand-cream-50 text-brand-brown-950 font-poppins antialiased overflow-x-hidden;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    width: 100%;
+  }
+  #root {
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
   }
 
   /* Touch & Click Optimization Across All Mobile & Desktop Devices */
@@ -95,10 +104,27 @@
   [role="button"] {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    min-height: 38px;
+    min-width: 38px;
+  }
+
+  /* Touch targets for inline links/icons exempt */
+  span > a, p > a, .inline-link {
+    min-height: auto;
+    min-width: auto;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-playfair;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
