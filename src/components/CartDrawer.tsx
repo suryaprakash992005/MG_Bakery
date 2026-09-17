@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Plus, Minus, Trash2, ShoppingBag,
@@ -71,6 +71,226 @@ const SavedItemsSection: React.FC = () => {
   );
 };
 
+// ─── Truck Animation Checkout Button ──────────────────────────────────────────
+const TruckAnimationCheckoutButton: React.FC<{
+  totalAmount: number;
+  onProceed: () => void;
+  disabled?: boolean;
+}> = ({ totalAmount, onProceed, disabled }) => {
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [phase, setPhase] = useState<'idle' | 'driving' | 'ready'>('idle');
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (disabled || isAnimating) return;
+
+    setIsAnimating(true);
+    setPhase('driving');
+
+    // After truck drives across (~900ms)
+    setTimeout(() => {
+      setPhase('ready');
+    }, 900);
+
+    // Navigate to checkout after animation finishes (~1200ms)
+    setTimeout(() => {
+      onProceed();
+      setTimeout(() => {
+        setIsAnimating(false);
+        setPhase('idle');
+      }, 400);
+    }, 1200);
+  };
+
+  return (
+    <motion.button
+      onClick={handleClick}
+      disabled={disabled || isAnimating}
+      whileTap={!isAnimating ? { scale: 0.98 } : {}}
+      className="relative w-full h-[54px] rounded-2xl overflow-hidden bg-[#2A0E0A] border border-[#C9A227]/40 shadow-xl shadow-[#2A0E0A]/20 cursor-pointer group transition-all"
+    >
+      {/* ── IDLE STATE CONTENT ── */}
+      <motion.div
+        animate={{ opacity: isAnimating ? 0 : 1, y: isAnimating ? -15 : 0 }}
+        transition={{ duration: 0.22 }}
+        className="absolute inset-0 flex items-center justify-between px-4 sm:px-5 z-10"
+      >
+        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />
+
+        <div className="flex items-center gap-2.5">
+          <motion.div
+            whileHover={{ rotate: [-8, 8, -8, 0] }}
+            className="w-8 h-8 rounded-xl bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] shadow-inner shrink-0"
+          >
+            <ShoppingCart className="w-4 h-4" />
+          </motion.div>
+          <div className="text-left">
+            <span className="text-[13px] sm:text-sm font-bold tracking-wide text-white block leading-tight">
+              Proceed to Checkout
+            </span>
+            <span className="text-[9px] text-[#C9A227] font-medium block leading-tight">
+              Fresh Mohanur bakery order
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="bg-[#C9A227] text-[#2A0E0A] px-3 py-1.5 rounded-xl text-xs font-black shadow-md">
+            ₹{totalAmount.toLocaleString('en-IN')}
+          </span>
+          <motion.div
+            animate={{ x: [0, 3, 0] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+          >
+            <ArrowRight className="w-4 h-4 text-[#C9A227]" />
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* ── DRIVING ROAD ANIMATION STAGE ── */}
+      <AnimatePresence>
+        {isAnimating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-r from-[#1A0704] via-[#2A0E0A] to-[#1A0704] flex items-center overflow-hidden z-20"
+          >
+            {/* Asphalt road line */}
+            <div className="absolute bottom-2.5 left-0 right-0 h-[3px] bg-[#3E1611]">
+              <motion.div
+                animate={{ x: [-28, 0] }}
+                transition={{ repeat: Infinity, duration: 0.28, ease: 'linear' }}
+                className="w-[200%] h-full flex gap-3"
+              >
+                {Array.from({ length: 40 }).map((_, i) => (
+                  <span key={i} className="inline-block w-4 h-full bg-[#C9A227]/75 rounded-full shrink-0" />
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Road status text */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none whitespace-nowrap">
+              {phase === 'driving' ? (
+                <>
+                  <motion.span
+                    animate={{ scale: [1, 1.4, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.6 }}
+                    className="w-1.5 h-1.5 rounded-full bg-[#C9A227] block"
+                  />
+                  <span className="text-[10px] sm:text-[11px] font-bold text-[#FAF7F2] tracking-wider uppercase font-poppins">
+                    Speeding to Checkout…
+                  </span>
+                </>
+              ) : (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#C9A227]"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Ready! Redirecting…</span>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Animated Delivery Truck moving Left to Right */}
+            <motion.div
+              initial={{ x: -100 }}
+              animate={{ x: 440 }}
+              transition={{
+                duration: 1.05,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
+              className="absolute bottom-2.5 flex items-end"
+            >
+              {/* Smoke puffs behind rear wheel */}
+              <div className="relative w-4 h-4 mr-0.5 mb-1 pointer-events-none">
+                <motion.span
+                  animate={{
+                    opacity: [0.8, 0],
+                    scale: [0.4, 1.4],
+                    x: [-2, -20],
+                    y: [-1, -4],
+                  }}
+                  transition={{ repeat: Infinity, duration: 0.35 }}
+                  className="absolute w-2.5 h-2.5 rounded-full bg-white/35 block"
+                />
+                <motion.span
+                  animate={{
+                    opacity: [0.8, 0],
+                    scale: [0.3, 1.2],
+                    x: [-3, -26],
+                    y: [0, -6],
+                  }}
+                  transition={{ repeat: Infinity, duration: 0.45, delay: 0.1 }}
+                  className="absolute w-2 h-2 rounded-full bg-[#C9A227]/40 block"
+                />
+              </div>
+
+              {/* Bakery Delivery Truck SVG */}
+              <motion.div
+                animate={{ y: [0, -1.5, 0, -1, 0] }}
+                transition={{ repeat: Infinity, duration: 0.25, ease: 'easeInOut' }}
+              >
+                <svg width="56" height="30" viewBox="0 0 56 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Headlight beam */}
+                  <polygon points="50,18 56,15 56,22 50,19" fill="#FFF275" opacity="0.75" />
+                  <circle cx="50" cy="18.5" r="1.5" fill="#FFE24A" />
+
+                  {/* Truck Body (Cargo / Bakery Box) */}
+                  <rect x="2" y="5" width="32" height="18" rx="3" fill="#FAF7F2" stroke="#2A0E0A" strokeWidth="1.2" />
+                  <rect x="3" y="3.5" width="30" height="2" rx="1" fill="#C9A227" />
+
+                  {/* Bakery Logo Emblem on cargo */}
+                  <rect x="7" y="8.5" width="22" height="11" rx="2" fill="#2A0E0A" />
+                  <text x="18" y="16.5" fill="#C9A227" fontSize="7" fontWeight="bold" fontFamily="serif" textAnchor="middle">
+                    M.G.
+                  </text>
+
+                  {/* Truck Cabin */}
+                  <path d="M34 9H44.5L50 16V23H34V9Z" fill="#C9A227" stroke="#2A0E0A" strokeWidth="1.2" />
+                  <path d="M36 11H43.5L47.5 16H36V11Z" fill="#2A0E0A" opacity="0.85" />
+
+                  {/* Bumpers */}
+                  <rect x="49" y="20" width="3" height="3" rx="1" fill="#716056" />
+                  <rect x="0" y="19" width="3" height="3.5" rx="1" fill="#716056" />
+
+                  {/* Rear Wheel */}
+                  <g transform="translate(10, 23)">
+                    <circle cx="0" cy="0" r="5" fill="#1A0D0B" stroke="#8C827A" strokeWidth="1.2" />
+                    <motion.g
+                      animate={{ rotate: 720 }}
+                      transition={{ repeat: Infinity, duration: 0.6, ease: 'linear' }}
+                    >
+                      <circle cx="0" cy="0" r="2.2" fill="#C9A227" />
+                      <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#FAF7F2" strokeWidth="0.8" />
+                      <line x1="0" y1="-3.5" x2="0" y2="3.5" stroke="#FAF7F2" strokeWidth="0.8" />
+                    </motion.g>
+                  </g>
+
+                  {/* Front Wheel */}
+                  <g transform="translate(42, 23)">
+                    <circle cx="0" cy="0" r="5" fill="#1A0D0B" stroke="#8C827A" strokeWidth="1.2" />
+                    <motion.g
+                      animate={{ rotate: 720 }}
+                      transition={{ repeat: Infinity, duration: 0.6, ease: 'linear' }}
+                    >
+                      <circle cx="0" cy="0" r="2.2" fill="#C9A227" />
+                      <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#FAF7F2" strokeWidth="0.8" />
+                      <line x1="0" y1="-3.5" x2="0" y2="3.5" stroke="#FAF7F2" strokeWidth="0.8" />
+                    </motion.g>
+                  </g>
+                </svg>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+};
+
 // ─── Main CartDrawer ──────────────────────────────────────────────────────────
 
 export const CartDrawer: React.FC = () => {
@@ -104,6 +324,16 @@ export const CartDrawer: React.FC = () => {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 500, damping: 30 } },
     exit: { opacity: 0, x: 50, scale: 0.92, transition: { duration: 0.2 } },
+  };
+
+  const handleCheckoutProceed = () => {
+    setIsCartOpen(false);
+    if (!user) {
+      setAuthModalMessage('Please sign in or register with your mobile number to complete your order.');
+      setAuthModalTab('login');
+      setIsAuthModalOpen(true);
+    }
+    navigate('/checkout');
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -150,29 +380,43 @@ export const CartDrawer: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setIsCartOpen(false)}
                 className="p-2 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 hover:text-brand-brown-950 transition-colors cursor-pointer"
                 aria-label="Close cart"
               >
                 <X className="w-4.5 h-4.5" />
-              </button>
+              </motion.button>
             </div>
 
-            {/* ── Bakery Freshness & Quality Banner ── */}
+            {/* ── Bakery Free Delivery & Quality Progress Banner ── */}
             {cartItems.length > 0 && (
-              <div className="bg-gradient-to-r from-[#FAF6F0] via-[#FFF9EE] to-[#FAF6F0] border-b border-[#C9A227]/20 px-4 py-2.5 shrink-0 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#2A0E0A]">
-                  <span className="w-6 h-6 rounded-full bg-[#C9A227]/15 flex items-center justify-center text-[#C9A227] shrink-0">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="text-[11px] font-medium text-[#2C1A17]/85">
-                    Freshly baked & handcrafted with love in Mohanur
+              <div className="bg-gradient-to-r from-[#FAF6F0] via-[#FFF9EE] to-[#FAF6F0] border-b border-[#C9A227]/25 px-4 py-2.5 shrink-0">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#2A0E0A] mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227] shrink-0">
+                      <Sparkles className="w-3 h-3" />
+                    </span>
+                    <span className="text-[11px] font-bold text-[#2A0E0A]">
+                      {totalAmount >= 499
+                        ? '🎉 Free Mohanur Priority Delivery Unlocked!'
+                        : `Add ₹${(499 - totalAmount).toLocaleString('en-IN')} more for Free Delivery`}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-[#C9A227] bg-white px-2 py-0.5 rounded-full border border-[#C9A227]/30 shadow-xs">
+                    {totalAmount >= 499 ? 'UNLOCKED' : `${Math.round((totalAmount / 499) * 100)}%`}
                   </span>
                 </div>
-                <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#C9A227] bg-white px-2.5 py-0.5 rounded-full border border-[#C9A227]/25 shadow-xs shrink-0">
-                  Daily Fresh
-                </span>
+                <div className="w-full h-1.5 bg-brand-cream-200/60 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min((totalAmount / 499) * 100, 100)}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-[#C9A227] to-[#E5C158] rounded-full"
+                  />
+                </div>
               </div>
             )}
 
@@ -194,16 +438,18 @@ export const CartDrawer: React.FC = () => {
                       Treat yourself to fresh cakes, hot pastries, and our handcrafted bakery items.
                     </p>
                   </div>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => { setIsCartOpen(false); navigate('/menu'); }}
                     className="px-6 py-3 bg-[#2A0E0A] text-[#C9A227] text-xs font-bold rounded-full cursor-pointer hover:bg-[#401C16] transition-colors shadow-lg flex items-center gap-2"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     Browse Menu
-                  </button>
+                  </motion.button>
                 </div>
               ) : (
-                <div className="p-5 space-y-3">
+                <div className="p-4 sm:p-5 space-y-3">
                   <AnimatePresence initial={false}>
                     {cartItems.map(item => (
                       <motion.div
@@ -213,10 +459,10 @@ export const CartDrawer: React.FC = () => {
                         animate="visible"
                         exit="exit"
                         layout
-                        className="flex gap-3.5 p-4 bg-white rounded-3xl border border-brand-cream-100/40 shadow-sm hover:shadow-md hover:border-[#C9A227]/25 transition-all duration-300 relative group overflow-hidden"
+                        className="flex gap-3.5 p-3.5 sm:p-4 bg-white rounded-2xl sm:rounded-3xl border border-brand-cream-100 shadow-xs hover:shadow-md hover:border-[#C9A227]/30 transition-all duration-300 relative group overflow-hidden"
                       >
                         {/* Product Image */}
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-brand-cream-100 shrink-0 shadow-sm border border-brand-cream-200/30">
+                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-brand-cream-100 shrink-0 shadow-xs border border-brand-cream-200/30">
                           <img
                             src={item.image}
                             alt={item.name}
@@ -255,24 +501,28 @@ export const CartDrawer: React.FC = () => {
 
                           {/* Quantity + Price Row */}
                           <div className="flex items-center justify-between mt-2.5">
-                            <div className="flex items-center border border-brand-cream-200/60 rounded-full bg-brand-cream-100/30 p-0.5">
-                              <button
+                            <div className="flex items-center border border-brand-cream-200/80 rounded-full bg-brand-cream-50 p-0.5 shadow-xs">
+                              <motion.button
+                                whileTap={{ scale: 0.8 }}
+                                whileHover={{ scale: 1.1, backgroundColor: '#FAF7F2' }}
                                 onClick={() => updateQuantity(item.id, item.selectedWeight, -1)}
-                                className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-brand-brown-800 hover:text-[#2A0E0A] transition-colors cursor-pointer min-h-0 min-w-0"
                                 aria-label="Decrease quantity"
                               >
                                 <Minus className="w-2.5 h-2.5" />
-                              </button>
-                              <span className="w-8 text-center text-xs font-bold text-brand-brown-950">
+                              </motion.button>
+                              <span className="w-7 text-center text-xs font-black text-brand-brown-950 block select-none">
                                 {item.quantity}
                               </span>
-                              <button
+                              <motion.button
+                                whileTap={{ scale: 0.8 }}
+                                whileHover={{ scale: 1.1, backgroundColor: '#C9A227', color: '#2A0E0A' }}
                                 onClick={() => updateQuantity(item.id, item.selectedWeight, 1)}
-                                className="p-1 rounded-full hover:bg-brand-cream-100 text-brand-brown-800 active:scale-90 transition-all cursor-pointer"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-brand-brown-800 hover:text-[#2A0E0A] transition-colors cursor-pointer min-h-0 min-w-0"
                                 aria-label="Increase quantity"
                               >
                                 <Plus className="w-2.5 h-2.5" />
-                              </button>
+                              </motion.button>
                             </div>
                             <span className="text-xs font-bold text-brand-brown-950">
                               ₹{item.price * item.quantity}
@@ -282,20 +532,24 @@ export const CartDrawer: React.FC = () => {
 
                         {/* Action Buttons (top right) */}
                         <div className="absolute top-2.5 right-2.5 flex flex-col gap-1">
-                          <button
+                          <motion.button
+                            whileHover={{ scale: 1.2, rotate: -10 }}
+                            whileTap={{ scale: 0.85 }}
                             onClick={() => removeFromCart(item.id, item.selectedWeight)}
-                            className="text-brand-brown-800/30 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full cursor-pointer transition-all"
+                            className="chip-btn text-brand-brown-800/35 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full cursor-pointer transition-colors min-h-0 min-w-0"
                             title="Remove"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.2, y: -2 }}
+                            whileTap={{ scale: 0.85 }}
                             onClick={() => saveForLater(item.id, item.selectedWeight)}
-                            className="text-brand-brown-800/30 hover:text-brand-gold-700 hover:bg-brand-cream-100 p-1.5 rounded-full cursor-pointer transition-all"
+                            className="chip-btn text-brand-brown-800/35 hover:text-[#C9A227] hover:bg-[#C9A227]/10 p-1.5 rounded-full cursor-pointer transition-colors min-h-0 min-w-0"
                             title="Save for Later"
                           >
                             <Bookmark className="w-3.5 h-3.5" />
-                          </button>
+                          </motion.button>
                         </div>
                       </motion.div>
                     ))}
@@ -363,41 +617,22 @@ export const CartDrawer: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        setIsCartOpen(false);
-                        if (!user) {
-                          setAuthModalMessage('Please sign in or register with your mobile number to complete your order.');
-                          setAuthModalTab('login');
-                          setIsAuthModalOpen(true);
-                        }
-                        navigate('/checkout');
-                      }}
-                      className="w-full bg-[#2A0E0A] hover:bg-[#3D140E] text-[#FAF7F2] py-3.5 px-5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-xl shadow-[#2A0E0A]/15 cursor-pointer group overflow-hidden relative"
-                    >
-                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-xl bg-[#C9A227]/20 flex items-center justify-center text-[#C9A227]">
-                          <ShoppingCart className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-semibold tracking-wide text-white">Proceed to Checkout</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="bg-[#C9A227] text-[#2A0E0A] px-3 py-1 rounded-xl text-xs font-extrabold shadow-sm">
-                          ₹{totalAmount.toLocaleString('en-IN')}
-                        </span>
-                        <ArrowRight className="w-4 h-4 text-[#C9A227] group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </button>
+                    {/* Interactive Delivery Truck Checkout Button */}
+                    <TruckAnimationCheckoutButton
+                      totalAmount={totalAmount}
+                      onProceed={handleCheckoutProceed}
+                    />
 
                     <div className="flex items-center justify-between px-1 pt-1">
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={clearCart}
-                        className="text-[10px] font-bold uppercase tracking-wider text-[#2C1A17]/40 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1"
+                        className="chip-btn text-[10px] font-bold uppercase tracking-wider text-[#2C1A17]/40 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1 min-h-0 min-w-0"
                       >
                         <RotateCcw className="w-2.5 h-2.5" />
                         <span>Clear Bag</span>
-                      </button>
+                      </motion.button>
                       <span className="text-[10px] text-[#2C1A17]/50 font-medium flex items-center gap-1">
                         <span>✨ Direct WhatsApp Ordering</span>
                       </span>

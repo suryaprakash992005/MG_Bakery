@@ -296,8 +296,15 @@ export const Checkout: React.FC = () => {
       // 12. Clear cart AFTER successful order save
       clearCart();
 
-      // 13. Store success state
+      // 13. Store success state & local order history
       setOrderSuccess({ orderNumber, orderId: savedOrder.id });
+      try {
+        const stored = JSON.parse(localStorage.getItem('my_orders_history') || '[]');
+        const updated = Array.from(new Set([orderNumber, savedOrder.id, ...stored]));
+        localStorage.setItem('my_orders_history', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Notice saving order to local history:', e);
+      }
 
       // 14. Open WhatsApp
       try {
