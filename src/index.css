@@ -96,22 +96,22 @@
   }
 
   /* Touch & Click Optimization Across All Mobile & Desktop Devices */
-  button,
-  a,
+  button:not(.chip-btn):not(.btn-compact):not([data-compact="true"]),
+  a:not(.inline-link),
   input,
   select,
   textarea,
-  [role="button"] {
+  [role="button"]:not(.chip-btn):not(.btn-compact) {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     min-height: 38px;
     min-width: 38px;
   }
 
-  /* Touch targets for inline links/icons exempt */
-  span > a, p > a, .inline-link {
-    min-height: auto;
-    min-width: auto;
+  /* Touch targets for inline links/icons/compact chips exempt */
+  span > a, p > a, .inline-link, .chip-btn, .btn-compact, [data-compact="true"] {
+    min-height: unset;
+    min-width: unset;
   }
 
   h1, h2, h3, h4, h5, h6 {

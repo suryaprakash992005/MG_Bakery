@@ -161,7 +161,7 @@ export const FoodOrderCard: React.FC<FoodOrderCardProps> = ({ product }) => {
                 <button
                   key={tier}
                   onClick={(e) => { e.stopPropagation(); setSelectedTier(tier); }}
-                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                  className={`chip-btn min-h-0 min-w-0 text-[9px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
                     selectedTier === tier
                       ? 'bg-brand-gold-850 text-brand-brown-950 border-brand-gold-850 shadow-sm'
                       : 'bg-brand-cream-50 text-brand-brown-800/60 border-brand-cream-100 hover:border-brand-cream-300'

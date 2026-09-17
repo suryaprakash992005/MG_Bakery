@@ -78,8 +78,8 @@ export const Cakes: React.FC = () => {
   });
 
   return (
-    <div className="pt-28 pb-28 lg:pb-20 min-h-screen bg-brand-cream-50/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="pt-24 sm:pt-28 pb-28 lg:pb-20 min-h-screen bg-brand-cream-50/10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         
         {/* Banner Section */}
         <div className="text-center max-w-3xl mx-auto mb-12">
@@ -142,7 +142,7 @@ export const Cakes: React.FC = () => {
         </div>
 
         {/* Results Info */}
-        <div className="flex items-center justify-between mb-8 px-2">
+        <div className="flex items-center justify-between mb-4 sm:mb-8 px-1 sm:px-2">
           <span className="text-xs font-medium text-brand-brown-800/50">
             Showing {filteredCakes.length} {filteredCakes.length === 1 ? 'cake profile' : 'cake profiles'}
           </span>

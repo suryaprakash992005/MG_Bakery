@@ -11,6 +11,13 @@
   height: 40px;
 }
 
+/* Compact variant for mobile 2-column cards */
+.add-to-cart-interactive.compact {
+  height: 34px;
+  padding: 6px 14px;
+  font-size: 11px;
+}
+
 /* The expanding dot */
 .add-to-cart-interactive .hover-dot {
   position: absolute;
@@ -24,6 +31,12 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
   z-index: 1;
+}
+
+.add-to-cart-interactive.compact .hover-dot {
+  left: 12px;
+  width: 6px;
+  height: 6px;
 }
 
 /* Hover state: scale the dot to cover the entire button background */

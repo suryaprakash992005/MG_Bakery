@@ -9,6 +9,7 @@ interface AddToCartButtonProps {
   product: Product;
   selectedWeight: string;
   className?: string;
+  compact?: boolean;
 }
 
 interface Particle {
@@ -23,6 +24,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   selectedWeight,
   className = '',
+  compact = false,
 }) => {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
@@ -75,7 +77,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     return (
       <button
         disabled
-        className={`add-to-cart-interactive out-of-stock cursor-not-allowed ${className}`}
+        className={`add-to-cart-interactive out-of-stock cursor-not-allowed ${compact ? 'compact' : ''} ${className}`}
       >
         <span className="btn-content-normal">Sold Out</span>
       </button>
@@ -85,7 +87,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   return (
     <button
       onClick={handleAdd}
-      className={`add-to-cart-interactive transition-all active:scale-95 ${added ? 'added-state' : ''} ${className}`}
+      className={`add-to-cart-interactive transition-all active:scale-95 ${compact ? 'compact' : ''} ${added ? 'added-state' : ''} ${className}`}
     >
       {/* Sparkle Particles Burst */}
       <AnimatePresence>
