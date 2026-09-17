@@ -88,11 +88,11 @@ const CraftedEveryMorning: React.FC = () => {
   return (
     <section className="py-0 bg-[#FAF7F2] snap-start-section overflow-hidden">
       <div className="max-w-[1440px] mx-auto">
-        {/* Asymmetric grid: image 55% | text 45% */}
-        <div className="flex flex-col lg:flex-row min-h-[540px] lg:min-h-[720px]">
+        {/* Asymmetric grid: stacks on mobile, side-by-side on lg+ */}
+        <div className="flex flex-col lg:flex-row min-h-[auto] lg:min-h-[720px]">
 
-          {/* LEFT: Large editorial image */}
-          <div className="relative w-full lg:w-[55%] h-[56vw] max-h-[480px] lg:max-h-none lg:h-auto overflow-hidden bg-[#2A0E0A] shrink-0">
+          {/* LEFT: Large editorial image — taller on mobile */}
+          <div className="relative w-full lg:w-[55%] h-[68vw] min-h-[260px] max-h-[400px] sm:max-h-[480px] lg:max-h-none lg:h-auto overflow-hidden bg-[#2A0E0A] shrink-0">
             <AnimatePresence mode="wait">
               <motion.img
                 key={activePillar}
@@ -108,10 +108,17 @@ const CraftedEveryMorning: React.FC = () => {
 
             {/* Warm cinematic overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#2A0E0A]/10 via-transparent to-[#2A0E0A]/30 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2A0E0A]/50 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#2A0E0A]/60 via-transparent to-transparent pointer-events-none" />
 
-            {/* Corner caption */}
-            <div className="absolute bottom-5 left-5 lg:bottom-9 lg:left-9">
+            {/* Active pillar label on mobile — overlaid on image */}
+            <div className="absolute bottom-4 left-4 right-4 lg:hidden">
+              <span className="font-playfair text-white font-bold text-sm">
+                {CRAFT_PILLARS[activePillar].num} · {CRAFT_PILLARS[activePillar].title}
+              </span>
+            </div>
+
+            {/* Corner caption — desktop only */}
+            <div className="hidden lg:block absolute bottom-9 left-9">
               <span className="font-playfair text-white/45 text-[10px] uppercase tracking-[0.3em]">
                 M.G. Iyengar Bakery · Est. Mohanur
               </span>
@@ -119,7 +126,7 @@ const CraftedEveryMorning: React.FC = () => {
           </div>
 
           {/* RIGHT: Editorial text column */}
-          <div className="flex flex-col justify-center w-full lg:w-[45%] px-7 sm:px-12 lg:px-14 xl:px-20 py-12 lg:py-20 bg-[#FAF7F2]">
+          <div className="flex flex-col justify-center w-full lg:w-[45%] px-5 sm:px-10 lg:px-14 xl:px-20 py-8 sm:py-12 lg:py-20 bg-[#FAF7F2]">
 
             {/* Eyebrow */}
             <motion.div
@@ -127,7 +134,7 @@ const CraftedEveryMorning: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.5 }}
-              className="flex items-center gap-3 mb-6"
+              className="flex items-center gap-3 mb-4 sm:mb-6"
             >
               <div className="w-8 h-px bg-[#C9A227]" />
               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C9A227]">
@@ -135,13 +142,13 @@ const CraftedEveryMorning: React.FC = () => {
               </span>
             </motion.div>
 
-            {/* Headline */}
+            {/* Headline — smaller on mobile to prevent overflow */}
             <motion.h2
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-playfair text-4xl sm:text-5xl lg:text-[3.25rem] xl:text-6xl font-bold text-[#2A0E0A] leading-[1.08] tracking-tight mb-5"
+              className="font-playfair text-[2rem] leading-[1.1] sm:text-4xl sm:leading-[1.08] lg:text-[3.25rem] xl:text-6xl font-bold text-[#2A0E0A] tracking-tight mb-3 sm:mb-5"
             >
               Crafted Every<br />Morning.
             </motion.h2>
@@ -152,7 +159,7 @@ const CraftedEveryMorning: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-sm text-[#2C1A17]/60 font-light leading-relaxed max-w-sm mb-10 lg:mb-12"
+              className="text-sm text-[#2C1A17]/60 font-light leading-relaxed max-w-sm mb-6 sm:mb-10 lg:mb-12"
             >
               We preserve traditional baking processes to deliver unforgettable taste in every bite.
             </motion.p>
@@ -172,26 +179,26 @@ const CraftedEveryMorning: React.FC = () => {
                     onFocus={() => setActivePillar(idx)}
                     tabIndex={0}
                     onClick={() => setActivePillar(idx)}
-                    className={`group relative border-b border-[#2C1A17]/10 py-5 lg:py-6 cursor-pointer transition-all duration-300 outline-none ${
-                      isActive ? 'pl-4' : 'pl-0 hover:pl-3'
+                    className={`group relative border-b border-[#2C1A17]/10 py-4 sm:py-5 lg:py-6 cursor-pointer transition-all duration-300 outline-none min-h-[48px] ${
+                      isActive ? 'pl-4' : 'pl-0'
                     }`}
                     role="button"
                     aria-pressed={isActive}
-                    aria-label={`${pillar.title}`}
+                    aria-label={pillar.title}
                   >
                     {/* Active left accent bar */}
                     <motion.div
-                      className="absolute left-0 top-5 bottom-5 w-0.5 bg-[#C9A227] rounded-full"
+                      className="absolute left-0 top-4 bottom-4 w-0.5 bg-[#C9A227] rounded-full"
                       animate={{ opacity: isActive ? 1 : 0, scaleY: isActive ? 1 : 0.3 }}
                       transition={{ duration: 0.3 }}
                       style={{ originY: 0.5 }}
                     />
 
-                    <div className="flex items-start gap-5">
+                    <div className="flex items-start gap-4">
                       {/* Number */}
                       <span
-                        className={`font-playfair text-[13px] font-bold tracking-widest transition-colors duration-300 mt-0.5 shrink-0 select-none ${
-                          isActive ? 'text-[#C9A227]' : 'text-[#2C1A17]/25 group-hover:text-[#C9A227]/60'
+                        className={`font-playfair text-[12px] font-bold tracking-widest transition-colors duration-300 mt-0.5 shrink-0 select-none ${
+                          isActive ? 'text-[#C9A227]' : 'text-[#2C1A17]/25'
                         }`}
                       >
                         {pillar.num}
@@ -200,18 +207,18 @@ const CraftedEveryMorning: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         {/* Title */}
                         <h3
-                          className={`font-playfair text-base sm:text-lg font-bold transition-colors duration-300 leading-tight ${
-                            isActive ? 'text-[#2A0E0A]' : 'text-[#2C1A17]/65 group-hover:text-[#2A0E0A]'
+                          className={`font-playfair text-[15px] sm:text-base lg:text-lg font-bold transition-colors duration-300 leading-snug ${
+                            isActive ? 'text-[#2A0E0A]' : 'text-[#2C1A17]/65'
                           }`}
                         >
                           {pillar.title}
                         </h3>
 
-                        {/* Description — reveals when active */}
+                        {/* Description — always visible on mobile when active */}
                         <motion.p
                           animate={{ height: isActive ? 'auto' : 0, opacity: isActive ? 1 : 0 }}
                           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                          className="overflow-hidden text-sm text-[#2C1A17]/55 font-light leading-relaxed mt-1.5"
+                          className="overflow-hidden text-[13px] sm:text-sm text-[#2C1A17]/55 font-light leading-relaxed mt-1.5"
                         >
                           {pillar.desc}
                         </motion.p>
@@ -219,10 +226,8 @@ const CraftedEveryMorning: React.FC = () => {
 
                       {/* Arrow indicator */}
                       <ArrowRight
-                        className={`w-4 h-4 shrink-0 mt-0.5 transition-all duration-300 ${
-                          isActive
-                            ? 'text-[#C9A227] translate-x-0.5'
-                            : 'text-[#2C1A17]/20 group-hover:text-[#2C1A17]/40 group-hover:translate-x-1'
+                        className={`w-4 h-4 shrink-0 mt-0.5 transition-colors duration-300 ${
+                          isActive ? 'text-[#C9A227]' : 'text-[#2C1A17]/20'
                         }`}
                       />
                     </div>
@@ -516,24 +521,24 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         {/* Subtle radial glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#C9A227]/8 via-transparent to-transparent pointer-events-none" />
 
-        <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row min-h-[600px] lg:min-h-[680px]">
+        <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row">
 
-          {/* ── LEFT: InfiniteSpiral ── */}
-          <div className="relative w-full lg:w-[45%] h-[55vw] max-h-[420px] lg:max-h-none lg:h-auto shrink-0 overflow-hidden">
-            {/* Fade edges into the dark bg */}
-            <div className="absolute inset-y-0 right-0 w-16 z-10 bg-gradient-to-l from-[#2A0E0A] to-transparent pointer-events-none" />
-            <div className="absolute top-0 left-0 right-0 h-20 z-10 bg-gradient-to-b from-[#2A0E0A] to-transparent pointer-events-none" />
-            <div className="absolute bottom-0 left-0 right-0 h-20 z-10 bg-gradient-to-t from-[#2A0E0A] to-transparent pointer-events-none" />
+          {/* ── LEFT: InfiniteSpiral — fixed height on mobile, auto on desktop ── */}
+          <div className="relative w-full lg:w-[45%] h-[300px] sm:h-[360px] lg:h-auto lg:min-h-[640px] shrink-0 overflow-hidden">
+            {/* Fade edges into dark bg */}
+            <div className="absolute inset-y-0 right-0 w-12 lg:w-16 z-10 bg-gradient-to-l from-[#2A0E0A] to-transparent pointer-events-none" />
+            <div className="absolute top-0 left-0 right-0 h-16 z-10 bg-gradient-to-b from-[#2A0E0A] to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-16 z-10 bg-gradient-to-t from-[#2A0E0A] to-transparent pointer-events-none" />
             <InfiniteSpiral
               items={SPIRAL_IMAGES}
               animationMode="auto"
               speed={0.42}
-              radius={130}
-              cardWidth={110}
-              cardHeight={110}
-              verticalSpacing={62}
+              radius={110}
+              cardWidth={95}
+              cardHeight={95}
+              verticalSpacing={55}
               perspective={900}
-              cardRadius={14}
+              cardRadius={12}
               centerScale={1.18}
               edgeBlur={5}
               edgeFade={0.28}
@@ -544,7 +549,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
           </div>
 
           {/* ── RIGHT: Testimonial content ── */}
-          <div className="flex flex-col justify-center flex-1 px-8 sm:px-14 lg:px-16 xl:px-20 py-16 lg:py-20 relative z-10">
+          <div className="flex flex-col justify-center flex-1 px-5 sm:px-10 lg:px-14 xl:px-20 py-10 sm:py-14 lg:py-20 relative z-10">
 
             {/* Eyebrow */}
             <motion.div
@@ -552,7 +557,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.5 }}
-              className="flex items-center gap-3 mb-6"
+              className="flex items-center gap-3 mb-4 sm:mb-6"
             >
               <div className="w-8 h-px bg-[#C9A227]" />
               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C9A227]">
@@ -560,38 +565,38 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               </span>
             </motion.div>
 
-            {/* Heading */}
+            {/* Heading — tighter on mobile */}
             <motion.h2
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-3"
+              className="font-playfair text-[1.85rem] leading-[1.15] sm:text-4xl lg:text-5xl font-bold text-white mb-3"
             >
-              Sweet Words<br className="hidden sm:block" /> from Customers
+              Sweet Words from Customers
             </motion.h2>
-            <div className="w-12 h-[2px] bg-[#C9A227] mb-10" />
+            <div className="w-10 h-[2px] bg-[#C9A227] mb-7 sm:mb-10" />
 
             {/* Review body */}
-            <div className="space-y-6 max-w-lg">
+            <div className="space-y-5 sm:space-y-6 max-w-lg">
               {/* Stars */}
               <div className="flex items-center gap-1.5">
                 {Array.from({ length: 5 }).map((_, idx) => (
-                  <Star key={idx} className="w-5 h-5 fill-[#C9A227] text-[#C9A227]" />
+                  <Star key={idx} className="w-4 h-4 sm:w-5 sm:h-5 fill-[#C9A227] text-[#C9A227]" />
                 ))}
               </div>
 
               {/* Quote */}
-              <blockquote className="font-playfair text-lg sm:text-xl italic leading-relaxed text-white/90">
+              <blockquote className="font-playfair text-base sm:text-lg lg:text-xl italic leading-relaxed text-white/90">
                 "{REVIEWS[reviewSlide % REVIEWS.length].comment}"
               </blockquote>
 
               {/* Author */}
-              <div className="flex items-center gap-4 pt-2">
+              <div className="flex items-center gap-3 pt-1">
                 <img
                   src={REVIEWS[reviewSlide % REVIEWS.length].avatar}
                   alt={REVIEWS[reviewSlide % REVIEWS.length].name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-[#C9A227] shadow-md shrink-0"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-[#C9A227] shadow-md shrink-0"
                 />
                 <div>
                   <h4 className="text-sm font-bold text-white leading-tight">
@@ -604,19 +609,23 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
               </div>
             </div>
 
-            {/* Dot controls */}
-            <div className="flex items-center gap-2 mt-10">
+            {/* Dot controls — min 44px touch target */}
+            <div className="flex items-center gap-3 mt-8 sm:mt-10">
               {REVIEWS.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setReviewSlide(idx)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    (reviewSlide % REVIEWS.length) === idx
-                      ? 'bg-[#C9A227] w-6'
-                      : 'bg-white/25 w-2 hover:bg-white/50'
-                  }`}
+                  className={`flex items-center justify-center min-w-[44px] min-h-[44px] -mx-2`}
                   aria-label={`Go to review ${idx + 1}`}
-                />
+                >
+                  <span
+                    className={`block h-2 rounded-full transition-all duration-300 ${
+                      (reviewSlide % REVIEWS.length) === idx
+                        ? 'bg-[#C9A227] w-6'
+                        : 'bg-white/25 w-2'
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           </div>
