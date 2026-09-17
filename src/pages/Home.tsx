@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ShieldCheck, Heart, Users, Compass, Zap, MapPin, Star, LayoutGrid, Layers } from 'lucide-react';
+import { ArrowRight, Sparkles, MapPin, Star, LayoutGrid, Layers } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { REVIEWS } from '../data';
 import { WHATSAPP_PHONE_NUMBER } from '../utils/whatsappHelper';
@@ -10,8 +10,23 @@ import LightRays from '../components/LightRays';
 import LogoLoop from '../components/LogoLoop';
 import type { LogoItem } from '../components/LogoLoop';
 import DomeGallery from '../components/DomeGallery';
+import InfiniteSpiral from '../components/InfiniteSpiral';
 
 // ── Module-level constants (stable references — never recreated on render) ──
+
+// Bakery images fed into the InfiniteSpiral in the Testimonials section
+const SPIRAL_IMAGES = [
+  { src: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=400&q=80', alt: 'Celebration Cake' },
+  { src: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=400&q=80', alt: 'Cookies' },
+  { src: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80', alt: 'Fresh Bread' },
+  { src: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=400&q=80', alt: 'Fresh Puffs' },
+  { src: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=400&q=80', alt: 'Anniversary Cake' },
+  { src: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=400&q=80', alt: 'Ice Cream' },
+  { src: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=400&q=80', alt: 'Pastry Slice' },
+  { src: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80', alt: 'Veg Puff' },
+  { src: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=400&q=80', alt: 'Milkshake' },
+  { src: 'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?auto=format&fit=crop&w=400&q=80', alt: 'Tea & Coffee' },
+];
 const CATEGORIES = [
   { name: 'Cakes',             desc: 'Custom & cream celebrations',   image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=300&q=80' },
   { name: 'Pastries',         desc: 'Indulgent sweet slices',         image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80' },
@@ -44,6 +59,183 @@ const LOGO_LOOP_ITEMS: LogoItem[] = CATEGORIES.map(cat => ({
   alt: cat.name,
   title: cat.name,
 }));
+
+// ── "Crafted Every Morning" section — own component to satisfy Rules of Hooks ──
+const CRAFT_PILLARS = [
+  {
+    num: '01',
+    title: 'Fresh Ingredients',
+    desc: "We source the finest local milk, farm butter, and premium seasonal fruits — every batch starts with what's best from the land.",
+    image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=900&q=85',
+  },
+  {
+    num: '02',
+    title: 'Baked Every Morning',
+    desc: 'Our ovens begin before sunrise. Warm bread, flaky puffs, and crisp cookies reach the shelf fresh — every single day, without exception.',
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=85',
+  },
+  {
+    num: '03',
+    title: 'Crafted for You',
+    desc: 'From custom celebration cakes shaped to your dream theme, to quick WhatsApp orders — a trusted family bakery serving Mohanur & Namakkal.',
+    image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=900&q=85',
+  },
+];
+
+const CraftedEveryMorning: React.FC = () => {
+  const [activePillar, setActivePillar] = useState(0);
+
+  return (
+    <section className="py-0 bg-[#FAF7F2] snap-start-section overflow-hidden">
+      <div className="max-w-[1440px] mx-auto">
+        {/* Asymmetric grid: image 55% | text 45% */}
+        <div className="flex flex-col lg:flex-row min-h-[540px] lg:min-h-[720px]">
+
+          {/* LEFT: Large editorial image */}
+          <div className="relative w-full lg:w-[55%] h-[56vw] max-h-[480px] lg:max-h-none lg:h-auto overflow-hidden bg-[#2A0E0A] shrink-0">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={activePillar}
+                src={CRAFT_PILLARS[activePillar].image}
+                alt={CRAFT_PILLARS[activePillar].title}
+                className="absolute inset-0 w-full h-full object-cover"
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </AnimatePresence>
+
+            {/* Warm cinematic overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#2A0E0A]/10 via-transparent to-[#2A0E0A]/30 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#2A0E0A]/50 via-transparent to-transparent pointer-events-none" />
+
+            {/* Corner caption */}
+            <div className="absolute bottom-5 left-5 lg:bottom-9 lg:left-9">
+              <span className="font-playfair text-white/45 text-[10px] uppercase tracking-[0.3em]">
+                M.G. Iyengar Bakery · Est. Mohanur
+              </span>
+            </div>
+          </div>
+
+          {/* RIGHT: Editorial text column */}
+          <div className="flex flex-col justify-center w-full lg:w-[45%] px-7 sm:px-12 lg:px-14 xl:px-20 py-12 lg:py-20 bg-[#FAF7F2]">
+
+            {/* Eyebrow */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center gap-3 mb-6"
+            >
+              <div className="w-8 h-px bg-[#C9A227]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C9A227]">
+                Our Craft
+              </span>
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h2
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="font-playfair text-4xl sm:text-5xl lg:text-[3.25rem] xl:text-6xl font-bold text-[#2A0E0A] leading-[1.08] tracking-tight mb-5"
+            >
+              Crafted Every<br />Morning.
+            </motion.h2>
+
+            {/* Supporting line */}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-sm text-[#2C1A17]/60 font-light leading-relaxed max-w-sm mb-10 lg:mb-12"
+            >
+              We preserve traditional baking processes to deliver unforgettable taste in every bite.
+            </motion.p>
+
+            {/* Numbered pillars */}
+            <div className="border-t border-[#2C1A17]/10">
+              {CRAFT_PILLARS.map((pillar, idx) => {
+                const isActive = activePillar === idx;
+                return (
+                  <motion.div
+                    key={pillar.num}
+                    initial={{ opacity: 0, y: 14 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.5, delay: 0.15 * idx + 0.3 }}
+                    onMouseEnter={() => setActivePillar(idx)}
+                    onFocus={() => setActivePillar(idx)}
+                    tabIndex={0}
+                    onClick={() => setActivePillar(idx)}
+                    className={`group relative border-b border-[#2C1A17]/10 py-5 lg:py-6 cursor-pointer transition-all duration-300 outline-none ${
+                      isActive ? 'pl-4' : 'pl-0 hover:pl-3'
+                    }`}
+                    role="button"
+                    aria-pressed={isActive}
+                    aria-label={`${pillar.title}`}
+                  >
+                    {/* Active left accent bar */}
+                    <motion.div
+                      className="absolute left-0 top-5 bottom-5 w-0.5 bg-[#C9A227] rounded-full"
+                      animate={{ opacity: isActive ? 1 : 0, scaleY: isActive ? 1 : 0.3 }}
+                      transition={{ duration: 0.3 }}
+                      style={{ originY: 0.5 }}
+                    />
+
+                    <div className="flex items-start gap-5">
+                      {/* Number */}
+                      <span
+                        className={`font-playfair text-[13px] font-bold tracking-widest transition-colors duration-300 mt-0.5 shrink-0 select-none ${
+                          isActive ? 'text-[#C9A227]' : 'text-[#2C1A17]/25 group-hover:text-[#C9A227]/60'
+                        }`}
+                      >
+                        {pillar.num}
+                      </span>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Title */}
+                        <h3
+                          className={`font-playfair text-base sm:text-lg font-bold transition-colors duration-300 leading-tight ${
+                            isActive ? 'text-[#2A0E0A]' : 'text-[#2C1A17]/65 group-hover:text-[#2A0E0A]'
+                          }`}
+                        >
+                          {pillar.title}
+                        </h3>
+
+                        {/* Description — reveals when active */}
+                        <motion.p
+                          animate={{ height: isActive ? 'auto' : 0, opacity: isActive ? 1 : 0 }}
+                          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden text-sm text-[#2C1A17]/55 font-light leading-relaxed mt-1.5"
+                        >
+                          {pillar.desc}
+                        </motion.p>
+                      </div>
+
+                      {/* Arrow indicator */}
+                      <ArrowRight
+                        className={`w-4 h-4 shrink-0 mt-0.5 transition-all duration-300 ${
+                          isActive
+                            ? 'text-[#C9A227] translate-x-0.5'
+                            : 'text-[#2C1A17]/20 group-hover:text-[#2C1A17]/40 group-hover:translate-x-1'
+                        }`}
+                      />
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 interface HomeProps {
   setCurrentPage: (page: string) => void;
@@ -142,14 +334,7 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
     return () => clearInterval(timer);
   }, []);
 
-  const whyChooseUs = [
-    { title: 'Fresh Ingredients', desc: 'We source the finest local milk, farm butter, and premium fruits for rich flavors.', icon: Sparkles },
-    { title: 'Daily Baking', desc: 'Ovens turn at dawn to bring you warm bread, cookies, and flaky puffs every single day.', icon: ShieldCheck },
-    { title: 'Custom Cakes', desc: 'Our pastry chefs turn your dream themes into edible masterpieces for any occasion.', icon: Heart },
-    { title: 'Premium Quality', desc: 'Uncompromising hygiene standards and premium ingredients are baked into every batch.', icon: Zap },
-    { title: 'Fast Service', desc: 'Get quick order confirmations and prompt handovers via our direct WhatsApp line.', icon: Compass },
-    { title: 'Trusted Local Bakery', desc: 'A beloved family business serving Mohanur & Namakkal with authentic traditional taste.', icon: Users },
-  ];
+
 
   return (
     <div className="pt-0 snap-y-container">
@@ -323,117 +508,122 @@ export const Home: React.FC<HomeProps> = ({ setCurrentPage }) => {
         </div>
       </section>
 
-      {/* 4. Why Choose Us Section */}
-      <section className="py-20 bg-white snap-start-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="luxury-heading-center text-3xl sm:text-4xl font-bold">
-              The Art of Baking
-            </h2>
-            <p className="text-sm text-brand-brown-800/60 font-light mt-4">
-              We preserve traditional baking processes to deliver unforgettable tastes in every bite.
-            </p>
+      {/* 4. "Crafted Every Morning" Editorial Section */}
+      <CraftedEveryMorning />
+
+      {/* 5. Customer Reviews — Editorial Split with InfiniteSpiral */}
+      <section className="relative bg-[#2A0E0A] text-white overflow-hidden snap-start-section">
+        {/* Subtle radial glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#C9A227]/8 via-transparent to-transparent pointer-events-none" />
+
+        <div className="max-w-[1440px] mx-auto flex flex-col lg:flex-row min-h-[600px] lg:min-h-[680px]">
+
+          {/* ── LEFT: InfiniteSpiral ── */}
+          <div className="relative w-full lg:w-[45%] h-[55vw] max-h-[420px] lg:max-h-none lg:h-auto shrink-0 overflow-hidden">
+            {/* Fade edges into the dark bg */}
+            <div className="absolute inset-y-0 right-0 w-16 z-10 bg-gradient-to-l from-[#2A0E0A] to-transparent pointer-events-none" />
+            <div className="absolute top-0 left-0 right-0 h-20 z-10 bg-gradient-to-b from-[#2A0E0A] to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-20 z-10 bg-gradient-to-t from-[#2A0E0A] to-transparent pointer-events-none" />
+            <InfiniteSpiral
+              items={SPIRAL_IMAGES}
+              animationMode="auto"
+              speed={0.42}
+              radius={130}
+              cardWidth={110}
+              cardHeight={110}
+              verticalSpacing={62}
+              perspective={900}
+              cardRadius={14}
+              centerScale={1.18}
+              edgeBlur={5}
+              edgeFade={0.28}
+              cardsPerTurn={7}
+              pauseOnHover
+              imageFit="cover"
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {whyChooseUs.map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <BorderGlow
-                  key={idx}
-                  backgroundColor="#FAF8F5"
-                  borderRadius={32}
-                  glowColor="46 64 52"
-                  glowRadius={25}
-                  glowIntensity={0.6}
-                  coneSpread={25}
-                  colors={['#D4AF37', '#2C1717', '#A46E6E']}
-                  fillOpacity={0.08}
-                  className="h-full"
-                >
-                  <div className="p-8 h-full">
-                    <div className="w-12 h-12 rounded-2xl bg-brand-brown-950 text-brand-gold-850 flex items-center justify-center mb-6 shadow-md shadow-brand-brown-950/10">
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <h3 className="font-playfair text-lg font-bold text-brand-brown-950 mb-3">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-brand-brown-800/70 font-light leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </div>
-                </BorderGlow>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+          {/* ── RIGHT: Testimonial content ── */}
+          <div className="flex flex-col justify-center flex-1 px-8 sm:px-14 lg:px-16 xl:px-20 py-16 lg:py-20 relative z-10">
 
-      {/* 5. Customer Reviews Carousel */}
-      <section className="block py-24 bg-[#2A0E0A] text-white overflow-hidden relative snap-start-section">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#FAF7F2]/10 via-transparent to-transparent opacity-50 pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto px-4 relative z-10 text-center">
-          <div className="max-w-2xl mx-auto mb-16">
-            <span className="text-[10px] uppercase tracking-widest text-[#C9A227] font-bold block mb-3">
-              TESTIMONIALS
-            </span>
-            <h2 className="font-playfair text-3xl font-bold text-white">
-              Sweet Words from Customers
-            </h2>
-            <div className="w-16 h-[2px] bg-[#C9A227] mx-auto mt-4" />
-          </div>
+            {/* Eyebrow */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center gap-3 mb-6"
+            >
+              <div className="w-8 h-px bg-[#C9A227]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C9A227]">
+                Testimonials
+              </span>
+            </motion.div>
 
-          <div className="relative min-h-[250px] flex items-center justify-center">
-            <div className="w-full">
-              <div className="max-w-2xl mx-auto space-y-6">
-                {/* Google Star Rating */}
-                <div className="flex items-center justify-center gap-1.5 text-[#C9A227]">
-                  {Array.from({ length: 5 }).map((_, idx) => (
-                    <div key={idx}>
-                      <Star className="w-5 h-5 fill-[#C9A227] text-[#C9A227]" />
-                    </div>
-                  ))}
-                </div>
+            {/* Heading */}
+            <motion.h2
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="font-playfair text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-3"
+            >
+              Sweet Words<br className="hidden sm:block" /> from Customers
+            </motion.h2>
+            <div className="w-12 h-[2px] bg-[#C9A227] mb-10" />
 
-                <blockquote className="font-playfair text-lg italic leading-relaxed text-white/95">
-                  "{REVIEWS[reviewSlide % REVIEWS.length].comment}"
-                </blockquote>
+            {/* Review body */}
+            <div className="space-y-6 max-w-lg">
+              {/* Stars */}
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <Star key={idx} className="w-5 h-5 fill-[#C9A227] text-[#C9A227]" />
+                ))}
+              </div>
 
-                <div className="flex items-center justify-center gap-3 pt-4">
-                  <img
-                    src={REVIEWS[reviewSlide % REVIEWS.length].avatar}
-                    alt={REVIEWS[reviewSlide % REVIEWS.length].name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-[#C9A227] shadow-md"
-                  />
-                  <div className="text-left">
-                    <h4 className="text-sm font-bold text-white leading-tight">
-                      {REVIEWS[reviewSlide % REVIEWS.length].name}
-                    </h4>
-                    <span className="text-xs text-[#C9A227] font-medium">
-                      {REVIEWS[reviewSlide % REVIEWS.length].role}
-                    </span>
-                  </div>
+              {/* Quote */}
+              <blockquote className="font-playfair text-lg sm:text-xl italic leading-relaxed text-white/90">
+                "{REVIEWS[reviewSlide % REVIEWS.length].comment}"
+              </blockquote>
+
+              {/* Author */}
+              <div className="flex items-center gap-4 pt-2">
+                <img
+                  src={REVIEWS[reviewSlide % REVIEWS.length].avatar}
+                  alt={REVIEWS[reviewSlide % REVIEWS.length].name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-[#C9A227] shadow-md shrink-0"
+                />
+                <div>
+                  <h4 className="text-sm font-bold text-white leading-tight">
+                    {REVIEWS[reviewSlide % REVIEWS.length].name}
+                  </h4>
+                  <span className="text-xs text-[#C9A227] font-medium">
+                    {REVIEWS[reviewSlide % REVIEWS.length].role}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Dots Controls */}
-          <div className="flex items-center justify-center gap-2 mt-8">
-            {REVIEWS.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setReviewSlide(idx)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  (reviewSlide % REVIEWS.length) === idx ? 'bg-[#C9A227] w-6' : 'bg-white/30'
-                }`}
-                aria-label={`Go to review ${idx + 1}`}
-              />
-            ))}
+            {/* Dot controls */}
+            <div className="flex items-center gap-2 mt-10">
+              {REVIEWS.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setReviewSlide(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    (reviewSlide % REVIEWS.length) === idx
+                      ? 'bg-[#C9A227] w-6'
+                      : 'bg-white/25 w-2 hover:bg-white/50'
+                  }`}
+                  aria-label={`Go to review ${idx + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
+
+
 
 
 
